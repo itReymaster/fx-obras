@@ -15,10 +15,11 @@ interface DashboardData {
 
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [includeTests, setIncludeTests] = useState(false);
 
   useEffect(() => {
-    void opportunitiesApi.dashboard().then(setData);
-  }, []);
+    void opportunitiesApi.dashboard(includeTests).then(setData);
+  }, [includeTests]);
 
   if (!data) {
     return <div className="page">Carregando dashboard...</div>;
@@ -38,6 +39,14 @@ export function DashboardPage() {
       <header className="page-header">
         <h2 className="page-title">Dashboard executivo</h2>
         <p className="page-subtitle">Visão consolidada da operação para acompanhar volume, prioridade e conversão.</p>
+        <label className="checkbox-label" style={{ marginTop: "8px" }}>
+          <input
+            type="checkbox"
+            checked={includeTests}
+            onChange={(e) => setIncludeTests(e.target.checked)}
+          />
+          Incluir registros de teste nos KPIs
+        </label>
       </header>
       <section className="metric-grid">
         {cards.map(([label, value]) => (

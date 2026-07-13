@@ -142,7 +142,7 @@ export function OpportunityDetailPage() {
             <div className="cluster mt-10">
               <span className="badge">{labels.status(item.status)}</span>
               <span className="badge">{labels.commercialPotential(item.commercialPotential)}</span>
-              {item.isTest && <span className="badge" style={{ backgroundColor: "#fed7aa", color: "#92400e" }}>⚠️ Teste</span>}
+              {item.isTest && <span className="badge-test">✨ Teste</span>}
             </div>
           </div>
           <div className="detail-actions">

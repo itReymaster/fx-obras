@@ -8,7 +8,8 @@ const certDir = path.resolve(__dirname, "../../certs");
 const certPath = path.join(certDir, "cert.pem");
 const keyPath = path.join(certDir, "key.pem");
 
-const isHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
+// Disable HTTPS for browser testing (uncomment below to enable HTTPS on network)
+const isHttps = false; // fs.existsSync(certPath) && fs.existsSync(keyPath);
 const https = isHttps
   ? {
       cert: fs.readFileSync(certPath),
