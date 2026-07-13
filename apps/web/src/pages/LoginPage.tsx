@@ -144,8 +144,8 @@ export const LoginPage = () => {
           </button>
         </form>
 
-          {/* Help Text */}
-          <div className="login-footer">
+          {/* Help Text - Desktop Only */}
+          <div className="login-footer login-footer-desktop">
             <p className="login-help">
               Use as credenciais fornecidas para acessar a plataforma
             </p>
@@ -153,18 +153,22 @@ export const LoginPage = () => {
 
           {/* Mobile Mini Hero */}
           <div className="login-mobile-hero">
-            <h2 className="mini-hero-title">{APP_CONFIG.name}</h2>
-            <p className="mini-hero-tagline">{APP_CONFIG.moduleName}</p>
-            
-            <div className="mini-hero-features">
-              <div className="mini-feature">
-                <div className="mini-feature-dot" />
-                <p className="mini-feature-text">Banco de dados completo de oportunidades</p>
+            <div className="mini-hero-content-wrapper">
+              <h2 className="mini-hero-title">{APP_CONFIG.name}</h2>
+              <p className="mini-hero-tagline">{APP_CONFIG.moduleName}</p>
+              
+              <div className="mini-hero-features">
+                <div className="mini-feature">
+                  <div className="mini-feature-dot" />
+                  <p className="mini-feature-text">Banco de dados completo de oportunidades</p>
+                </div>
+                <div className="mini-feature">
+                  <div className="mini-feature-dot" />
+                  <p className="mini-feature-text">Análise geográfica e insights de mercado</p>
+                </div>
               </div>
-              <div className="mini-feature">
-                <div className="mini-feature-dot" />
-                <p className="mini-feature-text">Análise geográfica e insights de mercado</p>
-              </div>
+              
+              <p className="mini-hero-help">Use as credenciais fornecidas para acessar</p>
             </div>
           </div>
         </div>
