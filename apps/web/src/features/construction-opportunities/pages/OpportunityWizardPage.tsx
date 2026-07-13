@@ -127,6 +127,7 @@ const formDefaultValues: OpportunityFormValues = {
   constructionStage: "UNKNOWN",
   commercialPotential: "NOT_EVALUATED",
   withoutNumber: false,
+  isTest: false,
 };
 
 const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormValues => {
@@ -160,6 +161,7 @@ const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormVa
     nextAction: opportunity.nextAction ?? undefined,
     nextActionDate: opportunity.nextActionDate ?? undefined,
     tagsText: opportunity.tags?.length ? opportunity.tags.join(", ") : undefined,
+    isTest: opportunity.isTest ?? false,
   };
 };
 
@@ -720,6 +722,7 @@ export function OpportunityWizardPage() {
             <label>Próxima ação<input className="input" {...register("nextAction")} /></label>
             <label>Data da próxima ação<input className="input" type="date" {...register("nextActionDate")} /></label>
             <label>Tags (separadas por virgula)<input className="input" {...register("tagsText")} /></label>
+            <label className="checkbox-label"><input type="checkbox" {...register("isTest")} /> Marcar como teste (não exibe na listagem padrão)</label>
           </div>
         </section>
       )}
@@ -738,6 +741,7 @@ export function OpportunityWizardPage() {
             <div><strong>Contato:</strong> {values.contactName || "-"}</div>
             <div><strong>Próxima ação:</strong> {values.nextAction || "-"}</div>
             <div><strong>{isEditing ? "Status atual" : "Status inicial"}:</strong> {isEditing ? labels.status(loadedOpportunity?.status ?? "CAPTURED") : labels.status("CAPTURED")}</div>
+            <div><strong>Tipo de registro:</strong> {values.isTest ? "⚠️ Teste (não exibe por padrão)" : "✓ Registro real"}</div>
           </div>
         </section>
       )}

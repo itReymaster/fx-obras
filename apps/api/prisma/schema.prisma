@@ -52,6 +52,7 @@ model ConstructionOpportunity {
   updatedAt               DateTime               @updatedAt
   deletedAt               DateTime?
   isDeleted               Boolean                @default(false)
+  isTest                  Boolean                @default(false)
 
   photos                  ConstructionOpportunityPhoto[]
   history                 ConstructionOpportunityHistory[]

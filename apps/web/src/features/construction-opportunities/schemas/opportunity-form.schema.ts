@@ -32,6 +32,7 @@ export const opportunityFormSchema = z.object({
   nextAction: z.string().optional(),
   nextActionDate: z.string().optional(),
   tagsText: z.string().optional(),
+  isTest: z.boolean().optional().default(false),
 });
 
 export type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;

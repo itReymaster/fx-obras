@@ -14,10 +14,11 @@ export function OpportunityListPage() {
   const [status, setStatus] = useState("");
   const [sortBy, setSortBy] = useState("most_recent");
   const [view, setView] = useState<"cards" | "table">("cards");
+  const [showTestRecords, setShowTestRecords] = useState(false);
 
   const load = () => {
     void opportunitiesApi
-      .list({ page: 1, pageSize: 50, search, city, status, sortBy })
+      .list({ page: 1, pageSize: 50, search, city, status, sortBy, isTest: showTestRecords ? undefined : false })
       .then((response) => setItems(response.data));
   };
 
@@ -79,6 +80,10 @@ export function OpportunityListPage() {
               <option value="nextActionDate">Data da próxima ação</option>
             </select>
           </label>
+          <label className="checkbox-label" style={{ padding: "0 12px" }}>
+            <input type="checkbox" checked={showTestRecords} onChange={(event) => setShowTestRecords(event.target.checked)} />
+            Incluir registros de teste
+          </label>
           <div className="filters-actions filters-actions--desktop-end">
             <button className="btn btn-primary btn-lg" onClick={load}>
               Aplicar filtros
@@ -103,7 +108,7 @@ export function OpportunityListPage() {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="table-row-opportunity">
-                  <td className="table-cell-title"><Link to={`/opportunities/${item.id}`}>{item.title}</Link></td>
+                  <td className="table-cell-title"><Link to={`/opportunities/${item.id}`}>{item.title} {item.isTest && "⚠️"}</Link></td>
                   <td className="table-cell-address">{addressLabel(item)}</td>
                   <td className="table-cell-city">{item.city ?? "-"}/{item.state ?? "-"}</td>
                   <td className="table-cell-status"><span className="badge">{labels.status(item.status)}</span></td>
@@ -141,6 +146,7 @@ export function OpportunityListPage() {
                   <span className="badge">{labels.status(item.status)}</span>
                   <span className="badge">{labels.commercialPotential(item.commercialPotential)}</span>
                   <span className="badge">{labels.addressSource(item.addressSource)}</span>
+                  {item.isTest && <span className="badge" style={{ backgroundColor: "#fed7aa", color: "#92400e" }}>⚠️ Teste</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
                   {item.photos.length} foto(s) - {formatDate(item.capturedAt)}
