@@ -150,6 +150,23 @@ export const LoginPage = () => {
               Use as credenciais fornecidas para acessar a plataforma
             </p>
           </div>
+
+          {/* Mobile Mini Hero */}
+          <div className="login-mobile-hero">
+            <h2 className="mini-hero-title">{APP_CONFIG.name}</h2>
+            <p className="mini-hero-tagline">{APP_CONFIG.moduleName}</p>
+            
+            <div className="mini-hero-features">
+              <div className="mini-feature">
+                <div className="mini-feature-dot" />
+                <p className="mini-feature-text">Banco de dados completo de oportunidades</p>
+              </div>
+              <div className="mini-feature">
+                <div className="mini-feature-dot" />
+                <p className="mini-feature-text">Análise geográfica e insights de mercado</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1730,6 +1730,65 @@ textarea:focus-visible {
   }
 }
 
+/* Mobile Mini Hero */
+.login-mobile-hero {
+  display: none;
+  text-align: center;
+  padding: 24px;
+  margin-top: 32px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+.mini-hero-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.mini-hero-tagline {
+  margin: 0;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 500;
+  margin-bottom: 20px;
+  opacity: 0.85;
+}
+
+.mini-hero-features {
+  display: grid;
+  gap: 12px;
+}
+
+.mini-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0;
+}
+
+.mini-feature-dot {
+  width: 4px;
+  height: 4px;
+  background: var(--primary);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.mini-feature-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text);
+  text-align: left;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
 @media (max-width: 600px) {
   .login-layout {
     min-height: 100vh;
@@ -1738,60 +1797,123 @@ textarea:focus-visible {
 
   .login-form-container {
     order: 1;
-    padding: 24px 16px;
+    padding: 16px 16px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  }
+
+  .login-shell {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+    justify-content: space-between;
   }
 
   .login-hero {
     display: none;
   }
 
-  .login-hero-content {
-    gap: 24px;
-  }
-
-  .hero-title {
-    font-size: 24px;
-  }
-
-  .hero-description {
-    font-size: 14px;
-  }
-
-  .login-hero-features {
-    gap: 16px;
-  }
-
-  .feature-item {
-    gap: 12px;
-  }
-
-  .feature-title {
-    font-size: 14px;
-  }
-
-  .login-form-container {
-    padding: 24px 16px;
-  }
-
-  .login-shell {
-    padding: 24px 16px;
+  .login-mobile-hero {
+    display: block;
+    margin: 0;
+    padding: 16px;
+    border-radius: 8px;
   }
 
   .login-header {
-    margin-bottom: 24px;
+    text-align: center;
+    margin-bottom: 0;
+    padding-top: 16px;
+  }
+
+  .login-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 12px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .login-icon svg {
+    width: 100%;
+    height: 100%;
   }
 
   .login-title {
     font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
   }
 
-  .hero-title {
-    font-size: 20px;
+  .login-subtitle {
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+
+  .login-form {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-group {
+    gap: 6px;
+  }
+
+  .login-input {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .login-button {
+    padding: 10px;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .login-footer {
+    text-align: center;
+    padding-top: 8px;
+    border-top: none;
+    margin-bottom: 16px;
+  }
+
+  .login-help {
+    font-size: 11px;
+    margin: 0;
+  }
+
+  .mini-hero-title {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .mini-hero-tagline {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .mini-hero-features {
+    gap: 8px;
+  }
+
+  .mini-feature {
+    gap: 8px;
+  }
+
+  .mini-feature-dot {
+    margin-top: 4px;
+  }
+
+  .mini-feature-text {
+    font-size: 11px;
   }
 }
 
