@@ -1879,7 +1879,7 @@ textarea:focus-visible {
   }
 
   .login-subtitle {
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 0;
     color: rgba(255, 255, 255, 0.85);
   }
@@ -1891,6 +1891,13 @@ textarea:focus-visible {
 
   .form-group {
     gap: 5px;
+  }
+
+  .form-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: none;
+    letter-spacing: 0;
   }
 
   .login-input {
@@ -1946,7 +1953,7 @@ textarea:focus-visible {
   }
 
   .login-help {
-    font-size: 11px;
+    font-size: 12px;
     margin: 0;
   }
 
@@ -1956,7 +1963,7 @@ textarea:focus-visible {
   }
 
   .mini-hero-tagline {
-    font-size: 11px;
+    font-size: 13px;
     margin-bottom: 12px;
   }
 
@@ -1973,7 +1980,7 @@ textarea:focus-visible {
   }
 
   .mini-feature-text {
-    font-size: 11px;
+    font-size: 14px;
   }
 }
 
