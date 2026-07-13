@@ -16,11 +16,12 @@ interface HomeDashboardData {
 export function HomePage() {
   const [count, setCount] = useState(0);
   const [dashboard, setDashboard] = useState<HomeDashboardData | null>(null);
+  const [includeTests, setIncludeTests] = useState(false);
 
   useEffect(() => {
     void opportunitiesApi.count().then(setCount).catch(() => setCount(0));
-    void opportunitiesApi.dashboard().then(setDashboard).catch(() => setDashboard(null));
-  }, []);
+    void opportunitiesApi.dashboard(includeTests).then(setDashboard).catch(() => setDashboard(null));
+  }, [includeTests]);
 
   const cards = [
     { label: "Total cadastrado", value: dashboard?.total ?? count, icon: Building2 },
@@ -104,6 +105,16 @@ export function HomePage() {
       </section>
 
       <section className="home-kpis metric-grid">
+        <div className="cluster cluster--spread" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={includeTests}
+              onChange={(e) => setIncludeTests(e.target.checked)}
+            />
+            Incluir registros de teste nos KPIs
+          </label>
+        </div>
         {cards.map((card) => {
           const Icon = card.icon;
           return (

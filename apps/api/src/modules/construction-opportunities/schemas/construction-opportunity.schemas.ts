@@ -125,11 +125,11 @@ export const listQuerySchema = z.object({
   commercialPotential: z.string().trim().optional(),
   startDate: z.string().trim().optional(),
   endDate: z.string().trim().optional(),
-  hasPhotos: z.coerce.boolean().optional(),
+  hasPhotos: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
   addressSource: z.string().trim().optional(),
-  hasContact: z.coerce.boolean().optional(),
-  hasNextAction: z.coerce.boolean().optional(),
-  isTest: z.coerce.boolean().optional(),
+  hasContact: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
+  hasNextAction: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
+  isTest: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
   sortBy: z
     .enum([
       "most_recent",

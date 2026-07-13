@@ -434,10 +434,12 @@ export class ConstructionOpportunitiesService {
     return result;
   }
 
-  async dashboard() {
+  async dashboard(includeTests = false) {
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(now.getDate() - 30);
+
+    const testFilter = includeTests ? {} : { isTest: false };
 
     const [
       total,
@@ -448,31 +450,33 @@ export class ConstructionOpportunitiesService {
       notSentToCrm,
       latest,
     ] = await Promise.all([
-      this.prisma.constructionOpportunity.count({ where: { isDeleted: false } }),
+      this.prisma.constructionOpportunity.count({ where: { isDeleted: false, ...testFilter } }),
       this.prisma.constructionOpportunity.count({
-        where: { isDeleted: false, capturedAt: { gte: thirtyDaysAgo } },
+        where: { isDeleted: false, capturedAt: { gte: thirtyDaysAgo }, ...testFilter },
       }),
       this.prisma.constructionOpportunity.count({
-        where: { isDeleted: false, commercialPotential: "HIGH" },
+        where: { isDeleted: false, commercialPotential: "HIGH", ...testFilter },
       }),
       this.prisma.constructionOpportunity.count({
-        where: { isDeleted: false, commercialPotential: "NOT_EVALUATED" },
+        where: { isDeleted: false, commercialPotential: "NOT_EVALUATED", ...testFilter },
       }),
       this.prisma.constructionOpportunity.count({
         where: {
           isDeleted: false,
           nextActionDate: { lt: now },
           status: { notIn: ["CONVERTED", "DISCARDED"] },
+          ...testFilter,
         },
       }),
       this.prisma.constructionOpportunity.count({
         where: {
           isDeleted: false,
           crmIntegrationStatus: { in: ["NOT_SENT", "ERROR"] },
+          ...testFilter,
         },
       }),
       this.prisma.constructionOpportunity.findMany({
-        where: { isDeleted: false },
+        where: { isDeleted: false, ...testFilter },
         take: 8,
         orderBy: { capturedAt: "desc" },
         include: { photos: true },

@@ -108,7 +108,7 @@ export function OpportunityListPage() {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="table-row-opportunity">
-                  <td className="table-cell-title"><Link to={`/opportunities/${item.id}`}>{item.title} {item.isTest && "⚠️"}</Link></td>
+                  <td className="table-cell-title"><Link to={`/opportunities/${item.id}`}>{item.title}</Link></td>
                   <td className="table-cell-address">{addressLabel(item)}</td>
                   <td className="table-cell-city">{item.city ?? "-"}/{item.state ?? "-"}</td>
                   <td className="table-cell-status"><span className="badge">{labels.status(item.status)}</span></td>
@@ -146,7 +146,7 @@ export function OpportunityListPage() {
                   <span className="badge">{labels.status(item.status)}</span>
                   <span className="badge">{labels.commercialPotential(item.commercialPotential)}</span>
                   <span className="badge">{labels.addressSource(item.addressSource)}</span>
-                  {item.isTest && <span className="badge" style={{ backgroundColor: "#fed7aa", color: "#92400e" }}>⚠️ Teste</span>}
+                  {item.isTest && <span className="badge-test">✨ Teste</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
                   {item.photos.length} foto(s) - {formatDate(item.capturedAt)}

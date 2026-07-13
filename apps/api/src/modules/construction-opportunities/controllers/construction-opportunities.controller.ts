@@ -82,8 +82,9 @@ export class ConstructionOpportunitiesController {
     res.status(204).send();
   };
 
-  dashboard = async (_req: Request, res: Response) => {
-    const result = await this.service.dashboard();
+  dashboard = async (req: Request, res: Response) => {
+    const includeTests = req.query.includeTests === "true";
+    const result = await this.service.dashboard(includeTests);
     res.json(result);
   };
 
