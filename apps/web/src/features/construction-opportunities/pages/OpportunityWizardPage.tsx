@@ -38,7 +38,17 @@ type ReverseGeocodePayload = {
   };
 };
 
-const reverseGeocodeFromCoords = async (lat: number, lng: number) => {
+type ResolvedAddress = {
+  postalCode?: string;
+  street?: string;
+  number?: string;
+  district?: string;
+  city?: string;
+  state?: string;
+  noNumberAvailable?: boolean;
+};
+
+const reverseGeocodeFromCoords = async (lat: number, lng: number): Promise<ResolvedAddress | null> => {
   try {
     const params = new URLSearchParams({
       lat: String(lat),
@@ -75,7 +85,11 @@ const reverseGeocodeFromCoords = async (lat: number, lng: number) => {
     const stateRaw = address["ISO3166-2-lvl4"] ?? address.state_code;
     const stateCode = stateRaw?.split("-").pop()?.toUpperCase();
 
-    const result = {
+    // Verificar se encontrou a rua mas não tem número de casa
+    const hasStreet = !!(address.road || address.pedestrian || address.footway || address.path || address.cycleway || address.residential);
+    const noNumberAvailable = hasStreet && !address.house_number;
+
+    const result: ResolvedAddress = {
       postalCode: address.postcode,
       street:
         address.road ??
@@ -96,6 +110,7 @@ const reverseGeocodeFromCoords = async (lat: number, lng: number) => {
         address.village ??
         address.municipality,
       state: stateCode && stateCode.length === 2 ? stateCode : undefined,
+      noNumberAvailable,
     };
 
     console.log("[Geolocation] Resultado parseado:", result);
@@ -373,14 +388,24 @@ export function OpportunityWizardPage() {
             if (resolvedAddress.number) {
               setValue("number", resolvedAddress.number);
               setValue("withoutNumber", false);
+            } else if (resolvedAddress.noNumberAvailable) {
+              // Se encontrou a rua mas não tem número registrado no OpenStreetMap
+              console.log("[Geolocation] Numero nao disponivel no OpenStreetMap - marcando 'withoutNumber'");
+              setValue("number", "");
+              setValue("withoutNumber", true);
             }
             if (resolvedAddress.district) setValue("district", resolvedAddress.district);
             if (resolvedAddress.city) setValue("city", resolvedAddress.city);
             if (resolvedAddress.state) setValue("state", resolvedAddress.state);
 
             if (resolvedAddress.street || resolvedAddress.city) {
-              setLocationHint("✅ Endereco preenchido automaticamente com base na localizacao.");
-              console.log("[Geolocation] Sucesso: Endereço preenchido");
+              if (resolvedAddress.noNumberAvailable) {
+                setLocationHint("✅ Endereco preenchido automaticamente (numero nao registrado no mapa).");
+                console.log("[Geolocation] Sucesso: Endereço preenchido com rua mas sem número disponível");
+              } else {
+                setLocationHint("✅ Endereco preenchido automaticamente com base na localizacao.");
+                console.log("[Geolocation] Sucesso: Endereço preenchido");
+              }
             } else {
               setLocationHint("⚠️ Localizacao capturada. Complete o endereco manualmente, se necessario.");
               console.warn("[Geolocation] Parcial: Coordenadas capturadas mas endereço incompleto");
