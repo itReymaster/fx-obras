@@ -1,10 +1,10 @@
-import { BarChart3, Building2, Home, Map, PlusSquare, Rows3, LogOut } from "lucide-react";
+import { BarChart3, Target, Home, Map, PlusSquare, Rows3, LogOut } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { APP_CONFIG } from "../config/app";
 import { useAuth } from "../contexts/AuthContext";
 
 const navItems = [
-  { to: "#", label: "App", icon: Building2, isLauncher: true },
+  { to: "#", label: "App", icon: Target, isLauncher: true },
   { to: "/", label: "Início", icon: Home },
   { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { to: "/map", label: "Mapa", icon: Map },
@@ -27,7 +27,7 @@ export function AppLayout() {
         <header className="app-topbar">
           <div className="app-branding">
             <button type="button" className="app-launcher" aria-label="Abrir menu de aplicativos">
-              <Building2 size={18} />
+              <Target size={18} />
             </button>
             <div>
               <strong className="app-title">{APP_CONFIG.name}</strong>
