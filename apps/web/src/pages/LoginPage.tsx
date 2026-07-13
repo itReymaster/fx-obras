@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Lock, Mail, MapPin, BarChart3, CheckCircle } from 'lucide-react';
+import { Target, MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config/app';
 
@@ -98,7 +98,6 @@ export const LoginPage = () => {
           <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="username" className="form-label">
-              <Mail size={16} />
               Usuário
             </label>
             <input
@@ -115,7 +114,6 @@ export const LoginPage = () => {
 
           <div className="form-group">
             <label htmlFor="password" className="form-label">
-              <Lock size={16} />
               Senha
             </label>
             <input
