@@ -541,8 +541,18 @@ export function OpportunityWizardPage() {
       setStep(5);
     } catch (error: any) {
       clearTimeout(timeoutId);
+      
+      // Log detalhado para debugging
+      console.error("[Save Error]", {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        message: error?.message,
+      });
+
       const message =
         error?.response?.data?.message ??
+        error?.message ??
         `Nao foi possivel ${isEditing ? "atualizar" : "salvar"} a obra. Verifique conexao com a API e tente novamente.`;
       setSaveError(message);
       setSaving(false);
