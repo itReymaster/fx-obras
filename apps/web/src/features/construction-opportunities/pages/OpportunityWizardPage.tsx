@@ -39,51 +39,71 @@ type ReverseGeocodePayload = {
 };
 
 const reverseGeocodeFromCoords = async (lat: number, lng: number) => {
-  const params = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lng),
-    format: "json",
-    addressdetails: "1",
-    zoom: "18",
-  });
+  try {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lng),
+      format: "json",
+      addressdetails: "1",
+      zoom: "18",
+    });
 
-  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
+    console.log(`[Geolocation] Buscando endereço para: ${lat}, ${lng}`);
 
-  if (!response.ok) return null;
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "FxObras/1.0 (Geolocation)",
+      },
+    });
 
-  const payload = (await response.json()) as ReverseGeocodePayload;
-  const address = payload.address;
-  if (!address) return null;
+    if (!response.ok) {
+      console.error(`[Geolocation] Erro Nominatim: ${response.status} ${response.statusText}`);
+      return null;
+    }
 
-  const stateRaw = address["ISO3166-2-lvl4"] ?? address.state_code;
-  const stateCode = stateRaw?.split("-").pop()?.toUpperCase();
+    const payload = (await response.json()) as ReverseGeocodePayload;
+    const address = payload.address;
+    
+    if (!address) {
+      console.warn("[Geolocation] Resposta sem campo 'address'", payload);
+      return null;
+    }
 
-  return {
-    postalCode: address.postcode,
-    street:
-      address.road ??
-      address.pedestrian ??
-      address.footway ??
-      address.path ??
-      address.cycleway ??
-      address.residential,
-    number: address.house_number,
-    district:
-      address.suburb ??
-      address.neighbourhood ??
-      address.city_district ??
-      address.quarter,
-    city:
-      address.city ??
-      address.town ??
-      address.village ??
-      address.municipality,
-    state: stateCode && stateCode.length === 2 ? stateCode : undefined,
-  };
+    console.log("[Geolocation] Endereço encontrado:", address);
+
+    const stateRaw = address["ISO3166-2-lvl4"] ?? address.state_code;
+    const stateCode = stateRaw?.split("-").pop()?.toUpperCase();
+
+    const result = {
+      postalCode: address.postcode,
+      street:
+        address.road ??
+        address.pedestrian ??
+        address.footway ??
+        address.path ??
+        address.cycleway ??
+        address.residential,
+      number: address.house_number,
+      district:
+        address.suburb ??
+        address.neighbourhood ??
+        address.city_district ??
+        address.quarter,
+      city:
+        address.city ??
+        address.town ??
+        address.village ??
+        address.municipality,
+      state: stateCode && stateCode.length === 2 ? stateCode : undefined,
+    };
+
+    console.log("[Geolocation] Resultado parseado:", result);
+    return result;
+  } catch (error) {
+    console.error("[Geolocation] Erro ao fazer reverse geocode:", error);
+    return null;
+  }
 };
 
 const formDefaultValues: OpportunityFormValues = {
@@ -346,23 +366,32 @@ export function OpportunityWizardPage() {
 
         try {
           const resolvedAddress = await reverseGeocodeFromCoords(latitude, longitude);
-          if (resolvedAddress?.postalCode) setValue("postalCode", resolvedAddress.postalCode);
-          if (resolvedAddress?.street) setValue("street", resolvedAddress.street);
-          if (resolvedAddress?.number) {
-            setValue("number", resolvedAddress.number);
-            setValue("withoutNumber", false);
-          }
-          if (resolvedAddress?.district) setValue("district", resolvedAddress.district);
-          if (resolvedAddress?.city) setValue("city", resolvedAddress.city);
-          if (resolvedAddress?.state) setValue("state", resolvedAddress.state);
+          
+          if (resolvedAddress) {
+            if (resolvedAddress.postalCode) setValue("postalCode", resolvedAddress.postalCode);
+            if (resolvedAddress.street) setValue("street", resolvedAddress.street);
+            if (resolvedAddress.number) {
+              setValue("number", resolvedAddress.number);
+              setValue("withoutNumber", false);
+            }
+            if (resolvedAddress.district) setValue("district", resolvedAddress.district);
+            if (resolvedAddress.city) setValue("city", resolvedAddress.city);
+            if (resolvedAddress.state) setValue("state", resolvedAddress.state);
 
-          if (resolvedAddress?.street || resolvedAddress?.city) {
-            setLocationHint("Endereco preenchido automaticamente com base na localizacao.");
+            if (resolvedAddress.street || resolvedAddress.city) {
+              setLocationHint("✅ Endereco preenchido automaticamente com base na localizacao.");
+              console.log("[Geolocation] Sucesso: Endereço preenchido");
+            } else {
+              setLocationHint("⚠️ Localizacao capturada. Complete o endereco manualmente, se necessario.");
+              console.warn("[Geolocation] Parcial: Coordenadas capturadas mas endereço incompleto");
+            }
           } else {
-            setLocationHint("Localizacao capturada. Complete o endereco manualmente, se necessario.");
+            setLocationHint("⚠️ Localizacao capturada. Complete o endereco manualmente, pois nao conseguimos resolver o endereco automaticamente.");
+            console.warn("[Geolocation] Fallback: Nominatim não retornou endereço");
           }
-        } catch {
-          setLocationHint("Localizacao capturada, mas nao foi possivel preencher o endereco automaticamente.");
+        } catch (error) {
+          console.error("[Geolocation] Erro ao preencher endereço:", error);
+          setLocationHint("⚠️ Localizacao capturada, mas houve erro ao preencher o endereco automaticamente. Complete manualmente.");
         } finally {
           setCapturingLocation(false);
         }
