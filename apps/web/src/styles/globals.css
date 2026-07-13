@@ -1834,7 +1834,7 @@ textarea:focus-visible {
   .login-layout {
     min-height: 100vh;
     grid-template-columns: 1fr;
-    background: linear-gradient(135deg, #0f3a7d 0%, #1e5ba8 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
   }
 
   .login-form-container {
@@ -1866,7 +1866,7 @@ textarea:focus-visible {
   .login-mobile-hero {
     display: block;
     margin: 0;
-    padding: 16px 16px;
+    padding: 0;
     border-radius: 0;
     background: transparent;
     border: none;
@@ -1967,7 +1967,7 @@ textarea:focus-visible {
 
   .login-mobile-hero {
     margin-top: 0;
-    padding: 12px 16px;
+    padding: 12px 0 0 0;
   }
 
   .login-footer {
