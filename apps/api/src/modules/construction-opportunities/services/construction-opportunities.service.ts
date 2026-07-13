@@ -109,6 +109,7 @@ export class ConstructionOpportunitiesService {
       createdByUserId: input.createdByUserId,
       updatedByUserId: input.updatedByUserId,
       crmIntegrationStatus: "NOT_SENT",
+      isTest: input.isTest ?? false,
     };
   }
 
@@ -168,6 +169,9 @@ export class ConstructionOpportunitiesService {
     }
     if (query.hasNextAction !== undefined) {
       andFilters.push(query.hasNextAction ? { nextAction: { not: null } } : { nextAction: null });
+    }
+    if (query.isTest !== undefined) {
+      andFilters.push({ isTest: query.isTest });
     }
 
     return { AND: andFilters };

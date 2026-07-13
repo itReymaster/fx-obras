@@ -45,6 +45,7 @@ export interface Opportunity {
   crmIntegrationStatus: "NOT_SENT" | "PENDING" | "SENT" | "ERROR";
   capturedAt: string;
   photos: OpportunityPhoto[];
+  isTest: boolean;
 }
 
 export interface OpportunityListResponse {

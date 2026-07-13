@@ -79,6 +79,7 @@ const constructionOpportunityBaseSchema = z.object({
     capturedAt: optionalDateString,
     createdByUserId: z.string().uuid().optional(),
     updatedByUserId: z.string().uuid().optional(),
+    isTest: z.boolean().default(false),
   });
 
 export const constructionOpportunityCreateSchema = constructionOpportunityBaseSchema
@@ -128,6 +129,7 @@ export const listQuerySchema = z.object({
   addressSource: z.string().trim().optional(),
   hasContact: z.coerce.boolean().optional(),
   hasNextAction: z.coerce.boolean().optional(),
+  isTest: z.coerce.boolean().optional(),
   sortBy: z
     .enum([
       "most_recent",
