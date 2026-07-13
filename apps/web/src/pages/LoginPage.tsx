@@ -154,16 +154,13 @@ export const LoginPage = () => {
           {/* Mobile Mini Hero */}
           <div className="login-mobile-hero">
             <div className="mini-hero-content-wrapper">
-              <h2 className="mini-hero-title">{APP_CONFIG.name}</h2>
-              <p className="mini-hero-tagline">{APP_CONFIG.moduleName}</p>
-              
               <div className="mini-hero-features">
                 <div className="mini-feature">
-                  <div className="mini-feature-dot" />
+                  <CheckCircle size={16} className="mini-feature-icon" />
                   <p className="mini-feature-text">Banco de dados completo de oportunidades</p>
                 </div>
                 <div className="mini-feature">
-                  <div className="mini-feature-dot" />
+                  <MapPin size={16} className="mini-feature-icon" />
                   <p className="mini-feature-text">Análise geográfica e insights de mercado</p>
                 </div>
               </div>
