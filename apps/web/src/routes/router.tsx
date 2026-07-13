@@ -6,11 +6,21 @@ import { OpportunityWizardPage } from "../features/construction-opportunities/pa
 import { OpportunityListPage } from "../features/construction-opportunities/pages/OpportunityListPage";
 import { OpportunityDetailPage } from "../features/construction-opportunities/pages/OpportunityDetailPage";
 import { OpportunityMapPage } from "../features/construction-opportunities/pages/OpportunityMapPage";
+import { LoginPage } from "../pages/LoginPage";
+import { PrivateRoute } from "../components/PrivateRoute";
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
     path: "/",
-    element: <AppLayout />,
+    element: (
+      <PrivateRoute>
+        <AppLayout />
+      </PrivateRoute>
+    ),
     children: [
       { index: true, element: <HomePage /> },
       { path: "dashboard", element: <DashboardPage /> },

@@ -1,6 +1,7 @@
-import { BarChart3, Building2, Home, Map, PlusSquare, Rows3 } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { BarChart3, Building2, Home, Map, PlusSquare, Rows3, LogOut } from "lucide-react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { APP_CONFIG } from "../config/app";
+import { useAuth } from "../contexts/AuthContext";
 
 const navItems = [
   { to: "#", label: "App", icon: Building2, isLauncher: true },
@@ -12,6 +13,14 @@ const navItems = [
 ];
 
 export function AppLayout() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div className="app-shell">
       <div className="app-frame card">
@@ -25,7 +34,17 @@ export function AppLayout() {
               <div className="app-subtitle">{APP_CONFIG.moduleName}</div>
             </div>
           </div>
-          <span className="app-status-pill">Operação ativa</span>
+          <div className="cluster">
+            <span className="app-status-pill">Operação ativa</span>
+            <button
+              onClick={handleLogout}
+              className="btn btn-ghost btn-sm"
+              title="Sair"
+              aria-label="Sair da aplicação"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </header>
         <nav className="app-nav">
           {navItems.map((item) => {
