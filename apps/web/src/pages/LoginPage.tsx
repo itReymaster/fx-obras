@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Lock, Mail } from 'lucide-react';
+import { Target, Lock, Mail, MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config/app';
 
@@ -28,19 +28,74 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-shell">
-        {/* Logo and Branding */}
-        <div className="login-header">
-          <div className="login-icon">
-            <Building2 size={40} />
+    <div className="login-layout">
+      {/* Hero Section - Left Side */}
+      <div className="login-hero">
+        <div className="login-hero-content">
+          <div className="login-hero-logo">
+            <div className="logo-badge">
+              <Target size={32} />
+            </div>
+            <div>
+              <h2 className="logo-name">{APP_CONFIG.name}</h2>
+              <p className="logo-tagline">Inteligência em Prospecção</p>
+            </div>
           </div>
-          <h1 className="login-title">{APP_CONFIG.name}</h1>
-          <p className="login-subtitle">{APP_CONFIG.moduleName}</p>
-        </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="login-form">
+          <div className="login-hero-value">
+            <h3 className="hero-title">Descubra oportunidades de obras em tempo real</h3>
+            <p className="hero-description">
+              Acesse informações detalhadas sobre projetos de construção, análise geográfica e oportunidades de negócio.
+            </p>
+          </div>
+
+          <div className="login-hero-features">
+            <div className="feature-item">
+              <CheckCircle size={20} className="feature-icon" />
+              <div>
+                <h4 className="feature-title">Banco de Dados Completo</h4>
+                <p className="feature-desc">Milhares de oportunidades atualizadas em tempo real</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <MapPin size={20} className="feature-icon" />
+              <div>
+                <h4 className="feature-title">Mapa Interativo</h4>
+                <p className="feature-desc">Visualize e filtre obras por localização geográfica</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <BarChart3 size={20} className="feature-icon" />
+              <div>
+                <h4 className="feature-title">Análise Estratégica</h4>
+                <p className="feature-desc">Dashboard com insights e métricas de mercado</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="login-hero-footer">
+            <p className="footer-text">
+              © 2026 Digital Rey. Plataforma líder em prospecção de obras.
+            </p>
+          </div>
+        </div>
+        <div className="login-hero-background" />
+      </div>
+
+      {/* Login Form - Right Side */}
+      <div className="login-form-container">
+        <div className="login-shell">
+          {/* Logo and Branding */}
+          <div className="login-header">
+            <div className="login-icon">
+              <Target size={40} />
+            </div>
+            <h1 className="login-title">{APP_CONFIG.name}</h1>
+            <p className="login-subtitle">{APP_CONFIG.moduleName}</p>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="username" className="form-label">
               <Mail size={16} />
@@ -91,16 +146,14 @@ export const LoginPage = () => {
           </button>
         </form>
 
-        {/* Help Text */}
-        <div className="login-footer">
-          <p className="login-help">
-            Use as credenciais fornecidas para acessar a plataforma
-          </p>
+          {/* Help Text */}
+          <div className="login-footer">
+            <p className="login-help">
+              Use as credenciais fornecidas para acessar a plataforma
+            </p>
+          </div>
         </div>
       </div>
-
-      {/* Background decoration */}
-      <div className="login-background" />
     </div>
   );
 };
