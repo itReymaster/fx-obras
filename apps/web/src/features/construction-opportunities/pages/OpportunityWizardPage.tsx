@@ -513,11 +513,20 @@ export function OpportunityWizardPage() {
 
     setSaving(true);
     setSaveError(null);
+
+    // Timeout de segurança: se a requisição demorar mais de 15s, reseta o estado
+    const timeoutId = setTimeout(() => {
+      setSaving(false);
+      setSaveError("Tempo limite atingido. A solicitacao demorou muito. Verifique a conexao e tente novamente.");
+    }, 15000);
+
     try {
       const payload = buildPayload(formData, asDraft);
       const saved = isEditing
         ? await opportunitiesApi.update(opportunityId, payload)
         : await opportunitiesApi.create(payload);
+
+      clearTimeout(timeoutId);
 
       if (files.length > 0) {
         const uploaded = await opportunitiesApi.uploadPhotos(saved.id, files);
@@ -527,14 +536,15 @@ export function OpportunityWizardPage() {
         }
       }
 
+      setSaving(false);
       setSavedOpportunity({ id: saved.id, code: saved.code });
       setStep(5);
     } catch (error: any) {
+      clearTimeout(timeoutId);
       const message =
         error?.response?.data?.message ??
         `Nao foi possivel ${isEditing ? "atualizar" : "salvar"} a obra. Verifique conexao com a API e tente novamente.`;
       setSaveError(message);
-    } finally {
       setSaving(false);
     }
   };
@@ -729,6 +739,18 @@ export function OpportunityWizardPage() {
         {step < 4 ? (
           <button type="button" className="btn btn-primary" onClick={() => setStep((value) => Math.min(4, value + 1))}>
             Avancar
+          </button>
+        ) : saveError ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving}
+            onClick={handleSubmit(
+              (formData) => save(formData as OpportunityFormValues, false),
+              handleInvalidSubmit,
+            )}
+          >
+            {saving ? "Tentando novamente..." : "Tentar novamente"}
           </button>
         ) : (
           <button type="submit" className="btn btn-primary" disabled={saving}>
