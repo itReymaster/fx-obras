@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Obras Prospect API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3333
+paths:
+  /api/v1/construction-opportunities:
+    get:
+      summary: List construction opportunities
+    post:
+      summary: Create construction opportunity
+  /api/v1/construction-opportunities/{id}:
+    get:
+      summary: Get construction opportunity by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+    patch:
+      summary: Update construction opportunity
+    put:
+      summary: Replace construction opportunity
+    delete:
+      summary: Soft delete construction opportunity
+  /api/v1/construction-opportunities/{id}/export:
+    get:
+      summary: Export stable payload for CRM integrations
+  /api/v1/construction-opportunities/{id}/photos:
+    post:
+      summary: Upload photos for construction opportunity
+  /api/v1/construction-opportunities/{id}/photos/{photoId}:
+    delete:
+      summary: Delete a photo
+  /api/v1/construction-opportunities/{id}/photos/{photoId}/primary:
+    patch:
+      summary: Set primary photo
+  /api/v1/construction-opportunities/{id}/history:
+    get:
+      summary: Get opportunity history
+  /api/v1/construction-opportunities/{id}/status:
+    patch:
+      summary: Update opportunity status
+  /api/v1/construction-opportunities/{id}/integrations/crm:
+    post:
+      summary: Mock CRM integration endpoint
+  /api/v1/construction-opportunities/dashboard:
+    get:
+      summary: Dashboard metrics

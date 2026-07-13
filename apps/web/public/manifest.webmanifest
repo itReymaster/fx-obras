@@ -1,0 +1,16 @@
+{
+  "name": "Digital Rey | Prospecção de Obras",
+  "short_name": "Digital Rey",
+  "description": "Módulo de Prospecção de Obras da plataforma Digital Rey",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0d6efd",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

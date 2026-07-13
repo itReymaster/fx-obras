@@ -1,0 +1,17 @@
+{
+  "name": "obras-prospect",
+  "version": "1.0.0",
+  "description": "Obras Prospect MVP monorepo",
+  "scripts": {
+    "dev": "npm run dev -w @obras-prospect/api",
+    "dev:web": "npm run dev -w web",
+    "dev:api": "npm run dev -w @obras-prospect/api",
+    "build": "npm run build -w @obras-prospect/api && npm run build -w web",
+    "test": "npm run test -w @obras-prospect/api"
+  },
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

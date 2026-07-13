@@ -1,0 +1,85 @@
+:root {
+  --color-bg: #f4f7fc;
+  --color-bg-soft: #edf2fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7faff;
+  --color-surface-raised: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #5b6780;
+  --color-text-strong: #0b1220;
+  --color-border: #d7e1f1;
+  --color-border-strong: #c3d1e8;
+  --color-primary: #2563eb;
+  --color-primary-strong: #1d4ed8;
+  --color-primary-soft: #eaf2ff;
+  --color-info: #0ea5e9;
+  --color-success: #198754;
+  --color-warning: #f59e0b;
+  --color-danger: #dc3545;
+  --color-muted: #64748b;
+  --color-status-draft: #6b7280;
+  --color-status-captured: #1d4ed8;
+  --color-status-review: #7c3aed;
+  --color-status-sent: #0ea5e9;
+  --color-status-prospecting: #f59e0b;
+  --color-status-converted: #16a34a;
+  --color-status-discarded: #dc2626;
+  --color-status-approximate: #60a5fa;
+  --color-map-heat-stroke: #60a5fa;
+  --color-map-heat-fill: #93c5fd;
+  --color-shadow: rgba(23, 55, 109, 0.08);
+  --color-shadow-strong: rgba(23, 55, 109, 0.14);
+
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --font-sans: "Manrope", "Avenir Next", "Segoe UI", "SF Pro Text", sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 32px;
+  --font-weight-strong: 600;
+  --font-weight-heavy: 700;
+  --line-height-tight: 1.15;
+  --line-height-regular: 1.5;
+
+  --shadow-sm: 0 4px 14px var(--color-shadow);
+  --shadow-md: 0 18px 42px var(--color-shadow-strong);
+  --focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
+  --transition-fast: 130ms ease;
+  --transition-medium: 180ms ease;
+  --button-min-height: 44px;
+  --shell-max-width: 1240px;
+  --page-max-width: 1240px;
+
+  /* Backward-compatible aliases used by the current app styles. */
+  --bg: var(--color-bg);
+  --bg-soft: var(--color-bg-soft);
+  --surface: var(--color-surface);
+  --surface-muted: var(--color-surface-muted);
+  --text: var(--color-text);
+  --text-soft: var(--color-text-muted);
+  --primary: var(--color-primary);
+  --primary-strong: var(--color-primary-strong);
+  --border: var(--color-border);
+  --success: var(--color-success);
+  --error: var(--color-danger);
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+}
