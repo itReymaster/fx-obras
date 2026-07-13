@@ -1,0 +1,51 @@
+services:
+  backend:
+    build:
+      context: ./apps/api
+    container_name: fx-obras-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://projetos.reymaster.com.br}
+      UPLOAD_DIR: ${UPLOAD_DIR:-uploads/construction-opportunities}
+      MAX_PHOTOS_PER_OPPORTUNITY: ${MAX_PHOTOS_PER_OPPORTUNITY:-15}
+      MAX_PHOTO_SIZE_MB: ${MAX_PHOTO_SIZE_MB:-10}
+      APP_NAME: ${APP_NAME:-Obras Prospect}
+      APP_CODE_PREFIX: ${APP_CODE_PREFIX:-OBR}
+    ports:
+      - "127.0.0.1:${API_PORT:-3333}:3333"
+    volumes:
+      - fx-obras-data:/app/data
+      - fx-obras-uploads:/app/uploads
+    networks:
+      - default
+      - edge
+
+  frontend:
+    build:
+      context: ./apps/web
+      args:
+        VITE_BASE_PATH: ${FRONTEND_BASE_PATH:-/inovacao/fx-obras/}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/inovacao/fx-obras/api/v1}
+        VITE_UPLOADS_BASE_URL: ${VITE_UPLOADS_BASE_URL:-/inovacao/fx-obras/uploads}
+        VITE_APP_NAME: ${VITE_APP_NAME:-Digital Rey}
+        VITE_APP_MODULE_NAME: ${VITE_APP_MODULE_NAME:-Prospecção de Obras}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+    container_name: fx-obras-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - default
+      - edge
+
+volumes:
+  fx-obras-data:
+  fx-obras-uploads:
+
+networks:
+  edge:
+    name: ${EDGE_NETWORK:-srvprojetos-edge}
+    external: true
