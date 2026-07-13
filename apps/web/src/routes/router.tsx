@@ -9,8 +9,6 @@ import { OpportunityMapPage } from "../features/construction-opportunities/pages
 import { LoginPage } from "../pages/LoginPage";
 import { PrivateRoute } from "../components/PrivateRoute";
 
-const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
-
 export const router = createBrowserRouter(
 [
   {
@@ -34,6 +32,4 @@ export const router = createBrowserRouter(
       { path: "opportunities/:id", element: <OpportunityDetailPage /> },
     ],
   },
-],
-  basename ? { basename } : undefined,
-);
+]);
