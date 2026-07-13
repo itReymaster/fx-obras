@@ -7,11 +7,16 @@
     "dev:web": "npm run dev -w web",
     "dev:api": "npm run dev -w @obras-prospect/api",
     "build": "npm run build -w @obras-prospect/api && npm run build -w web",
-    "test": "npm run test -w @obras-prospect/api"
+    "test": "npm run test -w @obras-prospect/api",
+    "certs:generate": "node generate-certs.js",
+    "certs:setup": "npm run certs:generate && npm run dev:web"
   },
   "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "node-forge": "^1.4.0"
+  }
 }

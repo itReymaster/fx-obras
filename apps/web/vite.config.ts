@@ -1,5 +1,21 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import fs from "fs";
+import path from "path";
+
+// Detectar se certificados HTTPS existem
+const certDir = path.resolve(__dirname, "../../certs");
+const certPath = path.join(certDir, "cert.pem");
+const keyPath = path.join(certDir, "key.pem");
+
+const isHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+const https = isHttps
+  ? {
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath),
+    }
+  : undefined;
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,13 +24,14 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5175,
     strictPort: false,
+    https,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:3333",
+        target: isHttps ? "https://127.0.0.1:3333" : "http://127.0.0.1:3333",
         changeOrigin: true,
       },
       "/uploads": {
-        target: "http://127.0.0.1:3333",
+        target: isHttps ? "https://127.0.0.1:3333" : "http://127.0.0.1:3333",
         changeOrigin: true,
       },
     },
