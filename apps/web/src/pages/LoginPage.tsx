@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, MapPin, BarChart3, CheckCircle } from 'lucide-react';
+import { Building2, MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config/app';
 
@@ -34,7 +34,7 @@ export const LoginPage = () => {
         <div className="login-hero-content">
           <div className="login-hero-logo">
             <div className="logo-badge">
-              <Target size={32} />
+              <Building2 size={32} />
             </div>
             <div>
               <h2 className="logo-name">{APP_CONFIG.name}</h2>
@@ -88,7 +88,7 @@ export const LoginPage = () => {
           {/* Logo and Branding */}
           <div className="login-header">
             <div className="login-icon">
-              <Target size={40} />
+              <Building2 size={40} />
             </div>
             <h1 className="login-title">{APP_CONFIG.name}</h1>
             <p className="login-subtitle">{APP_CONFIG.moduleName}</p>
