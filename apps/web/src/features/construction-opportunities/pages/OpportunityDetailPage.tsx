@@ -1,4 +1,4 @@
-import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
@@ -244,13 +244,49 @@ export function OpportunityDetailPage() {
 
       <section className="card section-card surface-card">
         <h3 className="section-title">Informações da obra</h3>
-        <div className="grid-auto-180">
-          <div><strong>Tipo</strong><div>{labels.constructionType(item.constructionType)}</div></div>
-          <div><strong>Estágio</strong><div>{labels.constructionStage(item.constructionStage)}</div></div>
-          <div><strong>Próxima ação</strong><div>{item.nextAction ?? "-"}</div></div>
-          <div><strong>Data da ação</strong><div>{formatDate(item.nextActionDate)}</div></div>
-          <div><strong>Contato</strong><div>{item.contactName ?? "-"}</div></div>
-          <div><strong>CRM</strong><div>{labels.crmStatus(item.crmIntegrationStatus)}</div></div>
+        <div className="info-cards-grid">
+          <div className="info-card">
+            <div className="info-card-icon">
+              <Briefcase />
+              <span className="info-card-label">Tipo</span>
+            </div>
+            <div className="info-card-value">{labels.constructionType(item.constructionType)}</div>
+          </div>
+          <div className="info-card">
+            <div className="info-card-icon">
+              <Hammer />
+              <span className="info-card-label">Estágio</span>
+            </div>
+            <div className="info-card-value">{labels.constructionStage(item.constructionStage)}</div>
+          </div>
+          <div className="info-card">
+            <div className="info-card-icon">
+              <CheckCircle />
+              <span className="info-card-label">Próxima ação</span>
+            </div>
+            <div className="info-card-value">{item.nextAction ?? "-"}</div>
+          </div>
+          <div className="info-card">
+            <div className="info-card-icon">
+              <Clock />
+              <span className="info-card-label">Data da ação</span>
+            </div>
+            <div className="info-card-value">{formatDate(item.nextActionDate)}</div>
+          </div>
+          <div className="info-card">
+            <div className="info-card-icon">
+              <User />
+              <span className="info-card-label">Contato</span>
+            </div>
+            <div className="info-card-value">{item.contactName ?? "-"}</div>
+          </div>
+          <div className="info-card">
+            <div className="info-card-icon">
+              <Zap />
+              <span className="info-card-label">CRM</span>
+            </div>
+            <span className="info-card-badge">{labels.crmStatus(item.crmIntegrationStatus)}</span>
+          </div>
         </div>
         <p className="mt-14">{item.notes ?? "Sem observações."}</p>
       </section>
