@@ -151,17 +151,23 @@ export const LoginPage = () => {
             </p>
           </div>
 
-          {/* Mobile Mini Hero */}
+          {/* Mobile Mini Hero - Features Cards */}
           <div className="login-mobile-hero">
             <div className="mini-hero-content-wrapper">
               <div className="mini-hero-features">
-                <div className="mini-feature">
-                  <CheckCircle size={16} className="mini-feature-icon" />
-                  <p className="mini-feature-text">Banco de dados completo de oportunidades</p>
+                <div className="mini-feature-card">
+                  <CheckCircle size={20} className="mini-feature-icon" />
+                  <div className="mini-feature-content">
+                    <h4 className="mini-feature-title">Banco de Dados</h4>
+                    <p className="mini-feature-text">Oportunidades atualizadas em tempo real</p>
+                  </div>
                 </div>
-                <div className="mini-feature">
-                  <MapPin size={16} className="mini-feature-icon" />
-                  <p className="mini-feature-text">Análise geográfica e insights de mercado</p>
+                <div className="mini-feature-card">
+                  <MapPin size={20} className="mini-feature-icon" />
+                  <div className="mini-feature-content">
+                    <h4 className="mini-feature-title">Análise Geográfica</h4>
+                    <p className="mini-feature-text">Visualize obras por localização</p>
+                  </div>
                 </div>
               </div>
               
