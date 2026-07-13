@@ -1391,7 +1391,7 @@ textarea:focus-visible {
 }
 
 .login-hero {
-  background: #1e40af;
+  background: var(--primary);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1543,7 +1543,7 @@ textarea:focus-visible {
   height: 56px;
   border-radius: 12px;
   background: transparent;
-  color: #1e40af;
+  color: var(--primary);
   margin-bottom: 16px;
 }
 
@@ -1599,8 +1599,8 @@ textarea:focus-visible {
 
 .login-input:focus {
   outline: none;
-  border-color: #1e40af;
-  box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.05);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.05);
   background: #ffffff;
 }
 
@@ -1636,7 +1636,7 @@ textarea:focus-visible {
 .login-button {
   width: 100%;
   padding: 12px;
-  background: #1e40af;
+  background: var(--primary);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -1644,13 +1644,13 @@ textarea:focus-visible {
   font-weight: 600;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
 .login-button:hover:not(:disabled) {
-  background: #1e3a8a;
+  background: var(--primary-strong);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .login-button:active:not(:disabled) {
@@ -1689,7 +1689,7 @@ textarea:focus-visible {
   width: 40px;
   height: 40px;
   border: 3px solid #e8ecf3;
-  border-top-color: #1e40af;
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
