@@ -1,7 +1,7 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import type {
   ConstructionOpportunityModel,
-  CreateOpportunityInput,
+  CreateOpportunityRecord,
   UpdateOpportunityInput,
 } from "../domain/models/construction-opportunity.model.js";
 import type { ListQueryInput } from "../schemas/construction-opportunity.schemas.js";
@@ -110,7 +110,7 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
     };
   }
 
-  async create(input: CreateOpportunityInput): Promise<ConstructionOpportunityModel> {
+  async create(input: CreateOpportunityRecord): Promise<ConstructionOpportunityModel> {
     const record = await this.prisma.constructionOpportunity.create({
       data: {
         code: input.code,

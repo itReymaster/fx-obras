@@ -21,7 +21,7 @@ export interface ConstructionOpportunityModel {
   state?: string;
   latitude?: number;
   longitude?: number;
-  locationAccuracy?: string;
+  locationAccuracy?: number;
   locationCapturedAt?: Date;
   constructionCompany?: string;
   estimatedCompletionDate?: Date;
@@ -64,5 +64,10 @@ export interface CreateOpportunityInput
     | "photos"
     | "history"
   > {}
+
+/** Payload persistido pelo repositório (inclui código gerado pelo use case). */
+export type CreateOpportunityRecord = CreateOpportunityInput & {
+  code: string;
+};
 
 export interface UpdateOpportunityInput extends Partial<CreateOpportunityInput> {}
