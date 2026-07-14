@@ -1,6 +1,6 @@
 import { AppError } from "../../../shared/errors/app-error.js";
-import type { ConstructionOpportunityModel } from "../../domain/models/construction-opportunity.model.js";
-import type { IConstructionOpportunityRepository } from "../../repositories/construction-opportunity.repository.interface.js";
+import type { ConstructionOpportunityModel } from "../domain/models/construction-opportunity.model.js";
+import type { IConstructionOpportunityRepository } from "../repositories/construction-opportunity.repository.interface.js";
 
 export class GetOpportunityByIdUseCase {
   constructor(private readonly repository: IConstructionOpportunityRepository) {}

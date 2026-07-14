@@ -1,6 +1,6 @@
 import type {
   ConstructionOpportunityModel,
-  CreateOpportunityInput,
+  CreateOpportunityRecord,
   UpdateOpportunityInput,
 } from "../domain/models/construction-opportunity.model.js";
 import type { ListQueryInput } from "../schemas/construction-opportunity.schemas.js";
@@ -12,7 +12,7 @@ export interface IConstructionOpportunityRepository {
     totalItems: number;
   }>;
   findByCode(code: string): Promise<ConstructionOpportunityModel | null>;
-  create(input: CreateOpportunityInput): Promise<ConstructionOpportunityModel>;
+  create(input: CreateOpportunityRecord): Promise<ConstructionOpportunityModel>;
   update(id: string, input: UpdateOpportunityInput): Promise<ConstructionOpportunityModel>;
   delete(id: string): Promise<void>;
   count(filters?: Partial<ConstructionOpportunityModel>): Promise<number>;

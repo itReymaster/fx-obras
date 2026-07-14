@@ -1,108 +1,35 @@
-import { randomUUID } from "node:crypto";
 import { env } from "../../../config/env.js";
 import { AppError } from "../../../shared/errors/app-error.js";
+import { sendOpportunityNotification } from "../../../shared/email/email-service.js";
 import { MockCrmIntegrationService, } from "../../../shared/integrations/crm/crm-integration-service.js";
 import { LocalFileStorageService, } from "../../../shared/storage/file-storage-service.js";
 import { ConstructionOpportunityExportMapper } from "../mappers/construction-opportunity-export.mapper.js";
-const normalizePhone = (phone) => {
-    if (!phone)
-        return undefined;
-    return phone.replace(/[^\d+]/g, "");
-};
-const generateFallbackTitle = (input) => {
-    if (input.street) {
-        const suffix = input.number ? `, ${input.number}` : "";
-        return `Obra - ${input.street}${suffix}`;
-    }
-    if (input.district && input.city) {
-        return `Obra - ${input.district} - ${input.city}`;
-    }
-    return `Obra capturada em ${new Date().toLocaleDateString("pt-BR")}`;
-};
-const parseTags = (tags) => {
-    if (!tags)
-        return [];
-    try {
-        return JSON.parse(tags);
-    }
-    catch {
-        return [];
-    }
-};
+import { ConstructionOpportunityRepository } from "../repositories/construction-opportunity.repository.js";
+import { CreateOpportunityUseCase, UpdateOpportunityUseCase, GetOpportunityByIdUseCase, ListOpportunitiesUseCase, } from "../use-cases/index.js";
+/**
+ * Service Layer - Orquestrador de casos de uso e operações específicas de domínio
+ */
 export class ConstructionOpportunitiesService {
     prisma;
     fileStorage;
     crmIntegrationService;
+    repository;
+    createUseCase;
+    updateUseCase;
+    getUseCase;
+    listUseCase;
     constructor(prisma, fileStorage = new LocalFileStorageService(), crmIntegrationService = new MockCrmIntegrationService()) {
         this.prisma = prisma;
         this.fileStorage = fileStorage;
         this.crmIntegrationService = crmIntegrationService;
-    }
-    async nextCode() {
-        const currentYear = new Date().getFullYear();
-        const start = new Date(`${currentYear}-01-01T00:00:00.000Z`);
-        const end = new Date(`${currentYear + 1}-01-01T00:00:00.000Z`);
-        const countThisYear = await this.prisma.constructionOpportunity.count({
-            where: {
-                createdAt: {
-                    gte: start,
-                    lt: end,
-                },
-            },
-        });
-        const seq = String(countThisYear + 1).padStart(6, "0");
-        return `${env.appCodePrefix}-${currentYear}-${seq}`;
-    }
-    buildCreateData(input) {
-        return {
-            code: randomUUID(),
-            title: input.title || generateFallbackTitle(input),
-            description: input.description,
-            constructionType: input.constructionType,
-            constructionStage: input.constructionStage,
-            commercialPotential: input.commercialPotential,
-            status: input.status ?? "CAPTURED",
-            addressSource: input.addressSource,
-            postalCode: input.postalCode,
-            street: input.street,
-            number: input.number,
-            withoutNumber: input.withoutNumber,
-            complement: input.complement,
-            district: input.district,
-            city: input.city,
-            state: input.state,
-            latitude: input.latitude,
-            longitude: input.longitude,
-            locationAccuracy: input.locationAccuracy,
-            locationCapturedAt: input.locationCapturedAt ? new Date(input.locationCapturedAt) : undefined,
-            constructionCompany: input.constructionCompany,
-            estimatedCompletionDate: input.estimatedCompletionDate
-                ? new Date(input.estimatedCompletionDate)
-                : undefined,
-            contactName: input.contactName,
-            contactCompany: input.contactCompany,
-            contactRole: input.contactRole,
-            contactPhone: normalizePhone(input.contactPhone),
-            contactEmail: input.contactEmail,
-            nextAction: input.nextAction,
-            nextActionDate: input.nextActionDate ? new Date(input.nextActionDate) : undefined,
-            notes: input.notes,
-            tags: JSON.stringify(input.tags),
-            capturedAt: input.capturedAt ? new Date(input.capturedAt) : new Date(),
-            createdByUserId: input.createdByUserId,
-            updatedByUserId: input.updatedByUserId,
-            crmIntegrationStatus: "NOT_SENT",
-        };
+        this.repository = new ConstructionOpportunityRepository(prisma);
+        this.createUseCase = new CreateOpportunityUseCase(this.repository);
+        this.updateUseCase = new UpdateOpportunityUseCase(this.repository);
+        this.getUseCase = new GetOpportunityByIdUseCase(this.repository);
+        this.listUseCase = new ListOpportunitiesUseCase(this.repository);
     }
     async create(input) {
-        const code = await this.nextCode();
-        const created = await this.prisma.constructionOpportunity.create({
-            data: {
-                ...this.buildCreateData(input),
-                code,
-            },
-            include: { photos: true, history: true },
-        });
+        const created = await this.createUseCase.execute(input);
         await this.prisma.constructionOpportunityHistory.create({
             data: {
                 constructionOpportunityId: created.id,
@@ -110,118 +37,29 @@ export class ConstructionOpportunitiesService {
                 description: "Opportunity created",
             },
         });
+        void sendOpportunityNotification("created", created);
         return {
             ...created,
-            tags: parseTags(created.tags ?? undefined),
+            tags: created.tags,
         };
-    }
-    buildWhere(query) {
-        const andFilters = [{ isDeleted: false }];
-        if (query.search) {
-            andFilters.push({
-                OR: [
-                    { title: { contains: query.search } },
-                    { notes: { contains: query.search } },
-                    { code: { contains: query.search } },
-                ],
-            });
-        }
-        if (query.city)
-            andFilters.push({ city: query.city });
-        if (query.state)
-            andFilters.push({ state: query.state.toUpperCase() });
-        if (query.district)
-            andFilters.push({ district: query.district });
-        if (query.constructionType)
-            andFilters.push({ constructionType: query.constructionType });
-        if (query.constructionStage)
-            andFilters.push({ constructionStage: query.constructionStage });
-        if (query.status)
-            andFilters.push({ status: query.status });
-        if (query.commercialPotential)
-            andFilters.push({ commercialPotential: query.commercialPotential });
-        if (query.addressSource)
-            andFilters.push({ addressSource: query.addressSource });
-        if (query.hasContact !== undefined) {
-            andFilters.push(query.hasContact
-                ? { OR: [{ contactName: { not: null } }, { contactPhone: { not: null } }, { contactEmail: { not: null } }] }
-                : { AND: [{ contactName: null }, { contactPhone: null }, { contactEmail: null }] });
-        }
-        if (query.hasNextAction !== undefined) {
-            andFilters.push(query.hasNextAction ? { nextAction: { not: null } } : { nextAction: null });
-        }
-        return { AND: andFilters };
-    }
-    sortBy(sortBy) {
-        if (sortBy === "oldest")
-            return { capturedAt: "asc" };
-        if (sortBy === "title")
-            return { title: "asc" };
-        if (sortBy === "city")
-            return { city: "asc" };
-        if (sortBy === "commercialPotential")
-            return { commercialPotential: "desc" };
-        if (sortBy === "nextActionDate")
-            return { nextActionDate: "asc" };
-        return { capturedAt: "desc" };
     }
     async list(query) {
-        const where = this.buildWhere(query);
-        const skip = (query.page - 1) * query.pageSize;
-        const [items, totalItems] = await Promise.all([
-            this.prisma.constructionOpportunity.findMany({
-                where,
-                skip,
-                take: query.pageSize,
-                orderBy: this.sortBy(query.sortBy),
-                include: { photos: true },
-            }),
-            this.prisma.constructionOpportunity.count({ where }),
-        ]);
-        return {
-            data: items.map((item) => ({ ...item, tags: parseTags(item.tags ?? undefined) })),
-            pagination: {
-                page: query.page,
-                pageSize: query.pageSize,
-                totalItems,
-                totalPages: Math.ceil(totalItems / query.pageSize),
-            },
-        };
+        return await this.listUseCase.execute(query);
     }
     async getById(id) {
-        const opportunity = await this.prisma.constructionOpportunity.findFirst({
-            where: { id, isDeleted: false },
-            include: {
-                photos: { orderBy: { createdAt: "desc" } },
-                history: { orderBy: { createdAt: "desc" } },
-            },
+        const opportunity = await this.getUseCase.execute(id);
+        const history = await this.prisma.constructionOpportunityHistory.findMany({
+            where: { constructionOpportunityId: id },
+            orderBy: { createdAt: "desc" },
         });
-        if (!opportunity)
-            throw new AppError("Opportunity not found", 404);
         return {
             ...opportunity,
-            tags: parseTags(opportunity.tags ?? undefined),
+            tags: opportunity.tags,
+            history,
         };
     }
     async update(id, input) {
-        await this.getById(id);
-        const data = {
-            ...input,
-            state: input.state?.toUpperCase(),
-            contactPhone: normalizePhone(input.contactPhone),
-            tags: input.tags ? JSON.stringify(input.tags) : undefined,
-            locationCapturedAt: input.locationCapturedAt ? new Date(input.locationCapturedAt) : undefined,
-            estimatedCompletionDate: input.estimatedCompletionDate
-                ? new Date(input.estimatedCompletionDate)
-                : undefined,
-            nextActionDate: input.nextActionDate ? new Date(input.nextActionDate) : undefined,
-            capturedAt: input.capturedAt ? new Date(input.capturedAt) : undefined,
-        };
-        const updated = await this.prisma.constructionOpportunity.update({
-            where: { id },
-            data,
-            include: { photos: true, history: true },
-        });
+        const updated = await this.updateUseCase.execute(id, input);
         await this.prisma.constructionOpportunityHistory.create({
             data: {
                 constructionOpportunityId: id,
@@ -229,9 +67,10 @@ export class ConstructionOpportunitiesService {
                 description: "Opportunity updated",
             },
         });
+        void sendOpportunityNotification("updated", updated);
         return {
             ...updated,
-            tags: parseTags(updated.tags ?? undefined),
+            tags: updated.tags,
         };
     }
     async softDelete(id) {
@@ -381,36 +220,39 @@ export class ConstructionOpportunitiesService {
         });
         return result;
     }
-    async dashboard() {
+    async dashboard(includeTests = false) {
         const now = new Date();
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(now.getDate() - 30);
+        const testFilter = includeTests ? {} : { isTest: false };
         const [total, last30, highPotential, notEvaluated, overdueNextAction, notSentToCrm, latest,] = await Promise.all([
-            this.prisma.constructionOpportunity.count({ where: { isDeleted: false } }),
+            this.prisma.constructionOpportunity.count({ where: { isDeleted: false, ...testFilter } }),
             this.prisma.constructionOpportunity.count({
-                where: { isDeleted: false, capturedAt: { gte: thirtyDaysAgo } },
+                where: { isDeleted: false, capturedAt: { gte: thirtyDaysAgo }, ...testFilter },
             }),
             this.prisma.constructionOpportunity.count({
-                where: { isDeleted: false, commercialPotential: "HIGH" },
+                where: { isDeleted: false, commercialPotential: "HIGH", ...testFilter },
             }),
             this.prisma.constructionOpportunity.count({
-                where: { isDeleted: false, commercialPotential: "NOT_EVALUATED" },
+                where: { isDeleted: false, commercialPotential: "NOT_EVALUATED", ...testFilter },
             }),
             this.prisma.constructionOpportunity.count({
                 where: {
                     isDeleted: false,
                     nextActionDate: { lt: now },
                     status: { notIn: ["CONVERTED", "DISCARDED"] },
+                    ...testFilter,
                 },
             }),
             this.prisma.constructionOpportunity.count({
                 where: {
                     isDeleted: false,
                     crmIntegrationStatus: { in: ["NOT_SENT", "ERROR"] },
+                    ...testFilter,
                 },
             }),
             this.prisma.constructionOpportunity.findMany({
-                where: { isDeleted: false },
+                where: { isDeleted: false, ...testFilter },
                 take: 8,
                 orderBy: { capturedAt: "desc" },
                 include: { photos: true },

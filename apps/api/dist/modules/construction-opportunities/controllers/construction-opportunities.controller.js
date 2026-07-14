@@ -62,8 +62,9 @@ export class ConstructionOpportunitiesController {
         await this.service.updateStatus(asParam(req.params.id), payload.status, payload.reason);
         res.status(204).send();
     };
-    dashboard = async (_req, res) => {
-        const result = await this.service.dashboard();
+    dashboard = async (req, res) => {
+        const includeTests = req.query.includeTests === "true";
+        const result = await this.service.dashboard(includeTests);
         res.json(result);
     };
     integrateCrm = async (req, res) => {
