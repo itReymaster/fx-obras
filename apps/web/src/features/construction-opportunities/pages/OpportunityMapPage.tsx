@@ -615,20 +615,30 @@ function OpenStreetMapFallbackPanel({
   cityHeatPoints: Array<{ latitude: number; longitude: number; count: number }>;
   focusTarget: FocusTarget | null;
 }) {
+  const [satellite, setSatellite] = useState(false);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
-      <MapContainer
-        center={center}
-        zoom={mapOpportunities.length > 0 ? 8 : 4}
-        style={{ flex: 1, minHeight: 0, width: "100%" }}
-      >
-        <OpenStreetMapFocusController target={focusTarget} />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+        <MapContainer
+          center={center}
+          zoom={mapOpportunities.length > 0 ? 8 : 4}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <OpenStreetMapFocusController target={focusTarget} />
+          {satellite ? (
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, USGS, AeroGRID, IGN'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          )}
 
-        {cityHeatPoints.map((point, index) => {
+          {cityHeatPoints.map((point, index) => {
           const radius = Math.min(22000, 5000 + point.count * 2000);
           const opacity = Math.min(0.26, 0.07 + point.count * 0.035);
           return (
@@ -672,6 +682,27 @@ function OpenStreetMapFallbackPanel({
           );
         })}
       </MapContainer>
+        <button
+          onClick={() => setSatellite((s) => !s)}
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            zIndex: 1000,
+            padding: "6px 12px",
+            fontSize: 13,
+            fontWeight: 600,
+            borderRadius: 6,
+            border: "1px solid rgba(0,0,0,0.2)",
+            background: satellite ? "#1a1a2e" : "#fff",
+            color: satellite ? "#fff" : "#333",
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+          }}
+        >
+          {satellite ? "🗺 Mapa" : "🛰 Satélite"}
+        </button>
+      </div>
     </div>
   );
 }

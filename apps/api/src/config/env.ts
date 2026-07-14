@@ -14,6 +14,8 @@ export const env = {
   maxPhotoSizeMb: toNumber(process.env.MAX_PHOTO_SIZE_MB, 10),
   appName: process.env.APP_NAME ?? "Obras Prospect",
   appCodePrefix: process.env.APP_CODE_PREFIX ?? "OBR",
+  resendApiKey: process.env.RESEND_API_KEY,
+  notificationEmail: process.env.NOTIFICATION_EMAIL ?? "imarcesil@gmail.com",
 };
 
 export const absoluteUploadDir = path.resolve(process.cwd(), env.uploadDir);
