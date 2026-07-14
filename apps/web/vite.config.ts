@@ -8,7 +8,7 @@ const certDir = path.resolve(__dirname, "../../certs");
 const certPath = path.join(certDir, "cert.pem");
 const keyPath = path.join(certDir, "key.pem");
 
-// Disable HTTPS for browser testing (uncomment below to enable HTTPS on network)
+// Enable HTTPS when certificates exist
 const isHttps = false; // fs.existsSync(certPath) && fs.existsSync(keyPath);
 const https = isHttps
   ? {
@@ -29,13 +29,13 @@ export default defineConfig(() => {
       https: isHttps ? https : undefined,
       proxy: {
         "/api": {
-          target: "http://127.0.0.1:3333",
+          target: isHttps ? "https://127.0.0.1:3333" : "http://127.0.0.1:3333",
           changeOrigin: true,
           secure: false,
           rejectUnauthorized: false,
         },
         "/uploads": {
-          target: "http://127.0.0.1:3333",
+          target: isHttps ? "https://127.0.0.1:3333" : "http://127.0.0.1:3333",
           changeOrigin: true,
           secure: false,
           rejectUnauthorized: false,

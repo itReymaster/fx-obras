@@ -1,4 +1,4 @@
-import { BarChart3, Target, Home, Map, PlusSquare, Rows3, LogOut } from "lucide-react";
+import { BarChart3, Target, Home, Map, PlusSquare, Rows3, LogOut, Clock } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { APP_CONFIG } from "../config/app";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/", label: "Início", icon: Home },
   { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { to: "/map", label: "Mapa", icon: Map },
+  { to: "/actions", label: "Próximas Ações", icon: Clock },
   { to: "/new", label: "Nova oportunidade", icon: PlusSquare },
   { to: "/opportunities", label: "Registros", icon: Rows3 },
 ];

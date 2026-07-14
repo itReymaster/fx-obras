@@ -6,6 +6,7 @@ import { OpportunityWizardPage } from "../features/construction-opportunities/pa
 import { OpportunityListPage } from "../features/construction-opportunities/pages/OpportunityListPage";
 import { OpportunityDetailPage } from "../features/construction-opportunities/pages/OpportunityDetailPage";
 import { OpportunityMapPage } from "../features/construction-opportunities/pages/OpportunityMapPage";
+import { NextActionsPage } from "../features/construction-opportunities/pages/NextActionsPage";
 import { LoginPage } from "../pages/LoginPage";
 import { PrivateRoute } from "../components/PrivateRoute";
 
@@ -26,6 +27,7 @@ export const router = createBrowserRouter(
       { index: true, element: <HomePage /> },
       { path: "dashboard", element: <DashboardPage /> },
       { path: "map", element: <OpportunityMapPage /> },
+      { path: "actions", element: <NextActionsPage /> },
       { path: "new", element: <OpportunityWizardPage /> },
       { path: "opportunities/:id/edit", element: <OpportunityWizardPage /> },
       { path: "opportunities", element: <OpportunityListPage /> },
