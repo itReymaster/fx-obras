@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, CheckCircle2, Crosshair, ImagePlus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FocusEvent } from "react";
 import type { FieldErrors } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
@@ -36,6 +36,15 @@ type ReverseGeocodePayload = {
     state_code?: string;
     ["ISO3166-2-lvl4"]?: string;
   };
+};
+
+type ViaCepPayload = {
+  cep?: string;
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+  uf?: string;
+  erro?: boolean;
 };
 
 type ResolvedAddress = {
@@ -121,6 +130,44 @@ const reverseGeocodeFromCoords = async (lat: number, lng: number): Promise<Resol
   }
 };
 
+const normalizePostalCode = (value?: string | null) => value?.replace(/\D/g, "").slice(0, 8) ?? "";
+
+const formatPostalCode = (value?: string | null) => {
+  const digits = normalizePostalCode(value);
+  if (digits.length !== 8) return value?.trim() ?? "";
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
+const fetchAddressFromPostalCode = async (postalCode: string): Promise<ResolvedAddress | null> => {
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${postalCode}/json/`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as ViaCepPayload;
+    if (payload.erro) {
+      return null;
+    }
+
+    return {
+      postalCode: formatPostalCode(payload.cep ?? postalCode),
+      street: payload.logradouro ?? undefined,
+      district: payload.bairro ?? undefined,
+      city: payload.localidade ?? undefined,
+      state: payload.uf?.toUpperCase(),
+      noNumberAvailable: false,
+    };
+  } catch {
+    return null;
+  }
+};
+
 const formDefaultValues: OpportunityFormValues = {
   addressSource: "MANUAL",
   constructionType: "UNKNOWN",
@@ -179,6 +226,7 @@ export function OpportunityWizardPage() {
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
   const [capturingLocation, setCapturingLocation] = useState(false);
   const [locationHint, setLocationHint] = useState<string | null>(null);
+  const [postalCodeHint, setPostalCodeHint] = useState<string | null>(null);
   const [savedOpportunity, setSavedOpportunity] = useState<{ id: string; code: string } | null>(null);
   const [loadingOpportunity, setLoadingOpportunity] = useState(isEditing);
   const [loadedOpportunity, setLoadedOpportunity] = useState<Opportunity | null>(null);
@@ -201,6 +249,51 @@ export function OpportunityWizardPage() {
     new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, options);
     });
+
+  const applyResolvedAddress = (resolvedAddress: ResolvedAddress, source: "GPS" | "CEP") => {
+    if (resolvedAddress.postalCode) setValue("postalCode", resolvedAddress.postalCode, { shouldDirty: true });
+    if (resolvedAddress.street) setValue("street", resolvedAddress.street, { shouldDirty: true });
+    if (resolvedAddress.number) {
+      setValue("number", resolvedAddress.number, { shouldDirty: true });
+      setValue("withoutNumber", false, { shouldDirty: true });
+    } else if (resolvedAddress.noNumberAvailable) {
+      setValue("number", "", { shouldDirty: true });
+      setValue("withoutNumber", true, { shouldDirty: true });
+    }
+    if (resolvedAddress.district) setValue("district", resolvedAddress.district, { shouldDirty: true });
+    if (resolvedAddress.city) setValue("city", resolvedAddress.city, { shouldDirty: true });
+    if (resolvedAddress.state) setValue("state", resolvedAddress.state, { shouldDirty: true });
+
+    if (source === "CEP") {
+      setValue("addressSource", "MANUAL", { shouldDirty: true });
+      setValue("latitude", undefined, { shouldDirty: true });
+      setValue("longitude", undefined, { shouldDirty: true });
+      setValue("locationAccuracy", undefined, { shouldDirty: true });
+      setValue("locationCapturedAt", undefined, { shouldDirty: true });
+      setLocationHint(null);
+    }
+  };
+
+  const handlePostalCodeBlur = async (event: FocusEvent<HTMLInputElement>) => {
+    const postalCodeDigits = normalizePostalCode(event.target.value);
+
+    if (postalCodeDigits.length !== 8) {
+      setPostalCodeHint(null);
+      return;
+    }
+
+    setPostalCodeHint("Buscando endereço pelo CEP...");
+
+    const resolvedAddress = await fetchAddressFromPostalCode(postalCodeDigits);
+
+    if (!resolvedAddress) {
+      setPostalCodeHint("CEP não encontrado no ViaCEP. Complete o endereço manualmente.");
+      return;
+    }
+
+    applyResolvedAddress(resolvedAddress, "CEP");
+    setPostalCodeHint("Endereço preenchido automaticamente pelo CEP.");
+  };
 
   const {
     register,
@@ -386,20 +479,12 @@ export function OpportunityWizardPage() {
           const resolvedAddress = await reverseGeocodeFromCoords(latitude, longitude);
           
           if (resolvedAddress) {
-            if (resolvedAddress.postalCode) setValue("postalCode", resolvedAddress.postalCode);
-            if (resolvedAddress.street) setValue("street", resolvedAddress.street);
-            if (resolvedAddress.number) {
-              setValue("number", resolvedAddress.number);
-              setValue("withoutNumber", false);
-            } else if (resolvedAddress.noNumberAvailable) {
+            applyResolvedAddress(resolvedAddress, "GPS");
+
+            if (!resolvedAddress.number && resolvedAddress.noNumberAvailable) {
               // Se encontrou a rua mas não tem número registrado no OpenStreetMap
               console.log("[Geolocation] Numero nao disponivel no OpenStreetMap - marcando 'withoutNumber'");
-              setValue("number", "");
-              setValue("withoutNumber", true);
             }
-            if (resolvedAddress.district) setValue("district", resolvedAddress.district);
-            if (resolvedAddress.city) setValue("city", resolvedAddress.city);
-            if (resolvedAddress.state) setValue("state", resolvedAddress.state);
 
             if (resolvedAddress.street || resolvedAddress.city) {
               if (resolvedAddress.noNumberAvailable) {
@@ -620,7 +705,20 @@ export function OpportunityWizardPage() {
               <label>Latitude<input className="input" type="number" step="0.000001" {...register("latitude", { valueAsNumber: true })} /></label>
               <label>Longitude<input className="input" type="number" step="0.000001" {...register("longitude", { valueAsNumber: true })} /></label>
             </div>
-            <label>CEP<input className="input" {...register("postalCode")} /></label>
+            <label>
+              CEP
+              <input
+                className="input"
+                {...register("postalCode", {
+                  onBlur: handlePostalCodeBlur,
+                })}
+              />
+            </label>
+            {postalCodeHint && (
+              <span className={postalCodeHint.startsWith("CEP não encontrado") ? "error-text" : "success-text"}>
+                {postalCodeHint}
+              </span>
+            )}
             <label>Logradouro<input className="input" {...register("street")} /></label>
             <div className="grid-2">
               <label>Numero<input className="input" {...register("number")} disabled={values.withoutNumber} /></label>
