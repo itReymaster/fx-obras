@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
+import { AUTHORIZED_USERS } from "../../../config/users";
 import { addressLabel, formatDate } from "../../../utils/format";
 import { labels } from "../../../utils/labels";
 import { opportunitiesApi } from "../services/opportunities-api";
@@ -12,13 +13,23 @@ export function OpportunityListPage() {
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [status, setStatus] = useState("");
+  const [createdByUserId, setCreatedByUserId] = useState("");
   const [sortBy, setSortBy] = useState("most_recent");
   const [view, setView] = useState<"cards" | "table">("cards");
   const [showTestRecords, setShowTestRecords] = useState(false);
 
   const load = () => {
     void opportunitiesApi
-      .list({ page: 1, pageSize: 50, search, city, status, sortBy, isTest: showTestRecords ? undefined : false })
+      .list({
+        page: 1,
+        pageSize: 50,
+        search,
+        city,
+        status,
+        createdByUserId,
+        sortBy,
+        isTest: showTestRecords ? undefined : false,
+      })
       .then((response) => setItems(response.data));
   };
 
@@ -70,6 +81,17 @@ export function OpportunityListPage() {
             </select>
           </label>
           <label className="filter-field">
+            Usuário
+            <select className="select" value={createdByUserId} onChange={(event) => setCreatedByUserId(event.target.value)}>
+              <option value="">Todos</option>
+              {AUTHORIZED_USERS.map((user) => (
+                <option key={user} value={user}>
+                  {user}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="filter-field">
             Ordenação
             <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
               <option value="most_recent">Mais recentes</option>
@@ -103,6 +125,7 @@ export function OpportunityListPage() {
                 <th>Potencial</th>
                 <th>Próxima ação</th>
                 <th>Captura</th>
+                <th>Usuário</th>
               </tr>
             </thead>
             <tbody>
@@ -115,6 +138,7 @@ export function OpportunityListPage() {
                   <td className="table-cell-potential"><span className="badge badge-secondary">{labels.commercialPotential(item.commercialPotential)}</span></td>
                   <td className="table-cell-action" title={item.nextAction ?? undefined}>{item.nextAction ? `${item.nextAction.slice(0, 20)}...` : "-"}</td>
                   <td className="table-cell-date">{formatDate(item.capturedAt)}</td>
+                  <td className="table-cell-user">{item.createdByUserId ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -149,7 +173,7 @@ export function OpportunityListPage() {
                   {item.isTest && <span className="badge-test">✨ Teste</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
-                  {item.photos.length} foto(s) - {formatDate(item.capturedAt)}
+                  {item.photos.length} foto(s) - {formatDate(item.capturedAt)} - {item.createdByUserId ?? "Sem usuário"}
                 </div>
               </Link>
             );

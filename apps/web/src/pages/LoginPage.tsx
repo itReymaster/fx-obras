@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, MapPin, BarChart3, CheckCircle } from 'lucide-react';
+import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { APP_CONFIG } from '../config/app';
+import digitalReyLogo from '../assets/digital-rey-logo.svg';
+import { AUTHORIZED_USERS } from '../config/users';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -33,19 +34,13 @@ export const LoginPage = () => {
       <div className="login-hero">
         <div className="login-hero-content">
           <div className="login-hero-logo">
-            <div className="logo-badge">
-              <Target size={32} />
-            </div>
-            <div>
-              <h2 className="logo-name">{APP_CONFIG.name}</h2>
-              <p className="logo-tagline">Inteligência em Prospecção</p>
-            </div>
+            <img src={digitalReyLogo} className="brand-logo brand-logo--hero" alt="Digital Rey" />
           </div>
 
           <div className="login-hero-value">
-            <h3 className="hero-title">Descubra oportunidades de obras em tempo real</h3>
+            <h3 className="hero-title">Obras reais, resultados sustentáveis</h3>
             <p className="hero-description">
-              Acesse informações detalhadas sobre projetos de construção, análise geográfica e oportunidades de negócio.
+              Planeje com dados confiáveis, priorize oportunidades com impacto e acompanhe cada etapa da prospecção com clareza.
             </p>
           </div>
 
@@ -75,7 +70,7 @@ export const LoginPage = () => {
 
           <div className="login-hero-footer">
             <p className="footer-text">
-              © 2026 Digital Rey. Plataforma líder em prospecção de obras.
+              © 2026 Digital Rey. Obras reais com inteligência comercial responsável.
             </p>
           </div>
         </div>
@@ -87,11 +82,7 @@ export const LoginPage = () => {
         <div className="login-shell">
           {/* Logo and Branding */}
           <div className="login-header">
-            <div className="login-icon">
-              <Target size={40} />
-            </div>
-            <h1 className="login-title">{APP_CONFIG.name}</h1>
-            <p className="login-subtitle">{APP_CONFIG.moduleName}</p>
+            <img src={digitalReyLogo} className="brand-logo brand-logo--header" alt="Digital Rey" />
           </div>
 
           {/* Login Form */}
@@ -147,31 +138,27 @@ export const LoginPage = () => {
           {/* Help Text - Desktop Only */}
           <div className="login-footer login-footer-desktop">
             <p className="login-help">
-              Use as credenciais fornecidas para acessar a plataforma
+              Usuários habilitados: {AUTHORIZED_USERS.join(', ')}
+            </p>
+            <p className="login-help">
+              Senha padrão: 123@mudar
             </p>
           </div>
 
           {/* Mobile Mini Hero - Features Cards */}
           <div className="login-mobile-hero">
             <div className="mini-hero-content-wrapper">
-              <div className="mini-hero-features">
-                <div className="mini-feature-card">
-                  <CheckCircle size={20} className="mini-feature-icon" />
-                  <div className="mini-feature-content">
-                    <h4 className="mini-feature-title">Banco de Dados</h4>
-                    <p className="mini-feature-text">Oportunidades atualizadas em tempo real</p>
-                  </div>
-                </div>
-                <div className="mini-feature-card">
-                  <MapPin size={20} className="mini-feature-icon" />
-                  <div className="mini-feature-content">
-                    <h4 className="mini-feature-title">Análise Geográfica</h4>
-                    <p className="mini-feature-text">Visualize obras por localização</p>
-                  </div>
-                </div>
+              <h4 className="mini-hero-headline">Digital Rey</h4>
+              <p className="mini-hero-description">
+                Gestão de oportunidades de obras com captura em campo e leitura comercial em tempo real.
+              </p>
+              <div className="mini-hero-chips">
+                <span className="mini-hero-chip"><CheckCircle size={14} /> Capta rápido</span>
+                <span className="mini-hero-chip"><MapPin size={14} /> Mapa ativo</span>
+                <span className="mini-hero-chip"><BarChart3 size={14} /> Fluxo mobile-first</span>
               </div>
-              
-              <p className="mini-hero-help">Use as credenciais fornecidas para acessar</p>
+              <p className="mini-hero-help">Usuários habilitados: {AUTHORIZED_USERS.join(', ')}</p>
+              <p className="mini-hero-help">Senha padrão: 123@mudar</p>
             </div>
           </div>
         </div>
