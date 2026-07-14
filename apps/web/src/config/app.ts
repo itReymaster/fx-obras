@@ -1,21 +1,27 @@
 /**
- * Detecção automática de configuração em runtime
- * Funciona em: localhost, rede local, produção
- * Sem necessidade de .env.production
+ * Configuração em runtime com suporte a subpath (ex.: /inovacao/fx-obras/).
+ * Em Docker, VITE_* é injetado no build; localmente BASE_URL="/" funciona via proxy Vite.
+ *
+ * photo.relativePath já vem como "uploads/construction-opportunities/arquivo.jpg",
+ * então uploadsBaseUrl é só origin + base da app (sem /uploads no final).
  */
 
+const baseUrl = import.meta.env.BASE_URL || "/";
+const trimTrailingSlash = (value: string) => value.replace(/\/$/, "");
+
 function getApiBaseUrl(): string {
-  // API sempre é relativa ao mesmo host/porta
-  // O servidor (Nginx/Apache) roteia /api/* para o backend
-  return "/api/v1";
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  return `${trimTrailingSlash(baseUrl)}/api/v1`;
 }
 
 function getUploadsBaseUrl(): string {
+  if (import.meta.env.VITE_UPLOADS_BASE_URL) {
+    return trimTrailingSlash(import.meta.env.VITE_UPLOADS_BASE_URL);
+  }
   if (typeof window === "undefined") return "";
-  
-  // Uploads sempre é relativo ao mesmo host/porta
-  // O servidor roteia /uploads/* para o backend
-  return window.location.origin;
+  return `${window.location.origin}${trimTrailingSlash(baseUrl)}`;
 }
 
 export const APP_CONFIG = {
@@ -23,4 +29,5 @@ export const APP_CONFIG = {
   moduleName: import.meta.env.VITE_APP_MODULE_NAME ?? "Prospecção de Obras",
   apiBaseUrl: getApiBaseUrl(),
   uploadsBaseUrl: getUploadsBaseUrl(),
+  baseUrl,
 };
