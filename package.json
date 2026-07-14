@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Obras Prospect MVP monorepo",
   "scripts": {
-    "dev": "npm run dev -w @obras-prospect/api",
+    "dev": "concurrently -n API,WEB -c cyan,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:all": "npm run dev",
     "dev:web": "npm run dev -w web",
     "dev:api": "npm run dev -w @obras-prospect/api",
+    "mobile:url": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\show-mobile-url.ps1",
     "build": "npm run build -w @obras-prospect/api && npm run build -w web",
     "test": "npm run test -w @obras-prospect/api",
     "certs:generate": "node generate-certs.js",
@@ -17,6 +19,7 @@
     "packages/*"
   ],
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "node-forge": "^1.4.0"
   }
 }

@@ -9,6 +9,17 @@ const optionalNumber = (schema: z.ZodNumber) =>
 
 export const opportunityFormSchema = z.object({
   title: z.string().max(150).optional(),
+  status: z
+    .enum([
+      "DRAFT",
+      "CAPTURED",
+      "UNDER_REVIEW",
+      "SENT_TO_PROSPECTING",
+      "PROSPECTING",
+      "CONVERTED",
+      "DISCARDED",
+    ])
+    .default("CAPTURED"),
   constructionType: z.string().default("UNKNOWN"),
   constructionStage: z.string().default("UNKNOWN"),
   commercialPotential: z.string().default("NOT_EVALUATED"),

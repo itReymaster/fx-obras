@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: 5175,
       strictPort: false,
+      allowedHosts: true,
       https: isHttps ? https : undefined,
       proxy: {
         "/api": {

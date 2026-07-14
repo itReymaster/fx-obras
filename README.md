@@ -46,15 +46,16 @@ npm run prisma:seed -w @obras-prospect/api
 
 ## Execucao
 
-Terminal 1 (API):
+Subir API + Web juntos (padrao recomendado):
+
+```bash
+npm run dev
+```
+
+Opcional: subir separadamente
 
 ```bash
 npm run dev:api
-```
-
-Terminal 2 (Web):
-
-```bash
 npm run dev:web
 ```
 

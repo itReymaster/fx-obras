@@ -32,14 +32,17 @@ export function AppLayout() {
           <div className="app-branding">
             <img src={digitalReyLogo} className="brand-logo brand-logo--app" alt="Digital Rey" />
           </div>
-          <div className="cluster">
-            <span className="app-status-pill">Operação ativa</span>
-            <span className="app-user-pill" title={`Usuário logado: ${currentUser}`}>
-              Usuário: {currentUser}
-            </span>
+          <div className="app-topbar-actions">
+            <div className="app-topbar-meta">
+              <span className="app-status-pill">Operação ativa</span>
+              <span className="app-user-pill" title={`Usuário logado: ${currentUser}`}>
+                <span className="app-user-pill-label">Usuário:</span>
+                <span className="app-user-pill-name">{currentUser}</span>
+              </span>
+            </div>
             <button
               onClick={handleLogout}
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm app-logout-button"
               title="Sair"
               aria-label="Sair da aplicação"
             >

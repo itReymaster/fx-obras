@@ -10,6 +10,8 @@ interface HomeDashboardData {
   last30: number;
   highPotential: number;
   overdueNextAction: number;
+  statusCounts?: Record<string, number>;
+  funnelTotal?: number;
   latest: Array<{ id: string; title: string; code: string; capturedAt: string }>;
 }
 
@@ -35,6 +37,24 @@ export function HomePage() {
     { label: "Mapa ativo", icon: MapPin },
     { label: "Fluxo mobile-first", icon: Rows3 },
   ];
+
+  const funnelStages = [
+    { key: "CAPTURED", label: "Capturada" },
+    { key: "UNDER_REVIEW", label: "Em analise" },
+    { key: "SENT_TO_PROSPECTING", label: "Encaminhada" },
+    { key: "PROSPECTING", label: "Em prospeccao" },
+    { key: "CONVERTED", label: "Convertida" },
+  ] as const;
+
+  const funnelItems = funnelStages.map((stage) => ({
+    ...stage,
+    count: dashboard?.statusCounts?.[stage.key] ?? 0,
+  }));
+
+  const funnelMax = Math.max(1, ...funnelItems.map((stage) => stage.count));
+  const funnelTotal =
+    dashboard?.funnelTotal ??
+    funnelItems.reduce((sum, stage) => sum + stage.count, 0);
 
   return (
     <div className="page grid home-page">
@@ -101,6 +121,38 @@ export function HomePage() {
               </div>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section className="card section-card surface-card funnel-card">
+        <div className="cluster cluster--spread mb-10">
+          <div>
+            <h3 className="section-title">Funil de Obras</h3>
+            <div className="section-note">
+              Visao por etapa comercial com quantidade de obras no funil ativo.
+            </div>
+          </div>
+          <span className="funnel-total-pill">{funnelTotal} obras no funil</span>
+        </div>
+
+        <div className="funnel-list">
+          {funnelItems.map((stage, index) => (
+            <div key={stage.key} className="funnel-row">
+              <div className="funnel-row-head">
+                <div className="funnel-stage">
+                  <span className="funnel-stage-index">{index + 1}</span>
+                  <span className="funnel-stage-label">{stage.label}</span>
+                </div>
+                <span className="funnel-stage-count">{stage.count}</span>
+              </div>
+              <div className="funnel-bar-track">
+                <div
+                  className="funnel-bar-fill"
+                  style={{ width: `${Math.max(10, (stage.count / funnelMax) * 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

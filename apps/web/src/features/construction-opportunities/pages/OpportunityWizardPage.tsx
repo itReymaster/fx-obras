@@ -9,6 +9,7 @@ import {
   constructionStageOptions,
   constructionTypeOptions,
   labels,
+  statusOptions,
 } from "../../../utils/labels";
 import { APP_CONFIG } from "../../../config/app";
 import { getAuthenticatedUser } from "../../../config/users";
@@ -170,6 +171,7 @@ const fetchAddressFromPostalCode = async (postalCode: string): Promise<ResolvedA
 };
 
 const formDefaultValues: OpportunityFormValues = {
+  status: "CAPTURED",
   addressSource: "MANUAL",
   constructionType: "UNKNOWN",
   constructionStage: "UNKNOWN",
@@ -186,6 +188,7 @@ const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormVa
 
   return {
     title: opportunity.title,
+    status: opportunity.status,
     constructionType: opportunity.constructionType,
     constructionStage: opportunity.constructionStage,
     commercialPotential: opportunity.commercialPotential,
@@ -576,8 +579,13 @@ export function OpportunityWizardPage() {
     });
     const cleanFormData = Object.fromEntries(cleanedEntries);
 
+    const selectedStatus = asDraft
+      ? "DRAFT"
+      : (formData.status ?? (isEditing ? loadedOpportunity?.status ?? "CAPTURED" : "CAPTURED"));
+
     return {
       ...cleanFormData,
+      status: selectedStatus,
       tags: formData.tagsText
         ? formData.tagsText
             .split(",")
@@ -589,7 +597,6 @@ export function OpportunityWizardPage() {
       ...(isEditing
         ? {}
         : {
-            status: asDraft ? "DRAFT" : "CAPTURED",
             ...(currentUser ? { createdByUserId: currentUser } : {}),
           }),
     };
@@ -828,6 +835,7 @@ export function OpportunityWizardPage() {
             <label>Tipo da obra<select className="select" {...register("constructionType")}>{constructionTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label>Estágio<select className="select" {...register("constructionStage")}>{constructionStageOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label>Potencial comercial<select className="select" {...register("commercialPotential")}>{commercialPotentialOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label>Status no funil<select className="select" {...register("status")}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label>Observações<textarea className="textarea" {...register("notes")} /></label>
             <label>Contato<input className="input" {...register("contactName")} /></label>
             <label>Telefone<input className="input" {...register("contactPhone")} /></label>
@@ -854,7 +862,7 @@ export function OpportunityWizardPage() {
             <div><strong>Qtd. fotos:</strong> {existingPhotos.length + files.length}</div>
             <div><strong>Contato:</strong> {values.contactName || "-"}</div>
             <div><strong>Próxima ação:</strong> {values.nextAction || "-"}</div>
-            <div><strong>{isEditing ? "Status atual" : "Status inicial"}:</strong> {isEditing ? labels.status(loadedOpportunity?.status ?? "CAPTURED") : labels.status("CAPTURED")}</div>
+            <div><strong>Status no funil:</strong> {labels.status(values.status)}</div>
             <div><strong>Tipo de registro:</strong> {values.isTest ? "⚠️ Teste (não exibe por padrão)" : "✓ Registro real"}</div>
           </div>
         </section>
