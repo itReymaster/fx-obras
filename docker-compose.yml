@@ -29,7 +29,7 @@ services:
       args:
         VITE_BASE_PATH: ${FRONTEND_BASE_PATH:-/inovacao/fx-obras/}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/inovacao/fx-obras/api/v1}
-        VITE_UPLOADS_BASE_URL: ${VITE_UPLOADS_BASE_URL:-/inovacao/fx-obras/uploads}
+        VITE_UPLOADS_BASE_URL: ${VITE_UPLOADS_BASE_URL:-/inovacao/fx-obras}
         VITE_APP_NAME: ${VITE_APP_NAME:-Digital Rey}
         VITE_APP_MODULE_NAME: ${VITE_APP_MODULE_NAME:-Prospecção de Obras}
         VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
