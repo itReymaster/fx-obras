@@ -77,8 +77,8 @@ const constructionOpportunityBaseSchema = z.object({
     notes: z.string().trim().max(5000).optional(),
     tags: z.array(z.string().trim().min(1)).default([]),
     capturedAt: optionalDateString,
-    createdByUserId: z.string().uuid().optional(),
-    updatedByUserId: z.string().uuid().optional(),
+    createdByUserId: z.string().trim().max(80).optional(),
+    updatedByUserId: z.string().trim().max(80).optional(),
     isTest: z.boolean().default(false),
   });
 
@@ -130,6 +130,7 @@ export const listQuerySchema = z.object({
   hasContact: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
   hasNextAction: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
   isTest: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
+  createdByUserId: z.string().trim().optional(),
   sortBy: z
     .enum([
       "most_recent",

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { resolveAuthorizedUser } from '../config/users';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -26,12 +27,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // Validate credentials
-      if (username === 'adm' && password === '123@mudar') {
+      const resolvedUser = resolveAuthorizedUser(username);
+
+      if (resolvedUser && password === '123@mudar') {
         // Simple token-based auth
-        const token = btoa(`${username}:${Date.now()}`);
+        const token = btoa(`${resolvedUser}:${Date.now()}`);
         localStorage.setItem('auth_token', token);
-        localStorage.setItem('auth_user', username);
+        localStorage.setItem('auth_user', resolvedUser);
         setIsAuthenticated(true);
       } else {
         throw new Error('Invalid credentials');

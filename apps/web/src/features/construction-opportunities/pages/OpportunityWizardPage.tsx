@@ -11,6 +11,7 @@ import {
   labels,
 } from "../../../utils/labels";
 import { APP_CONFIG } from "../../../config/app";
+import { getAuthenticatedUser } from "../../../config/users";
 import { opportunityFormSchema, type OpportunityFormValues } from "../schemas/opportunity-form.schema";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { Opportunity } from "../types/opportunity.types";
@@ -566,6 +567,7 @@ export function OpportunityWizardPage() {
   };
 
   const buildPayload = (formData: OpportunityFormValues, asDraft: boolean) => {
+    const currentUser = getAuthenticatedUser();
     const cleanedEntries = Object.entries(formData).filter(([, value]) => {
       if (value === undefined || value === null) return false;
       if (typeof value === "number" && Number.isNaN(value)) return false;
@@ -583,7 +585,13 @@ export function OpportunityWizardPage() {
             .filter(Boolean)
         : [],
       state: formData.state?.toUpperCase(),
-      ...(isEditing ? {} : { status: asDraft ? "DRAFT" : "CAPTURED" }),
+      ...(currentUser ? { updatedByUserId: currentUser } : {}),
+      ...(isEditing
+        ? {}
+        : {
+            status: asDraft ? "DRAFT" : "CAPTURED",
+            ...(currentUser ? { createdByUserId: currentUser } : {}),
+          }),
     };
   };
 
@@ -852,7 +860,7 @@ export function OpportunityWizardPage() {
         </section>
       )}
 
-      <section className="grid-2">
+      <section className="grid-2 wizard-actions">
         <button type="button" className="btn btn-ghost" disabled={step === 1 || saving} onClick={() => setStep((value) => Math.max(1, value - 1))}>
           Voltar
         </button>
@@ -894,7 +902,7 @@ export function OpportunityWizardPage() {
       {step === 4 && !isEditing && (
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-secondary wizard-draft-button"
           disabled={saving}
           onClick={handleSubmit(
             (formData) => save(formData as OpportunityFormValues, true),

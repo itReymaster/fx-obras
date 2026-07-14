@@ -42,6 +42,8 @@ export interface Opportunity {
   contactEmail?: string | null;
   nextAction?: string | null;
   nextActionDate?: string | null;
+  createdByUserId?: string | null;
+  updatedByUserId?: string | null;
   crmIntegrationStatus: "NOT_SENT" | "PENDING" | "SENT" | "ERROR";
   capturedAt: string;
   photos: OpportunityPhoto[];

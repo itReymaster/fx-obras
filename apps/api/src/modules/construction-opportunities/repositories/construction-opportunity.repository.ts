@@ -272,6 +272,9 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
     if (query.isTest !== undefined) {
       andFilters.push({ isTest: query.isTest });
     }
+    if (query.createdByUserId) {
+      andFilters.push({ createdByUserId: query.createdByUserId });
+    }
 
     return { AND: andFilters };
   }

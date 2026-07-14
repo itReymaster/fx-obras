@@ -1,10 +1,11 @@
-import { BarChart3, Target, Home, Map, PlusSquare, Rows3, LogOut, Clock } from "lucide-react";
+import { BarChart3, Home, Map, PlusSquare, Rows3, LogOut, Clock } from "lucide-react";
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { APP_CONFIG } from "../config/app";
+import { getAuthenticatedUser } from "../config/users";
 import { useAuth } from "../contexts/AuthContext";
+import digitalReyLogo from "../assets/digital-rey-logo.svg";
 
 const navItems = [
-  { to: "#", label: "App", icon: Target, isLauncher: true },
   { to: "/", label: "Início", icon: Home },
   { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { to: "/map", label: "Mapa", icon: Map },
@@ -16,6 +17,8 @@ const navItems = [
 export function AppLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(true);
+  const currentUser = getAuthenticatedUser() ?? "-";
 
   const handleLogout = () => {
     logout();
@@ -23,20 +26,17 @@ export function AppLayout() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isMobileMenuVisible ? "" : " mobile-menu-hidden"}`}>
       <div className="app-frame card">
         <header className="app-topbar">
           <div className="app-branding">
-            <button type="button" className="app-launcher" aria-label="Abrir menu de aplicativos">
-              <Target size={18} />
-            </button>
-            <div>
-              <strong className="app-title">{APP_CONFIG.name}</strong>
-              <div className="app-subtitle">{APP_CONFIG.moduleName}</div>
-            </div>
+            <img src={digitalReyLogo} className="brand-logo brand-logo--app" alt="Digital Rey" />
           </div>
           <div className="cluster">
             <span className="app-status-pill">Operação ativa</span>
+            <span className="app-user-pill" title={`Usuário logado: ${currentUser}`}>
+              Usuário: {currentUser}
+            </span>
             <button
               onClick={handleLogout}
               className="btn btn-ghost btn-sm"
@@ -49,9 +49,6 @@ export function AppLayout() {
         </header>
         <nav className="app-nav">
           {navItems.map((item) => {
-            if (item.isLauncher) {
-              return null;
-            }
             const Icon = item.icon;
             return (
               <NavLink
@@ -65,21 +62,43 @@ export function AppLayout() {
             );
           })}
         </nav>
-        <nav className="app-mobile-nav">
-          {navItems.slice(1).map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `app-nav-link${isActive ? " is-active" : ""}`}
-              >
-                <Icon size={18} />
-                {item.label}
-              </NavLink>
-            );
-          })}
-        </nav>
+        {isMobileMenuVisible && (
+          <nav className="app-mobile-nav">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm app-mobile-nav-toggle"
+              onClick={() => setIsMobileMenuVisible(false)}
+              aria-label="Recolher menu"
+              title="Recolher menu"
+            >
+              <Rows3 size={14} />
+              Recolher menu
+            </button>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `app-nav-link${isActive ? " is-active" : ""}`}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </NavLink>
+              );
+            })}
+          </nav>
+        )}
+        <button
+          type="button"
+          className={`btn btn-secondary btn-sm app-mobile-menu-fab ${isMobileMenuVisible ? "is-visible-state" : "is-hidden-state"}`}
+          onClick={() => setIsMobileMenuVisible((value) => !value)}
+          aria-label={isMobileMenuVisible ? "Ocultar menu" : "Mostrar menu"}
+          title={isMobileMenuVisible ? "Ocultar menu" : "Mostrar menu"}
+        >
+          <Rows3 size={15} />
+          {isMobileMenuVisible ? "Ocultar menu" : "Mostrar menu"}
+        </button>
         <main className="app-main">
           <Outlet />
         </main>
