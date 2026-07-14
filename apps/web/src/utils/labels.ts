@@ -71,6 +71,11 @@ export const constructionTypeOptions = Object.entries(constructionTypeLabels).ma
   label,
 }));
 
+export const statusOptions = Object.entries(statusLabels).map(([value, label]) => ({
+  value,
+  label,
+}));
+
 export const constructionStageOptions = Object.entries(stageLabels).map(([value, label]) => ({
   value,
   label,

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import digitalReyLogo from '../assets/digital-rey-logo.svg';
-import { AUTHORIZED_USERS } from '../config/users';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -83,66 +82,66 @@ export const LoginPage = () => {
           {/* Logo and Branding */}
           <div className="login-header">
             <img src={digitalReyLogo} className="brand-logo brand-logo--header" alt="Digital Rey" />
+            <p className="login-mobile-kicker">Plataforma de prospecção orientada por dados</p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="username" className="form-label">
-              Usuário
-            </label>
-            <input
-              id="username"
-              type="text"
-              className="input login-input"
-              placeholder="adm"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={isLoading}
-              autoComplete="username"
-            />
-          </div>
+          <div className="login-form-panel">
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="form-group">
+                <label htmlFor="username" className="form-label">
+                  Usuário
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  className="input login-input"
+                  placeholder="adm"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLoading}
+                  autoComplete="username"
+                />
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="input login-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-              autoComplete="current-password"
-            />
-          </div>
+              <div className="form-group">
+                <label htmlFor="password" className="form-label">
+                  Senha
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  className="input login-input"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                />
+              </div>
 
-          {error && (
-            <div className="login-error">
-              <span className="error-icon">⚠️</span>
-              {error}
+              {error && (
+                <div className="login-error">
+                  <span className="error-icon">⚠️</span>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading || !username || !password}
+                className="btn btn-primary login-button"
+              >
+                {isLoading ? 'Autenticando...' : 'Entrar'}
+              </button>
+            </form>
+
+            {/* Help Text - Desktop Only */}
+            <div className="login-footer login-footer-desktop">
+              <p className="login-help">
+                Senha padrão: 123@mudar
+              </p>
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading || !username || !password}
-            className="btn btn-primary login-button"
-          >
-            {isLoading ? 'Autenticando...' : 'Entrar'}
-          </button>
-        </form>
-
-          {/* Help Text - Desktop Only */}
-          <div className="login-footer login-footer-desktop">
-            <p className="login-help">
-              Usuários habilitados: {AUTHORIZED_USERS.join(', ')}
-            </p>
-            <p className="login-help">
-              Senha padrão: 123@mudar
-            </p>
           </div>
 
           {/* Mobile Mini Hero - Features Cards */}
@@ -157,7 +156,6 @@ export const LoginPage = () => {
                 <span className="mini-hero-chip"><MapPin size={14} /> Mapa ativo</span>
                 <span className="mini-hero-chip"><BarChart3 size={14} /> Fluxo mobile-first</span>
               </div>
-              <p className="mini-hero-help">Usuários habilitados: {AUTHORIZED_USERS.join(', ')}</p>
               <p className="mini-hero-help">Senha padrão: 123@mudar</p>
             </div>
           </div>

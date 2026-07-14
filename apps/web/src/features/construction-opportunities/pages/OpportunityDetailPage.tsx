@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { addressLabel, formatDate } from "../../../utils/format";
-import { labels } from "../../../utils/labels";
+import { labels, statusOptions } from "../../../utils/labels";
 import { buildOpportunityPdf } from "../services/opportunity-pdf";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { Opportunity } from "../types/opportunity.types";
@@ -16,6 +16,9 @@ export function OpportunityDetailPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [sharingPdf, setSharingPdf] = useState(false);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [statusDraft, setStatusDraft] = useState<string>("CAPTURED");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const isSecureContextForShare =
     typeof window !== "undefined" &&
     (window.isSecureContext || window.location.hostname === "localhost");
@@ -23,6 +26,7 @@ export function OpportunityDetailPage() {
   useEffect(() => {
     void opportunitiesApi.getById(id).then((data) => {
       setItem(data);
+      setStatusDraft(data.status);
       const initialPhoto = data.photos.find((photo) => photo.isPrimary) ?? data.photos[0] ?? null;
       setSelectedPhotoId(initialPhoto?.id ?? null);
     });
@@ -130,6 +134,22 @@ export function OpportunityDetailPage() {
     }
   };
 
+  const handleStatusUpdate = async () => {
+    if (!item || statusDraft === item.status) return;
+
+    setUpdatingStatus(true);
+    setStatusFeedback(null);
+    try {
+      await opportunitiesApi.updateStatus(item.id, statusDraft);
+      setItem({ ...item, status: statusDraft as Opportunity["status"] });
+      setStatusFeedback("Status atualizado com sucesso.");
+    } catch (error: any) {
+      setStatusFeedback(error?.response?.data?.message ?? "Nao foi possivel atualizar o status.");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="page grid">
       <section className="card section-card surface-card">
@@ -146,6 +166,32 @@ export function OpportunityDetailPage() {
             </div>
           </div>
           <div className="detail-actions">
+            <div className="detail-status-editor">
+              <label className="detail-status-label" htmlFor="detail-status-select">Status do funil</label>
+              <div className="detail-status-controls">
+                <select
+                  id="detail-status-select"
+                  className="select"
+                  value={statusDraft}
+                  onChange={(event) => setStatusDraft(event.target.value)}
+                  disabled={updatingStatus}
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary detail-status-button"
+                  onClick={handleStatusUpdate}
+                  disabled={updatingStatus || statusDraft === item.status}
+                >
+                  {updatingStatus ? "Atualizando..." : "Atualizar status"}
+                </button>
+              </div>
+            </div>
             <button className="btn btn-secondary detail-action-primary" onClick={handleGeneratePdf} disabled={exportingPdf}>
               <FileText size={16} /> {exportingPdf ? "Gerando PDF..." : "Abrir PDF"}
             </button>
@@ -171,6 +217,11 @@ export function OpportunityDetailPage() {
         {shareFeedback && (
           <p className="muted" style={{ margin: "10px 0 0", fontSize: 13 }}>
             {shareFeedback}
+          </p>
+        )}
+        {statusFeedback && (
+          <p className="muted" style={{ margin: "8px 0 0", fontSize: 12 }}>
+            {statusFeedback}
           </p>
         )}
         {!isSecureContextForShare && (
