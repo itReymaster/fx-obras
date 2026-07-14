@@ -173,6 +173,7 @@ export function OpportunityWizardPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [primaryIndex, setPrimaryIndex] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ uploaded: number; total: number } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [photoActionError, setPhotoActionError] = useState<string | null>(null);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
@@ -514,13 +515,16 @@ export function OpportunityWizardPage() {
     }
 
     setSaving(true);
+    setUploadProgress(null);
     setSaveError(null);
 
-    // Timeout de segurança: se a requisição demorar mais de 15s, reseta o estado
+    // Timeout por foto: cadastro (15s) + até 30s por anexo
+    const safetyTimeoutMs = 15000 + files.length * 30000;
     const timeoutId = setTimeout(() => {
       setSaving(false);
+      setUploadProgress(null);
       setSaveError("Tempo limite atingido. A solicitacao demorou muito. Verifique a conexao e tente novamente.");
-    }, 15000);
+    }, safetyTimeoutMs);
 
     try {
       const payload = buildPayload(formData, asDraft);
@@ -528,22 +532,26 @@ export function OpportunityWizardPage() {
         ? await opportunitiesApi.update(opportunityId, payload)
         : await opportunitiesApi.create(payload);
 
-      clearTimeout(timeoutId);
-
       if (files.length > 0) {
-        const uploaded = await opportunitiesApi.uploadPhotos(saved.id, files);
+        setUploadProgress({ uploaded: 0, total: files.length });
+        const uploaded = await opportunitiesApi.uploadPhotos(saved.id, files, (uploadedCount, total) => {
+          setUploadProgress({ uploaded: uploadedCount, total });
+        });
         const primaryPhoto = uploaded[primaryIndex];
         if (primaryPhoto) {
           await opportunitiesApi.setPrimaryPhoto(saved.id, primaryPhoto.id);
         }
       }
 
+      clearTimeout(timeoutId);
       setSaving(false);
+      setUploadProgress(null);
       setSavedOpportunity({ id: saved.id, code: saved.code });
       setStep(5);
     } catch (error: any) {
       clearTimeout(timeoutId);
-      
+      setUploadProgress(null);
+
       // Log detalhado para debugging
       console.error("[Save Error]", {
         status: error?.response?.status,
@@ -764,11 +772,23 @@ export function OpportunityWizardPage() {
               handleInvalidSubmit,
             )}
           >
-            {saving ? "Tentando novamente..." : "Tentar novamente"}
+            {saving
+              ? uploadProgress
+                ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
+                : "Tentando novamente..."
+              : "Tentar novamente"}
           </button>
         ) : (
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? (isEditing ? "Atualizando..." : "Salvando...") : isEditing ? "Atualizar obra" : "Salvar obra"}
+            {saving
+              ? uploadProgress
+                ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
+                : isEditing
+                  ? "Atualizando..."
+                  : "Salvando..."
+              : isEditing
+                ? "Atualizar obra"
+                : "Salvar obra"}
           </button>
         )}
       </section>
