@@ -38,13 +38,27 @@ export const opportunitiesApi = {
     return data;
   },
 
-  async uploadPhotos(id: string, files: File[]) {
-    const formData = new FormData();
-    files.forEach((file) => formData.append("photos", file));
-    const { data } = await api.post(`/construction-opportunities/${id}/photos`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data as Array<{ id: string }>;
+  async uploadPhotos(
+    id: string,
+    files: File[],
+    onProgress?: (uploaded: number, total: number) => void,
+  ) {
+    const uploaded: Array<{ id: string }> = [];
+
+    for (let index = 0; index < files.length; index += 1) {
+      const formData = new FormData();
+      formData.append("photos", files[index]);
+
+      const { data } = await api.post(`/construction-opportunities/${id}/photos`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const batch = data as Array<{ id: string }>;
+      uploaded.push(...batch);
+      onProgress?.(index + 1, files.length);
+    }
+
+    return uploaded;
   },
 
   async setPrimaryPhoto(id: string, photoId: string) {
