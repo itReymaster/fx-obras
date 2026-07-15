@@ -1,0 +1,59 @@
+name: Deploy FX Obras
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-fx-obras
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy no servidor local
+
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Exibir informações
+        run: |
+          echo "Servidor: $(hostname)"
+          echo "Usuário: $(whoami)"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit: $GITHUB_SHA"
+
+      - name: Validar Docker Compose
+        run: |
+          docker compose config --quiet
+
+      - name: Construir imagens
+        run: |
+          docker compose build
+
+      - name: Atualizar containers
+        run: |
+          docker compose up -d --remove-orphans
+
+      - name: Verificar containers
+        run: |
+          docker compose ps
+
+      - name: Exibir logs em caso de erro
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail=200
+
+      - name: Limpar imagens antigas
+        if: success()
+        run: |
+          docker image prune -f
