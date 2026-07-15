@@ -82,7 +82,9 @@ export const LoginPage = () => {
           {/* Logo and Branding */}
           <div className="login-header">
             <img src={digitalReyLogo} className="brand-logo brand-logo--header" alt="Digital Rey" />
-            <p className="login-mobile-kicker">Plataforma de prospecção orientada por dados</p>
+            <p className="login-mobile-kicker">Acesso interno</p>
+            <h1 className="login-mobile-title">Login da plataforma</h1>
+            <p className="login-mobile-subtitle">Entre para acompanhar obras, funil e operação comercial.</p>
           </div>
 
           <div className="login-form-panel">
@@ -141,22 +143,6 @@ export const LoginPage = () => {
               <p className="login-help">
                 Senha padrão: 123@mudar
               </p>
-            </div>
-          </div>
-
-          {/* Mobile Mini Hero - Features Cards */}
-          <div className="login-mobile-hero">
-            <div className="mini-hero-content-wrapper">
-              <h4 className="mini-hero-headline">Digital Rey</h4>
-              <p className="mini-hero-description">
-                Gestão de oportunidades de obras com captura em campo e leitura comercial em tempo real.
-              </p>
-              <div className="mini-hero-chips">
-                <span className="mini-hero-chip"><CheckCircle size={14} /> Capta rápido</span>
-                <span className="mini-hero-chip"><MapPin size={14} /> Mapa ativo</span>
-                <span className="mini-hero-chip"><BarChart3 size={14} /> Fluxo mobile-first</span>
-              </div>
-              <p className="mini-hero-help">Senha padrão: 123@mudar</p>
             </div>
           </div>
         </div>
