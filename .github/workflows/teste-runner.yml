@@ -1,0 +1,28 @@
+name: Testar runner local
+
+on:
+  workflow_dispatch:
+
+jobs:
+  teste:
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+
+    steps:
+      - name: Informações do servidor
+        run: |
+          echo "Runner funcionando"
+          echo "Servidor: $(hostname)"
+          echo "Usuário: $(whoami)"
+          echo "Diretório: $(pwd)"
+
+      - name: Verificar Git
+        run: git --version
+
+      - name: Verificar Docker
+        run: |
+          docker --version
+          docker compose version
+          docker ps
