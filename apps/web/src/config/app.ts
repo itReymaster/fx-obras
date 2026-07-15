@@ -27,6 +27,7 @@ function getUploadsBaseUrl(): string {
 export const APP_CONFIG = {
   name: import.meta.env.VITE_APP_NAME ?? "Digital Rey",
   moduleName: import.meta.env.VITE_APP_MODULE_NAME ?? "Prospecção de Obras",
+  version: import.meta.env.VITE_APP_VERSION ?? "1.0.0",
   apiBaseUrl: getApiBaseUrl(),
   uploadsBaseUrl: getUploadsBaseUrl(),
   baseUrl,

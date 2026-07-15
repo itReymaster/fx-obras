@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import digitalReyLogo from '../assets/digital-rey-logo.svg';
+import { APP_CONFIG } from '../config/app';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -145,6 +146,10 @@ export const LoginPage = () => {
               </p>
             </div>
           </div>
+
+          <p className="login-version" aria-label={`Versão ${APP_CONFIG.version}`}>
+            v{APP_CONFIG.version}
+          </p>
         </div>
       </div>
     </div>

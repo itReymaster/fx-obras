@@ -2140,6 +2140,14 @@ textarea:focus-visible {
   line-height: 1.5;
 }
 
+.login-version {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(84, 95, 109, 0.7);
+  letter-spacing: 0.02em;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -2346,6 +2354,12 @@ textarea:focus-visible {
     font-size: 11.5px;
     margin: 0;
     color: #5b6b7d;
+  }
+
+  .login-version {
+    margin-top: 2px;
+    font-size: 10.5px;
+    color: rgba(66, 82, 102, 0.64);
   }
 }
 
