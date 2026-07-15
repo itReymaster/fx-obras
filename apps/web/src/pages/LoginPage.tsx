@@ -39,7 +39,7 @@ export const LoginPage = () => {
           <div className="login-hero-value">
             <h3 className="hero-title">Obras reais, resultados sustentáveis</h3>
             <p className="hero-description">
-              Planejex com dados confiáveis, priorize oportunidades com impacto e acompanhe cada etapa da prospecção com clareza.
+              Planeje com dados confiáveis, priorize oportunidades com impacto e acompanhe cada etapa da prospecção com clareza.
             </p>
           </div>
 
