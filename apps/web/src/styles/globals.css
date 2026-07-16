@@ -253,6 +253,40 @@ textarea:focus-visible {
   width: fit-content;
 }
 
+.detail-block-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #d7e0ea;
+  border-radius: 10px;
+  background: #f8fbfe;
+}
+
+.detail-field--full {
+  grid-column: 1 / -1;
+}
+
+.detail-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5f6e81;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.detail-field-value {
+  font-size: 14px;
+  color: #0f172a;
+  word-break: break-word;
+}
+
 .justify-between {
   display: flex;
   justify-content: space-between;

@@ -41,6 +41,13 @@ export function OpportunityDetailPage() {
   const mapLink = item.latitude && item.longitude
     ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}`
     : "#";
+  const detailRecord = item as Opportunity & {
+    description?: string | null;
+    contactCompany?: string | null;
+    contactRole?: string | null;
+    constructionCompany?: string | null;
+    estimatedCompletionDate?: string | null;
+  };
 
   const copyText = async (value: string) => {
     try {
@@ -295,7 +302,71 @@ export function OpportunityDetailPage() {
       </section>
 
       <section className="card section-card surface-card">
-        <h3 className="section-title">Informações da obra</h3>
+        <h3 className="section-title">Dados da obra</h3>
+        <div className="detail-block-grid">
+          <div className="detail-field">
+            <span className="detail-field-label">Código</span>
+            <span className="detail-field-value">{item.code}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Título</span>
+            <span className="detail-field-value">{item.title}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Empresa da obra</span>
+            <span className="detail-field-value">{detailRecord.constructionCompany ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Próxima ação</span>
+            <span className="detail-field-value">{item.nextAction ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Data da próxima ação</span>
+            <span className="detail-field-value">{formatDate(item.nextActionDate)}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Previsão de conclusão</span>
+            <span className="detail-field-value">{formatDate(detailRecord.estimatedCompletionDate)}</span>
+          </div>
+          <div className="detail-field detail-field--full">
+            <span className="detail-field-label">Descrição</span>
+            <span className="detail-field-value">{detailRecord.description ?? "-"}</span>
+          </div>
+          <div className="detail-field detail-field--full">
+            <span className="detail-field-label">Observações</span>
+            <span className="detail-field-value">{item.notes ?? "Sem observações."}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="card section-card surface-card">
+        <h3 className="section-title">Dados de contato</h3>
+        <div className="detail-block-grid">
+          <div className="detail-field">
+            <span className="detail-field-label">Nome</span>
+            <span className="detail-field-value">{item.contactName ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Telefone</span>
+            <span className="detail-field-value">{item.contactPhone ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">E-mail</span>
+            <span className="detail-field-value">{item.contactEmail ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Empresa</span>
+            <span className="detail-field-value">{detailRecord.contactCompany ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Cargo</span>
+            <span className="detail-field-value">{detailRecord.contactRole ?? "-"}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="card section-card surface-card">
+        <h3 className="section-title">Qualificação da obra</h3>
         <div className="info-cards-grid">
           <div className="info-card">
             <div className="info-card-icon">
@@ -314,23 +385,16 @@ export function OpportunityDetailPage() {
           <div className="info-card">
             <div className="info-card-icon">
               <CheckCircle />
-              <span className="info-card-label">Próxima ação</span>
+              <span className="info-card-label">Status</span>
             </div>
-            <div className="info-card-value">{item.nextAction ?? "-"}</div>
+            <div className="info-card-value">{labels.status(item.status)}</div>
           </div>
           <div className="info-card">
             <div className="info-card-icon">
               <Clock />
-              <span className="info-card-label">Data da ação</span>
+              <span className="info-card-label">Potencial</span>
             </div>
-            <div className="info-card-value">{formatDate(item.nextActionDate)}</div>
-          </div>
-          <div className="info-card">
-            <div className="info-card-icon">
-              <User />
-              <span className="info-card-label">Contato</span>
-            </div>
-            <div className="info-card-value">{item.contactName ?? "-"}</div>
+            <div className="info-card-value">{labels.commercialPotential(item.commercialPotential)}</div>
           </div>
           <div className="info-card">
             <div className="info-card-icon">
@@ -339,8 +403,14 @@ export function OpportunityDetailPage() {
             </div>
             <span className="info-card-badge">{labels.crmStatus(item.crmIntegrationStatus)}</span>
           </div>
+          <div className="info-card">
+            <div className="info-card-icon">
+              <User />
+              <span className="info-card-label">Tipo de registro</span>
+            </div>
+            <div className="info-card-value">{item.isTest ? "Teste" : "Real"}</div>
+          </div>
         </div>
-        <p className="mt-14">{item.notes ?? "Sem observações."}</p>
       </section>
     </div>
   );
