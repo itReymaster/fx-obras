@@ -53,10 +53,6 @@ export const LoginPage = () => {
       setRememberMe(true);
     }
 
-    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(window.navigator.userAgent);
-    const navWithStandalone = window.navigator as Navigator & { standalone?: boolean };
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navWithStandalone.standalone === true;
-
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
@@ -67,10 +63,6 @@ export const LoginPage = () => {
       setInstallPrompt(null);
       setShowInstallShortcut(false);
     };
-
-    if (isMobile && !isStandalone) {
-      setShowInstallShortcut(true);
-    }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -106,18 +98,12 @@ export const LoginPage = () => {
       } catch {
         // Some browsers can reject this call when prompt is no longer available.
       }
-    }
-
-    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-    if (isIOS) {
-      window.alert('No iPhone/iPad: toque no botão Compartilhar do navegador e depois em Adicionar à Tela de Início.');
       return;
     }
-
-    window.alert('No menu do navegador (⋮), escolha Instalar app. Se essa opção não aparecer, use Criar atalho ou Adicionar à tela inicial.');
+    window.alert('Instalação automática indisponível neste navegador.');
   };
 
-  const installShortcutLabel = installPrompt ? 'Instalar app' : 'Instalar app / Criar atalho';
+  const installShortcutLabel = 'Instalar app';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
