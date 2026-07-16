@@ -2059,12 +2059,12 @@ textarea:focus-visible {
 
 .login-form-panel {
   display: grid;
-  gap: 0;
+  gap: 10px;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .login-icon {
@@ -2365,11 +2365,15 @@ textarea:focus-visible {
 
 @media (min-width: 901px) {
   .login-header {
-    margin-bottom: 0;
+    margin-bottom: 18px;
   }
 
   .login-header .brand-logo--header {
     display: block;
+  }
+
+  .login-hero-logo {
+    display: none;
   }
 
   .login-mobile-kicker {
