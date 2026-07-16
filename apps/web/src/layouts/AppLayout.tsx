@@ -1,9 +1,10 @@
 import { BarChart3, Home, Map, PlusSquare, Rows3, LogOut, Clock } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { APP_CONFIG } from "../config/app";
 import { getAuthenticatedUser } from "../config/users";
 import { useAuth } from "../contexts/AuthContext";
-import digitalReyLogo from "../assets/digital-rey-logo.svg";
+import reymasterLogo from "../assets/reymaster-logo.svg";
 
 const navItems = [
   { to: "/", label: "Início", icon: Home },
@@ -30,7 +31,11 @@ export function AppLayout() {
       <div className="app-frame card">
         <header className="app-topbar">
           <div className="app-branding">
-            <img src={digitalReyLogo} className="brand-logo brand-logo--app" alt="Digital Rey" />
+            <img src={reymasterLogo} className="brand-logo brand-logo--app" alt="Reymaster" />
+            <div className="app-brand-copy">
+              <div className="app-brand-title">{APP_CONFIG.name}</div>
+              <div className="app-brand-subtitle">{APP_CONFIG.moduleName}</div>
+            </div>
           </div>
           <div className="app-topbar-actions">
             <div className="app-topbar-meta">

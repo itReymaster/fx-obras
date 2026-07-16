@@ -324,18 +324,20 @@ export function OpportunityListPage() {
             const photo = item.photos.find((value) => value.isPrimary) ?? item.photos[0];
             return (
               <article className="card pad-12 stack-sm" key={item.id}>
-                <div
-                  style={{
-                    borderRadius: 10,
-                    background: "var(--color-primary-soft)",
-                    height: 136,
-                    backgroundImage: photo
-                      ? `url(${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath})`
-                      : "none",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
+                <Link to={`/opportunities/${item.id}`} aria-label={`Abrir obra ${item.title}`}>
+                  <div
+                    style={{
+                      borderRadius: 10,
+                      background: "var(--color-primary-soft)",
+                      height: 136,
+                      backgroundImage: photo
+                        ? `url(${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath})`
+                        : "none",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                </Link>
                 <strong>
                   <Link to={`/opportunities/${item.id}`}>{item.title}</Link>
                 </strong>

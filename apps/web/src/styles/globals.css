@@ -1047,8 +1047,31 @@ textarea:focus-visible {
 }
 
 .brand-logo--app {
-  width: 280px;
-  height: 70px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.app-brand-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.app-brand-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #223146;
+  line-height: 1.1;
+}
+
+.app-brand-subtitle {
+  font-size: 11px;
+  color: #60748d;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brand-logo--hero {
@@ -2083,6 +2106,11 @@ textarea:focus-visible {
   margin: 0 auto 4px;
 }
 
+.brand-logo--reymaster {
+  width: 150px;
+  height: auto;
+}
+
 .login-mobile-kicker {
   display: none;
 }
@@ -2377,6 +2405,12 @@ textarea:focus-visible {
     width: min(92vw, 360px);
     height: auto;
     margin: 0 auto 4px;
+  }
+
+  .brand-logo--reymaster {
+    width: min(56vw, 210px);
+    height: auto;
+    margin: 0 auto 6px;
   }
 
   .login-mobile-kicker {
@@ -2785,17 +2819,40 @@ textarea:focus-visible {
   }
 
   .filters-topbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
   }
 
   .filter-field--search {
     margin: 0;
+    width: 100%;
+  }
+
+  .filter-field--search .search-shell {
+    width: 100%;
+  }
+
+  .filter-field--search .search-input {
+    min-height: 48px;
+    padding-left: 42px;
+    font-size: 14px;
+  }
+
+  .filter-field--search .search-icon {
+    left: 14px;
   }
 
   .filters-mobile-toggle {
     display: inline-flex;
+    width: 100%;
     white-space: nowrap;
+    position: sticky;
+    top: 8px;
+    z-index: 8;
+    border-color: #cfd9e6;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(4px);
   }
 
   .filters-collapsible.is-closed {
@@ -2826,6 +2883,10 @@ textarea:focus-visible {
   }
 
   .app-status-pill {
+    display: none;
+  }
+
+  .app-brand-subtitle {
     display: none;
   }
 

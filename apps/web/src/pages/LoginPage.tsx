@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import digitalReyLogo from '../assets/digital-rey-logo.svg';
+import reymasterLogo from '../assets/reymaster-logo.svg';
 import { APP_CONFIG } from '../config/app';
 
 const REMEMBERED_USERNAME_KEY = 'remembered_username';
@@ -56,7 +56,7 @@ export const LoginPage = () => {
       <div className="login-hero">
         <div className="login-hero-content">
           <div className="login-hero-logo">
-            <img src={digitalReyLogo} className="brand-logo brand-logo--hero" alt="Digital Rey" />
+            <img src={reymasterLogo} className="brand-logo brand-logo--hero brand-logo--reymaster" alt="Reymaster" />
           </div>
 
           <div className="login-hero-value">
@@ -104,7 +104,7 @@ export const LoginPage = () => {
         <div className="login-shell">
           {/* Logo and Branding */}
           <div className="login-header">
-            <img src={digitalReyLogo} className="brand-logo brand-logo--header" alt="Digital Rey" />
+            <img src={reymasterLogo} className="brand-logo brand-logo--header brand-logo--reymaster" alt="Reymaster" />
             <p className="login-mobile-kicker">Acesso interno</p>
             <h1 className="login-mobile-title">Login da plataforma</h1>
             <p className="login-mobile-subtitle">Entre para acompanhar obras, funil e operação comercial.</p>
