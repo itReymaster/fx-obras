@@ -2961,7 +2961,13 @@ textarea:focus-visible {
   }
 
   .app-brand-subtitle {
-    display: none;
+    display: block;
+    font-size: 10px;
+    line-height: 1.15;
+    color: #5f7288;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .app-user-pill {
