@@ -5,7 +5,22 @@ import {
   listQuerySchema,
   statusUpdateSchema,
 } from "../schemas/construction-opportunity.schemas.js";
-import { ConstructionOpportunitiesService } from "../services/construction-opportunities.service.js";
+
+export interface ConstructionOpportunitiesControllerService {
+  create(input: unknown): Promise<unknown>;
+  list(query: unknown): Promise<unknown>;
+  getById(id: string): Promise<unknown>;
+  exportById(id: string): Promise<unknown>;
+  update(id: string, input: unknown): Promise<unknown>;
+  softDelete(id: string): Promise<void>;
+  addPhotos(id: string, files: Array<{ originalname: string; mimetype: string; size: number; buffer: Buffer }>): Promise<unknown>;
+  deletePhoto(id: string, photoId: string): Promise<void>;
+  setPrimaryPhoto(id: string, photoId: string): Promise<void>;
+  history(id: string): Promise<unknown>;
+  updateStatus(id: string, status: string, reason?: string): Promise<void>;
+  dashboard(includeTests?: boolean): Promise<unknown>;
+  sendToCrm(id: string): Promise<unknown>;
+}
 
 const asParam = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? value[0] : (value ?? "");
@@ -20,7 +35,7 @@ const mapFiles = (files: Express.Multer.File[] = []) => {
 };
 
 export class ConstructionOpportunitiesController {
-  constructor(private readonly service: ConstructionOpportunitiesService) {}
+  constructor(private readonly service: ConstructionOpportunitiesControllerService) {}
 
   create = async (req: Request, res: Response) => {
     const payload = constructionOpportunityCreateSchema.parse(req.body);
