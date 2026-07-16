@@ -6,6 +6,12 @@ import reymasterLogo from '../assets/reymaster-logo.svg';
 import { APP_CONFIG } from '../config/app';
 
 const REMEMBERED_USERNAME_KEY = 'remembered_username';
+const REMEMBERED_PASSWORD_KEY = 'remembered_password';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -13,6 +19,8 @@ export const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallShortcut, setShowInstallShortcut] = useState(false);
   const usernameInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const { login } = useAuth();
@@ -33,12 +41,39 @@ export const LoginPage = () => {
 
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBERED_USERNAME_KEY)?.trim() ?? '';
-    localStorage.removeItem('remembered_password');
+    const rememberedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY) ?? '';
 
     if (remembered) {
       setUsername(remembered);
       setRememberMe(true);
     }
+
+    if (rememberedPassword) {
+      setPassword(rememberedPassword);
+      setRememberMe(true);
+    }
+
+    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    const navWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navWithStandalone.standalone === true;
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+      setShowInstallShortcut(true);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setShowInstallShortcut(false);
+    };
+
+    if (isIOS && !isStandalone) {
+      setShowInstallShortcut(true);
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     // Mobile browsers may apply autofill after initial paint without firing onChange.
     const t1 = window.setTimeout(syncAutofilledInputs, 60);
@@ -49,11 +84,33 @@ export const LoginPage = () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleForgotPassword = () => {
     window.alert('Esqueceu a senha? Fale com o administrador para redefinir o acesso.');
+  };
+
+  const handleInstallShortcut = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setInstallPrompt(null);
+        setShowInstallShortcut(false);
+      }
+      return;
+    }
+
+    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    if (isIOS) {
+      window.alert('No iPhone/iPad: toque no botão Compartilhar do navegador e depois em Adicionar à Tela de Início.');
+      return;
+    }
+
+    window.alert('Use o menu do navegador e escolha Instalar app ou Adicionar à tela inicial.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,8 +145,10 @@ export const LoginPage = () => {
 
       if (rememberMe) {
         localStorage.setItem(REMEMBERED_USERNAME_KEY, usernameValue);
+        localStorage.setItem(REMEMBERED_PASSWORD_KEY, passwordValue);
       } else {
         localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+        localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
       }
 
       navigate('/');
@@ -224,7 +283,7 @@ export const LoginPage = () => {
                     onChange={(event) => setRememberMe(event.target.checked)}
                     disabled={isLoading}
                   />
-                  Lembrar-me
+                  Lembrar senha
                 </label>
                 <button
                   type="button"
@@ -235,6 +294,17 @@ export const LoginPage = () => {
                   Esqueceu sua senha?
                 </button>
               </div>
+
+              {showInstallShortcut && (
+                <button
+                  type="button"
+                  className="btn btn-secondary login-install-button"
+                  onClick={handleInstallShortcut}
+                  disabled={isLoading}
+                >
+                  Adicionar atalho na tela inicial
+                </button>
+              )}
             </form>
 
             {/* Help Text - Desktop Only */}
