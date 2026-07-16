@@ -191,6 +191,7 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
         notes: input.notes,
         tags: input.tags !== undefined ? JSON.stringify(input.tags) : undefined,
         capturedAt: input.capturedAt,
+        isTest: input.isTest,
         updatedByUserId: input.updatedByUserId,
       },
       include: { photos: true, history: true },

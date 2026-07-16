@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
@@ -14,6 +14,8 @@ import { opportunitiesApi } from "../services/opportunities-api";
 import type { Opportunity } from "../types/opportunity.types";
 
 export function OpportunityListPage() {
+  type TestFilterMode = "real_only" | "test_only" | "all";
+
   const [items, setItems] = useState<Opportunity[]>([]);
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
@@ -23,7 +25,7 @@ export function OpportunityListPage() {
   const [createdByUserId, setCreatedByUserId] = useState("");
   const [sortBy, setSortBy] = useState("most_recent");
   const [view, setView] = useState<"cards" | "table">("cards");
-  const [showTestRecords, setShowTestRecords] = useState(false);
+  const [testFilterMode, setTestFilterMode] = useState<TestFilterMode>("real_only");
 
   const load = (overrides?: {
     search?: string;
@@ -33,7 +35,7 @@ export function OpportunityListPage() {
     commercialPotential?: string;
     createdByUserId?: string;
     sortBy?: string;
-    showTestRecords?: boolean;
+    testFilterMode?: TestFilterMode;
   }) => {
     const applied = {
       search,
@@ -43,9 +45,14 @@ export function OpportunityListPage() {
       commercialPotential,
       createdByUserId,
       sortBy,
-      showTestRecords,
+      testFilterMode,
       ...overrides,
     };
+
+    const isTestParam =
+      applied.testFilterMode === "all"
+        ? undefined
+        : applied.testFilterMode === "test_only";
 
     void opportunitiesApi
       .list({
@@ -58,14 +65,22 @@ export function OpportunityListPage() {
         commercialPotential: applied.commercialPotential,
         createdByUserId: applied.createdByUserId,
         sortBy: applied.sortBy,
-        isTest: applied.showTestRecords ? undefined : false,
+        isTest: isTestParam,
       })
       .then((response) => setItems(response.data));
   };
 
   const hasActiveFilters = Boolean(
-    search || city || status || constructionStage || commercialPotential || createdByUserId || showTestRecords,
+    search || city || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only",
   );
+
+  const handleDelete = async (id: string) => {
+    const confirmDelete = window.confirm("Excluir esta obra? Esta ação remove o registro da listagem.");
+    if (!confirmDelete) return;
+
+    await opportunitiesApi.remove(id);
+    load();
+  };
 
   const clearFilters = () => {
     const defaults = {
@@ -76,7 +91,7 @@ export function OpportunityListPage() {
       commercialPotential: "",
       createdByUserId: "",
       sortBy: "most_recent",
-      showTestRecords: false,
+      testFilterMode: "real_only" as TestFilterMode,
     };
 
     setSearch(defaults.search);
@@ -86,7 +101,7 @@ export function OpportunityListPage() {
     setCommercialPotential(defaults.commercialPotential);
     setCreatedByUserId(defaults.createdByUserId);
     setSortBy(defaults.sortBy);
-    setShowTestRecords(defaults.showTestRecords);
+    setTestFilterMode(defaults.testFilterMode);
 
     load(defaults);
   };
@@ -211,9 +226,17 @@ export function OpportunityListPage() {
         </div>
 
         <div className="filters-footer">
-          <label className="checkbox-label filters-test-toggle">
-            <input type="checkbox" checked={showTestRecords} onChange={(event) => setShowTestRecords(event.target.checked)} />
-            Incluir registros de teste
+          <label className="filter-field filters-test-toggle">
+            Registros de teste
+            <select
+              className="select"
+              value={testFilterMode}
+              onChange={(event) => setTestFilterMode(event.target.value as TestFilterMode)}
+            >
+              <option value="real_only">Somente reais</option>
+              <option value="test_only">Somente teste</option>
+              <option value="all">Todos</option>
+            </select>
           </label>
           <div className="filters-actions filters-actions--desktop-end">
             <button className="btn btn-primary btn-lg" onClick={() => load()}>
@@ -241,6 +264,7 @@ export function OpportunityListPage() {
                 <th>Próxima ação</th>
                 <th>Captura</th>
                 <th>Usuário</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -254,6 +278,17 @@ export function OpportunityListPage() {
                   <td className="table-cell-action" title={item.nextAction ?? undefined}>{item.nextAction ? `${item.nextAction.slice(0, 20)}...` : "-"}</td>
                   <td className="table-cell-date">{formatDate(item.capturedAt)}</td>
                   <td className="table-cell-user">{item.createdByUserId ?? "-"}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        void handleDelete(item.id);
+                      }}
+                    >
+                      <Trash2 size={14} /> Excluir
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -264,7 +299,7 @@ export function OpportunityListPage() {
           {items.map((item) => {
             const photo = item.photos.find((value) => value.isPrimary) ?? item.photos[0];
             return (
-              <Link className="card pad-12 stack-sm" key={item.id} to={`/opportunities/${item.id}`}>
+              <article className="card pad-12 stack-sm" key={item.id}>
                 <div
                   style={{
                     borderRadius: 10,
@@ -277,7 +312,9 @@ export function OpportunityListPage() {
                     backgroundPosition: "center",
                   }}
                 />
-                <strong>{item.title}</strong>
+                <strong>
+                  <Link to={`/opportunities/${item.id}`}>{item.title}</Link>
+                </strong>
                 <div className="muted" style={{ fontSize: 13 }}>
                   {addressLabel(item)}
                 </div>
@@ -290,7 +327,21 @@ export function OpportunityListPage() {
                 <div className="muted" style={{ fontSize: 12 }}>
                   {item.photos.length} foto(s) - {formatDate(item.capturedAt)} - {item.createdByUserId ?? "Sem usuário"}
                 </div>
-              </Link>
+                <div className="cluster">
+                  <Link className="btn btn-ghost btn-sm" to={`/opportunities/${item.id}`}>
+                    Abrir
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      void handleDelete(item.id);
+                    }}
+                  >
+                    <Trash2 size={14} /> Excluir
+                  </button>
+                </div>
+              </article>
             );
           })}
         </section>
