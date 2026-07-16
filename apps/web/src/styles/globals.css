@@ -2115,12 +2115,18 @@ textarea:focus-visible {
   display: none;
 }
 
-.login-mobile-title {
-  display: none;
+.login-product-title {
+  margin: 10px 0 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1d2a3a;
+  letter-spacing: -0.01em;
 }
 
-.login-mobile-subtitle {
-  display: none;
+.login-product-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #5f7288;
 }
 
 .form-label svg {
@@ -2357,6 +2363,16 @@ textarea:focus-visible {
   }
 }
 
+@media (min-width: 901px) {
+  .login-header {
+    margin-bottom: 0;
+  }
+
+  .login-header .brand-logo--header {
+    display: none;
+  }
+}
+
 @media (max-width: 600px) {
   .login-layout {
     grid-template-columns: 1fr;
@@ -2424,6 +2440,18 @@ textarea:focus-visible {
     font-size: 11.5px;
     font-weight: 600;
     letter-spacing: 0.01em;
+  }
+
+  .login-product-title {
+    margin: 10px 0 0;
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .login-product-subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.35;
   }
 
   .login-form-panel {

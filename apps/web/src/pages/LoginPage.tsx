@@ -106,8 +106,8 @@ export const LoginPage = () => {
           <div className="login-header">
             <img src={reymasterLogo} className="brand-logo brand-logo--header brand-logo--reymaster" alt="Reymaster" />
             <p className="login-mobile-kicker">Acesso interno</p>
-            <h1 className="login-mobile-title">Login da plataforma</h1>
-            <p className="login-mobile-subtitle">Entre para acompanhar obras, funil e operação comercial.</p>
+            <h1 className="login-product-title">Prospecção de Obras</h1>
+            <p className="login-product-subtitle">Entre para acompanhar obras, funil e operação comercial.</p>
           </div>
 
           <div className="login-form-panel">
