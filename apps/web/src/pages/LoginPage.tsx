@@ -95,13 +95,17 @@ export const LoginPage = () => {
 
   const handleInstallShortcut = async () => {
     if (installPrompt) {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
-        setInstallPrompt(null);
-        setShowInstallShortcut(false);
+      try {
+        await installPrompt.prompt();
+        const choice = await installPrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          setInstallPrompt(null);
+          setShowInstallShortcut(false);
+          return;
+        }
+      } catch {
+        // Some browsers can reject this call when prompt is no longer available.
       }
-      return;
     }
 
     const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
@@ -110,10 +114,10 @@ export const LoginPage = () => {
       return;
     }
 
-    window.alert('Use o menu do navegador e escolha Instalar app ou Adicionar à tela inicial.');
+    window.alert('No menu do navegador (⋮), escolha Instalar app. Se essa opção não aparecer, use Criar atalho ou Adicionar à tela inicial.');
   };
 
-  const installShortcutLabel = installPrompt ? 'Gerar atalho ao clicar' : 'Gerar atalho na tela inicial';
+  const installShortcutLabel = installPrompt ? 'Instalar app' : 'Instalar app / Criar atalho';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

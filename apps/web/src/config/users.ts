@@ -2,6 +2,7 @@ export const AUTHORIZED_USERS = [
   "adm",
   "Jefferson-Martins",
   "Alisson-Cotrim",
+  "Barbara-Cristina",
   "Marcelo-Silva",
   "Elaine-Colaco",
   "Marcio-Barreto",
