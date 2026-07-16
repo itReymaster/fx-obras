@@ -1725,8 +1725,13 @@ textarea:focus-visible {
 
 .home-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.home-actions--focus {
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 .home-kpis {
@@ -2730,10 +2735,6 @@ textarea:focus-visible {
   .home-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-  }
-
-  .home-actions .btn-primary {
-    grid-column: 1 / -1;
   }
 
   .home-actions .btn {

@@ -1,7 +1,6 @@
-import { ArrowRight, Building2, Clock3, MapPin, Plus, Rows3, Sparkles, TrendingUp } from "lucide-react";
+import { Building2, Clock3, Plus, Rows3, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { APP_CONFIG } from "../../../config/app";
 import { formatDate } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
 
@@ -28,14 +27,8 @@ export function HomePage() {
   const cards = [
     { label: "Total cadastrado", value: dashboard?.total ?? count, icon: Building2 },
     { label: "Últimos 30 dias", value: dashboard?.last30 ?? 0, icon: TrendingUp },
-    { label: "Alto potencial", value: dashboard?.highPotential ?? 0, icon: ArrowRight },
+    { label: "Alto potencial", value: dashboard?.highPotential ?? 0, icon: Rows3 },
     { label: "Ação vencida", value: dashboard?.overdueNextAction ?? 0, icon: Clock3 },
-  ];
-
-  const signals = [
-    { label: "Capta rapido", icon: Sparkles },
-    { label: "Mapa ativo", icon: MapPin },
-    { label: "Fluxo mobile-first", icon: Rows3 },
   ];
 
   const funnelStages = [
@@ -59,68 +52,13 @@ export function HomePage() {
   return (
     <div className="page grid home-page">
       <section className="card home-hero">
-        <div className="home-hero-grid">
-          <div className="home-hero-copy">
-            <div className="badge hero-badge">
-              <Building2 size={16} /> Plataforma comercial
-            </div>
-            <h1 className="hero-title">{APP_CONFIG.name}</h1>
-            <p className="hero-lead">
-              Gestão de oportunidades de obras com captura em campo, leitura comercial em tempo real e trilha de acompanhamento para acelerar decisão e conversão.
-            </p>
-
-            <div className="home-signal hero-signals">
-              {signals.map((signal) => {
-                const Icon = signal.icon;
-                return (
-                  <span key={signal.label} className="home-signal-pill">
-                    <Icon size={14} /> {signal.label}
-                  </span>
-                );
-              })}
-            </div>
-
-            <div className="home-actions">
-              <Link className="btn btn-primary btn-link" to="/new">
-                <Plus size={18} /> Registrar oportunidade
-              </Link>
-              <Link className="btn btn-secondary btn-link" to="/opportunities">
-                <Rows3 size={18} /> Ver registros
-              </Link>
-              <Link className="btn btn-ghost btn-link" to="/map">
-                <ArrowRight size={18} /> Abrir mapa
-              </Link>
-            </div>
-          </div>
-
-          <aside className="home-hero-panel surface-card">
-            <div className="justify-between">
-              <div>
-                <div className="eyebrow">Resumo executivo</div>
-                <div className="hero-summary-title">Operação comercial ativa</div>
-              </div>
-              <span className="app-status-pill">{dashboard?.total ?? count} registros</span>
-            </div>
-
-            <div className="home-mini-stats">
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Últimos 30 dias</div>
-                <div className="home-mini-stat-value">{dashboard?.last30 ?? 0}</div>
-              </div>
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Alto potencial</div>
-                <div className="home-mini-stat-value">{dashboard?.highPotential ?? 0}</div>
-              </div>
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Ação vencida</div>
-                <div className="home-mini-stat-value">{dashboard?.overdueNextAction ?? 0}</div>
-              </div>
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Total cadastrado</div>
-                <div className="home-mini-stat-value">{dashboard?.total ?? count}</div>
-              </div>
-            </div>
-          </aside>
+        <div className="home-actions home-actions--focus">
+          <Link className="btn btn-primary btn-link" to="/new">
+            <Plus size={18} /> Registrar nova oportunidade
+          </Link>
+          <Link className="btn btn-secondary btn-link" to="/opportunities">
+            <Rows3 size={18} /> Ver registros
+          </Link>
         </div>
       </section>
 
