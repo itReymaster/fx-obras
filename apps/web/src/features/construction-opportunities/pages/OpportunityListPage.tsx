@@ -1,4 +1,4 @@
-import { Search, Trash2 } from "lucide-react";
+import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
@@ -26,6 +26,7 @@ export function OpportunityListPage() {
   const [sortBy, setSortBy] = useState("most_recent");
   const [view, setView] = useState<"cards" | "table">("cards");
   const [testFilterMode, setTestFilterMode] = useState<TestFilterMode>("real_only");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const load = (overrides?: {
     search?: string;
@@ -73,6 +74,16 @@ export function OpportunityListPage() {
   const hasActiveFilters = Boolean(
     search || city || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only",
   );
+
+  const activeFiltersCount = [
+    search,
+    city,
+    status,
+    constructionStage,
+    commercialPotential,
+    createdByUserId,
+    testFilterMode !== "real_only" ? "testMode" : "",
+  ].filter(Boolean).length;
 
   const handleDelete = async (id: string) => {
     const confirmDelete = window.confirm("Excluir esta obra? Esta ação remove o registro da listagem.");
@@ -141,113 +152,126 @@ export function OpportunityListPage() {
               />
             </div>
           </label>
-          <label className="filter-field filter-field--city">
-            Cidade
-            <input className="input" value={city} onChange={(event) => setCity(event.target.value)} />
-          </label>
-        </div>
 
-        <div className="status-chip-row" aria-label="Filtros rápidos do funil">
           <button
             type="button"
-            className={`status-chip ${status === "" ? "is-active" : ""}`}
-            onClick={() => {
-              setStatus("");
-              load({ status: "" });
-            }}
+            className="btn btn-ghost filters-mobile-toggle"
+            onClick={() => setMobileFiltersOpen((value) => !value)}
+            aria-expanded={mobileFiltersOpen}
           >
-            Todos
+            <SlidersHorizontal size={16} />
+            {mobileFiltersOpen ? "Fechar opções" : "Abrir opções"}
+            {activeFiltersCount > 0 && <span className="filters-mobile-count">({activeFiltersCount})</span>}
           </button>
-          {statusOptions.map((option) => (
+        </div>
+
+        <div className={`filters-collapsible ${mobileFiltersOpen ? "is-open" : "is-closed"}`}>
+          <div className="status-chip-row" aria-label="Filtros rápidos do funil">
             <button
-              key={option.value}
               type="button"
-              className={`status-chip ${status === option.value ? "is-active" : ""}`}
+              className={`status-chip ${status === "" ? "is-active" : ""}`}
               onClick={() => {
-                setStatus(option.value);
-                load({ status: option.value });
+                setStatus("");
+                load({ status: "" });
               }}
             >
-              {option.label}
+              Todos
             </button>
-          ))}
-        </div>
-
-        <div className="filters-grid filters-grid--opportunities">
-          <label className="filter-field">
-            Status
-            <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="">Todos</option>
-              {statusOptions.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Estágio da obra
-            <select className="select" value={constructionStage} onChange={(event) => setConstructionStage(event.target.value)}>
-              <option value="">Todos</option>
-              {constructionStageOptions.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Potencial
-            <select className="select" value={commercialPotential} onChange={(event) => setCommercialPotential(event.target.value)}>
-              <option value="">Todos</option>
-              {commercialPotentialOptions.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Usuário
-            <select className="select" value={createdByUserId} onChange={(event) => setCreatedByUserId(event.target.value)}>
-              <option value="">Todos</option>
-              {AUTHORIZED_USERS.map((user) => (
-                <option key={user} value={user}>
-                  {user}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Ordenação
-            <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-              <option value="most_recent">Mais recentes</option>
-              <option value="oldest">Mais antigos</option>
-              <option value="title">Título</option>
-              <option value="city">Cidade</option>
-              <option value="commercialPotential">Potencial comercial</option>
-              <option value="nextActionDate">Data da próxima ação</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="filters-footer">
-          <label className="filter-field filters-test-toggle">
-            Registros de teste
-            <select
-              className="select"
-              value={testFilterMode}
-              onChange={(event) => setTestFilterMode(event.target.value as TestFilterMode)}
-            >
-              <option value="real_only">Somente reais</option>
-              <option value="test_only">Somente teste</option>
-              <option value="all">Todos</option>
-            </select>
-          </label>
-          <div className="filters-actions filters-actions--desktop-end">
-            <button className="btn btn-primary btn-lg" onClick={() => load()}>
-              Aplicar filtros
-            </button>
-            <button className="btn btn-ghost btn-lg" onClick={clearFilters} disabled={!hasActiveFilters}>
-              Limpar
-            </button>
+            {statusOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`status-chip ${status === option.value ? "is-active" : ""}`}
+                onClick={() => {
+                  setStatus(option.value);
+                  load({ status: option.value });
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-          <div className="filters-summary">
-            {items.length} obra(s) encontrada(s)
+
+          <div className="filters-grid filters-grid--opportunities">
+            <label className="filter-field">
+              Cidade
+              <input className="input" value={city} onChange={(event) => setCity(event.target.value)} />
+            </label>
+            <label className="filter-field">
+              Status
+              <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="">Todos</option>
+                {statusOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Estágio da obra
+              <select className="select" value={constructionStage} onChange={(event) => setConstructionStage(event.target.value)}>
+                <option value="">Todos</option>
+                {constructionStageOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Potencial
+              <select className="select" value={commercialPotential} onChange={(event) => setCommercialPotential(event.target.value)}>
+                <option value="">Todos</option>
+                {commercialPotentialOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Usuário
+              <select className="select" value={createdByUserId} onChange={(event) => setCreatedByUserId(event.target.value)}>
+                <option value="">Todos</option>
+                {AUTHORIZED_USERS.map((user) => (
+                  <option key={user} value={user}>
+                    {user}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Ordenação
+              <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <option value="most_recent">Mais recentes</option>
+                <option value="oldest">Mais antigos</option>
+                <option value="title">Título</option>
+                <option value="city">Cidade</option>
+                <option value="commercialPotential">Potencial comercial</option>
+                <option value="nextActionDate">Data da próxima ação</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="filters-footer">
+            <label className="filter-field filters-test-toggle">
+              Registros de teste
+              <select
+                className="select"
+                value={testFilterMode}
+                onChange={(event) => setTestFilterMode(event.target.value as TestFilterMode)}
+              >
+                <option value="real_only">Somente reais</option>
+                <option value="test_only">Somente teste</option>
+                <option value="all">Todos</option>
+              </select>
+            </label>
+            <div className="filters-actions filters-actions--desktop-end">
+              <button className="btn btn-primary btn-lg" onClick={() => load()}>
+                Aplicar filtros
+              </button>
+              <button className="btn btn-ghost btn-lg" onClick={clearFilters} disabled={!hasActiveFilters}>
+                Limpar
+              </button>
+            </div>
+            <div className="filters-summary">
+              {items.length} obra(s) encontrada(s)
+            </div>
           </div>
         </div>
       </section>
