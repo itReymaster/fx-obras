@@ -33,6 +33,8 @@ export const LoginPage = () => {
 
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBERED_USERNAME_KEY)?.trim() ?? '';
+    localStorage.removeItem('remembered_password');
+
     if (remembered) {
       setUsername(remembered);
       setRememberMe(true);
