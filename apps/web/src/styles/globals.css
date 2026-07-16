@@ -674,6 +674,26 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
+.opportunity-wizard-form {
+  gap: 14px;
+}
+
+.opportunity-wizard-form .section-card {
+  padding: 18px;
+}
+
+.opportunity-wizard-form .section-title {
+  margin-bottom: 10px;
+}
+
+.opportunity-wizard-form .grid {
+  gap: 12px;
+}
+
+.opportunity-wizard-form .grid-2 {
+  gap: 10px;
+}
+
 .wizard-location-button {
   width: 100%;
   min-height: 50px;
@@ -1455,6 +1475,7 @@ textarea:focus-visible {
   }
 
   .app-main {
+    padding-top: 10px;
     padding-bottom: calc(58px + var(--mobile-nav-safe-offset, 98px));
   }
 
@@ -1886,6 +1907,23 @@ textarea:focus-visible {
 .home-actions--focus {
   max-width: 860px;
   margin: 0 auto;
+}
+
+.home-cta-new {
+  background: #1f8a45;
+  border: 1px solid #176b35;
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(31, 138, 69, 0.22);
+}
+
+.home-cta-new:hover {
+  background: #176b35;
+  border-color: #12572b;
+  box-shadow: 0 12px 24px rgba(23, 107, 53, 0.28);
+}
+
+.home-cta-new:active {
+  transform: translateY(0);
 }
 
 .home-kpis {
@@ -3080,6 +3118,26 @@ textarea:focus-visible {
   .home-actions .btn svg {
     width: 15px;
     height: 15px;
+  }
+
+  .opportunity-wizard-form {
+    gap: 16px;
+  }
+
+  .opportunity-wizard-form .section-card {
+    padding: 16px 14px;
+  }
+
+  .opportunity-wizard-form .section-title {
+    margin-bottom: 12px;
+  }
+
+  .opportunity-wizard-form .grid {
+    gap: 13px;
+  }
+
+  .opportunity-wizard-form .grid-2 {
+    gap: 12px;
   }
 
   .home-hero {

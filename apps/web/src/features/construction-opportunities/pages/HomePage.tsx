@@ -53,7 +53,7 @@ export function HomePage() {
     <div className="page grid home-page">
       <section className="card home-hero">
         <div className="home-actions home-actions--focus">
-          <Link className="btn btn-primary btn-link" to="/new">
+          <Link className="btn btn-primary btn-link home-cta-new" to="/new">
             <Plus size={18} /> Registrar nova oportunidade
           </Link>
           <Link className="btn btn-secondary btn-link" to="/opportunities">

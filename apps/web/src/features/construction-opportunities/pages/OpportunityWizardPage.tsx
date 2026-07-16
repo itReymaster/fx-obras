@@ -695,7 +695,7 @@ export function OpportunityWizardPage() {
 
   return (
     <form
-      className="page grid"
+      className="page grid opportunity-wizard-form"
       onSubmit={handleSubmit(
         (formData) => save(formData as OpportunityFormValues, false),
         handleInvalidSubmit,

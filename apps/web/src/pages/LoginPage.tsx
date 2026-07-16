@@ -113,6 +113,8 @@ export const LoginPage = () => {
     window.alert('Use o menu do navegador e escolha Instalar app ou Adicionar à tela inicial.');
   };
 
+  const installShortcutLabel = installPrompt ? 'Gerar atalho ao clicar' : 'Gerar atalho na tela inicial';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -302,7 +304,7 @@ export const LoginPage = () => {
                   onClick={handleInstallShortcut}
                   disabled={isLoading}
                 >
-                  Adicionar atalho na tela inicial
+                  {installShortcutLabel}
                 </button>
               )}
             </form>
