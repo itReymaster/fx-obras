@@ -2934,6 +2934,59 @@ textarea:focus-visible {
     #dbe7ff;
 }
 
+.photo-preview-zoom-trigger {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.photo-zoom-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(2px);
+}
+
+.photo-zoom-modal-content {
+  position: relative;
+  width: min(94vw, 1200px);
+  max-height: 92vh;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+}
+
+.photo-zoom-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(226, 232, 240, 0.55);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.76);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.photo-zoom-modal-image {
+  display: block;
+  width: 100%;
+  max-height: 92vh;
+  object-fit: contain;
+  background: #0f172a;
+}
+
 @media (max-width: 900px) {
   .photo-gallery {
     grid-template-columns: 1fr;

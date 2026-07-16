@@ -19,6 +19,7 @@ export function OpportunityDetailPage() {
   const [statusDraft, setStatusDraft] = useState<string>("CAPTURED");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false);
   const isSecureContextForShare =
     typeof window !== "undefined" &&
     (window.isSecureContext || window.location.hostname === "localhost");
@@ -31,6 +32,19 @@ export function OpportunityDetailPage() {
       setSelectedPhotoId(initialPhoto?.id ?? null);
     });
   }, [id]);
+
+  useEffect(() => {
+    if (!isPhotoZoomOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsPhotoZoomOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPhotoZoomOpen]);
 
   if (!item) return <div className="page">Carregando obra...</div>;
 
@@ -243,11 +257,19 @@ export function OpportunityDetailPage() {
         <div className="photo-gallery">
           <div className="photo-preview-frame photo-preview-main" aria-label="Pré-visualização da foto selecionada">
             {mainPhoto ? (
-              <img
-                src={`${APP_CONFIG.uploadsBaseUrl}/${mainPhoto.relativePath}`}
-                alt={mainPhoto.originalName}
-                className="photo-preview-image"
-              />
+              <button
+                type="button"
+                className="photo-preview-zoom-trigger"
+                onClick={() => setIsPhotoZoomOpen(true)}
+                title="Clique para ampliar"
+                aria-label="Ampliar foto da obra"
+              >
+                <img
+                  src={`${APP_CONFIG.uploadsBaseUrl}/${mainPhoto.relativePath}`}
+                  alt={mainPhoto.originalName}
+                  className="photo-preview-image"
+                />
+              </button>
             ) : (
               <div className="photo-preview-empty">Nenhuma imagem cadastrada</div>
             )}
@@ -278,10 +300,36 @@ export function OpportunityDetailPage() {
             </div>
 
             <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-              Clique nas miniaturas para trocar a imagem grande acima.
+              Clique nas miniaturas para trocar a imagem e clique na imagem grande para ampliar.
             </p>
           </aside>
         </div>
+
+        {mainPhoto && isPhotoZoomOpen && (
+          <div
+            className="photo-zoom-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Visualização ampliada da foto"
+            onClick={() => setIsPhotoZoomOpen(false)}
+          >
+            <div className="photo-zoom-modal-content" onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                className="photo-zoom-modal-close"
+                onClick={() => setIsPhotoZoomOpen(false)}
+                aria-label="Fechar visualização ampliada"
+              >
+                Fechar
+              </button>
+              <img
+                src={`${APP_CONFIG.uploadsBaseUrl}/${mainPhoto.relativePath}`}
+                alt={mainPhoto.originalName}
+                className="photo-zoom-modal-image"
+              />
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card section-card surface-card">
