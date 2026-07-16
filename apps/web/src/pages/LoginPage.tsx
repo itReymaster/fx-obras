@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,8 @@ export const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const usernameInputRef = useRef<HTMLInputElement | null>(null);
+  const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -31,13 +33,23 @@ export const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Read from DOM refs so browser autofill works even when React state is stale.
+    const usernameValue = (usernameInputRef.current?.value ?? username).trim();
+    const passwordValue = passwordInputRef.current?.value ?? password;
+
+    if (!usernameValue || !passwordValue) {
+      setError('Informe usuário e senha para continuar');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await login(username, password, rememberMe);
+      await login(usernameValue, passwordValue, rememberMe);
 
       if (rememberMe) {
-        localStorage.setItem(REMEMBERED_USERNAME_KEY, username.trim());
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, usernameValue);
       } else {
         localStorage.removeItem(REMEMBERED_USERNAME_KEY);
       }
@@ -119,10 +131,12 @@ export const LoginPage = () => {
                 </label>
                 <input
                   id="username"
+                  name="username"
                   type="text"
                   className="input login-input"
                   placeholder="adm"
                   value={username}
+                  ref={usernameInputRef}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading}
                   autoComplete="username"
@@ -135,10 +149,12 @@ export const LoginPage = () => {
                 </label>
                 <input
                   id="password"
+                  name="password"
                   type="password"
                   className="input login-input"
                   placeholder="••••••••"
                   value={password}
+                  ref={passwordInputRef}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   autoComplete="current-password"
@@ -154,7 +170,7 @@ export const LoginPage = () => {
 
               <button
                 type="submit"
-                disabled={isLoading || !username || !password}
+                disabled={isLoading}
                 className="btn btn-primary login-button"
               >
                 {isLoading ? 'Autenticando...' : 'Entrar'}
