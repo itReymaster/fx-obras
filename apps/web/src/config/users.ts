@@ -18,6 +18,6 @@ export const resolveAuthorizedUser = (username: string): string | null => {
 };
 
 export const getAuthenticatedUser = (): string | undefined => {
-  const value = localStorage.getItem("auth_user")?.trim();
+  const value = localStorage.getItem("auth_user")?.trim() ?? sessionStorage.getItem("auth_user")?.trim();
   return value ? value : undefined;
 };
