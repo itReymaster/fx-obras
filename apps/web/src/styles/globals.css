@@ -625,6 +625,25 @@ textarea:focus-visible {
   background: var(--color-primary-strong);
 }
 
+.wizard-actions {
+  align-items: stretch;
+}
+
+.wizard-actions .btn {
+  min-height: 52px;
+  font-size: 15px;
+}
+
+.wizard-actions--stack {
+  grid-template-columns: 1fr;
+}
+
+.wizard-advanced-toggle {
+  justify-self: start;
+  min-height: 44px;
+  font-size: 13px;
+}
+
 .avatar-center {
   margin: 0 auto;
 }
@@ -2728,12 +2747,21 @@ textarea:focus-visible {
     max-width: 100%;
   }
 
+  .wizard-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-actions .btn {
+    min-height: 56px;
+    font-size: 16px;
+  }
+
   .detail-status-controls {
     grid-template-columns: 1fr;
   }
 
   .home-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 

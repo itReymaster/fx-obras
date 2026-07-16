@@ -8,7 +8,6 @@ import {
   commercialPotentialOptions,
   constructionStageOptions,
   constructionTypeOptions,
-  labels,
   statusOptions,
 } from "../../../utils/labels";
 import { APP_CONFIG } from "../../../config/app";
@@ -221,6 +220,9 @@ export function OpportunityWizardPage() {
   const { id: opportunityId = "" } = useParams();
   const isEditing = Boolean(opportunityId);
   const [step, setStep] = useState(1);
+  const [showQualificationFlow, setShowQualificationFlow] = useState(false);
+  const [showAdvancedContact, setShowAdvancedContact] = useState(false);
+  const [showAdvancedWork, setShowAdvancedWork] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [primaryIndex, setPrimaryIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -348,7 +350,8 @@ export function OpportunityWizardPage() {
 
   const values = watch();
 
-  const progress = useMemo(() => Math.round((step / 4) * 100), [step]);
+  const maxStep = showQualificationFlow || step >= 4 ? 5 : 3;
+  const progress = useMemo(() => Math.round((Math.min(step, maxStep) / maxStep) * 100), [step, maxStep]);
 
   const addFiles = (selected: FileList | null) => {
     if (!selected) return;
@@ -647,7 +650,7 @@ export function OpportunityWizardPage() {
       setSaving(false);
       setUploadProgress(null);
       setSavedOpportunity({ id: saved.id, code: saved.code });
-      setStep(5);
+      setStep(6);
     } catch (error: any) {
       clearTimeout(timeoutId);
       setUploadProgress(null);
@@ -673,7 +676,7 @@ export function OpportunityWizardPage() {
     return <div className="page">Carregando obra para edição...</div>;
   }
 
-  if (step === 5 && savedOpportunity) {
+  if (step === 6 && savedOpportunity) {
     return (
       <div className="page grid">
         <section className="card section-card surface-card text-center">
@@ -710,7 +713,7 @@ export function OpportunityWizardPage() {
 
       {step === 1 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">Etapa 1 - Localização e endereço</h3>
+          <h3 className="section-title">Etapa 1 - Captura Endereço</h3>
           <div className="grid">
             <button type="button" className="btn btn-secondary" onClick={captureLocation} disabled={capturingLocation}>
               <Crosshair size={18} /> {capturingLocation ? "Capturando localização..." : "Capturar minha localização"}
@@ -752,7 +755,7 @@ export function OpportunityWizardPage() {
 
       {step === 2 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">{isEditing ? "Etapa 2 - Fotografias e anexos" : "Etapa 2 - Fotografias"}</h3>
+          <h3 className="section-title">Etapa 2 - Fotos</h3>
           <div className="grid">
             {isEditing && loadedOpportunity && (
               <div className="success-text">
@@ -829,54 +832,93 @@ export function OpportunityWizardPage() {
 
       {step === 3 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">Etapa 3 - Informações gerais</h3>
+          <h3 className="section-title">Etapa 3 - Salvar</h3>
           <div className="grid">
-            <label>Título da obra<input className="input" {...register("title")} /></label>
-            <label>Tipo da obra<select className="select" {...register("constructionType")}>{constructionTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Estágio<select className="select" {...register("constructionStage")}>{constructionStageOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Potencial comercial<select className="select" {...register("commercialPotential")}>{commercialPotentialOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Status no funil<select className="select" {...register("status")}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Observações<textarea className="textarea" {...register("notes")} /></label>
-            <label>Contato<input className="input" {...register("contactName")} /></label>
-            <label>Telefone<input className="input" {...register("contactPhone")} /></label>
-            <label>E-mail<input className="input" {...register("contactEmail")} /></label>
-            {errors.contactEmail && <span className="error-text">E-mail inválido.</span>}
-            <label>Próxima ação<input className="input" {...register("nextAction")} /></label>
-            <label>Data da próxima ação<input className="input" type="date" {...register("nextActionDate")} /></label>
-            <label>Tags (separadas por virgula)<input className="input" {...register("tagsText")} /></label>
-            <label className="checkbox-label"><input type="checkbox" {...register("isTest")} /> Marcar como teste (não exibe na listagem padrão)</label>
+            <div className="summary-box-sm">
+              Você já pode salvar agora com endereço e fotos. Se quiser, use <strong>Preencher qualificação</strong> para incluir mais dados antes de salvar.
+            </div>
+            <div><strong>Endereco:</strong> {values.street || "-"} {values.number || ""}, {values.district || "-"} - {values.city || "-"}</div>
+            <div><strong>Coordenadas:</strong> {values.latitude ?? "-"}, {values.longitude ?? "-"}</div>
+            <div><strong>Qtd. fotos:</strong> {existingPhotos.length + files.length}</div>
+            <div className="muted" style={{ fontSize: 13 }}>
+              Depois você pode complementar qualquer informação na edição da obra.
+            </div>
           </div>
         </section>
       )}
 
       {step === 4 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">Etapa 4 - Revisão e confirmação</h3>
+          <h3 className="section-title">Etapa 4 - Contato e observações</h3>
           <div className="grid">
-            <div><strong>Título:</strong> {values.title || "(será gerado automaticamente)"}</div>
-            <div><strong>Endereco:</strong> {values.street || "-"} {values.number || ""}, {values.district || "-"} - {values.city || "-"}</div>
-            <div><strong>Coordenadas:</strong> {values.latitude ?? "-"}, {values.longitude ?? "-"}</div>
-            <div><strong>Tipo/Estagio:</strong> {labels.constructionType(values.constructionType)} / {labels.constructionStage(values.constructionStage)}</div>
-            <div><strong>Potencial:</strong> {labels.commercialPotential(values.commercialPotential)}</div>
-            <div><strong>Observações:</strong> {values.notes || "-"}</div>
-            <div><strong>Qtd. fotos:</strong> {existingPhotos.length + files.length}</div>
-            <div><strong>Contato:</strong> {values.contactName || "-"}</div>
-            <div><strong>Próxima ação:</strong> {values.nextAction || "-"}</div>
-            <div><strong>Status no funil:</strong> {labels.status(values.status)}</div>
-            <div><strong>Tipo de registro:</strong> {values.isTest ? "⚠️ Teste (não exibe por padrão)" : "✓ Registro real"}</div>
+            <label>Nome do contato<input className="input" {...register("contactName")} /></label>
+            <label>Telefone do contato<input className="input" {...register("contactPhone")} /></label>
+            <label>E-mail do contato<input className="input" {...register("contactEmail")} /></label>
+            {errors.contactEmail && <span className="error-text">E-mail inválido.</span>}
+            <label>Observações<textarea className="textarea" {...register("notes")} /></label>
+
+            <button
+              type="button"
+              className="btn btn-ghost wizard-advanced-toggle"
+              onClick={() => setShowAdvancedContact((value) => !value)}
+            >
+              {showAdvancedContact ? "Ocultar campos extras" : "Mostrar campos extras"}
+            </button>
+
+            {showAdvancedContact && (
+              <>
+                <label>Próxima ação<input className="input" {...register("nextAction")} /></label>
+                <label>Data da próxima ação<input className="input" type="date" {...register("nextActionDate")} /></label>
+                <label>Tags (separadas por virgula)<input className="input" {...register("tagsText")} /></label>
+              </>
+            )}
           </div>
         </section>
       )}
 
-      <section className="grid-2 wizard-actions">
-        <button type="button" className="btn btn-ghost" disabled={step === 1 || saving} onClick={() => setStep((value) => Math.max(1, value - 1))}>
-          Voltar
-        </button>
-        {step < 4 ? (
-          <button type="button" className="btn btn-primary" onClick={() => setStep((value) => Math.min(4, value + 1))}>
-            Avancar
+      {step === 5 && (
+        <section className="card section-card surface-card">
+          <h3 className="section-title">Etapa 5 - Obra e potencial</h3>
+          <div className="grid">
+            <label>Título da obra<input className="input" {...register("title")} /></label>
+            <label>Tipo da obra<select className="select" {...register("constructionType")}>{constructionTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label>Estágio<select className="select" {...register("constructionStage")}>{constructionStageOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label>Potencial comercial<select className="select" {...register("commercialPotential")}>{commercialPotentialOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+
+            <button
+              type="button"
+              className="btn btn-ghost wizard-advanced-toggle"
+              onClick={() => setShowAdvancedWork((value) => !value)}
+            >
+              {showAdvancedWork ? "Ocultar campos extras" : "Mostrar campos extras"}
+            </button>
+
+            {showAdvancedWork && (
+              <>
+                <label>Status no funil<select className="select" {...register("status")}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+                <label className="checkbox-label"><input type="checkbox" {...register("isTest")} /> Marcar como teste (não exibe na listagem padrão)</label>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {step <= 2 && (
+        <section className="grid-2 wizard-actions">
+          <button type="button" className="btn btn-ghost" disabled={step === 1 || saving} onClick={() => setStep((value) => Math.max(1, value - 1))}>
+            Voltar
           </button>
-        ) : saveError ? (
+          <button type="button" className="btn btn-primary" onClick={() => setStep((value) => Math.min(3, value + 1))}>
+            Próximo
+          </button>
+        </section>
+      )}
+
+      {step === 3 && (
+        <section className="grid-2 wizard-actions wizard-actions--stack">
+          <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setStep(2)}>
+            Voltar para fotos
+          </button>
           <button
             type="button"
             className="btn btn-primary"
@@ -889,11 +931,50 @@ export function OpportunityWizardPage() {
             {saving
               ? uploadProgress
                 ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
-                : "Tentando novamente..."
-              : "Tentar novamente"}
+                : isEditing
+                  ? "Atualizando..."
+                  : "Salvando..."
+              : "Salvar rápido"}
           </button>
-        ) : (
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          <button
+            type="button"
+            className="btn btn-ghost wizard-draft-button"
+            disabled={saving}
+            onClick={() => {
+              setShowQualificationFlow(true);
+              setStep(4);
+            }}
+          >
+            Preencher qualificação
+          </button>
+        </section>
+      )}
+
+      {step === 4 && (
+        <section className="grid-2 wizard-actions">
+          <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setStep(3)}>
+            Voltar
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => setStep(5)}>
+            Próximo
+          </button>
+        </section>
+      )}
+
+      {step === 5 && (
+        <section className="grid-2 wizard-actions">
+          <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setStep(4)}>
+            Voltar
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving}
+            onClick={handleSubmit(
+              (formData) => save(formData as OpportunityFormValues, false),
+              handleInvalidSubmit,
+            )}
+          >
             {saving
               ? uploadProgress
                 ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
@@ -902,24 +983,11 @@ export function OpportunityWizardPage() {
                   : "Salvando..."
               : isEditing
                 ? "Atualizar obra"
-                : "Salvar obra"}
+                : "Salvar completo"}
           </button>
-        )}
-      </section>
-      {saveError && <div className="error-text">{saveError}</div>}
-      {step === 4 && !isEditing && (
-        <button
-          type="button"
-          className="btn btn-secondary wizard-draft-button"
-          disabled={saving}
-          onClick={handleSubmit(
-            (formData) => save(formData as OpportunityFormValues, true),
-            handleInvalidSubmit,
-          )}
-        >
-          Salvar como rascunho
-        </button>
+        </section>
       )}
+      {saveError && <div className="error-text">{saveError}</div>}
     </form>
   );
 }
