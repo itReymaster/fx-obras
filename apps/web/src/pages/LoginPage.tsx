@@ -1,17 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import digitalReyLogo from '../assets/digital-rey-logo.svg';
 import { APP_CONFIG } from '../config/app';
 
+const REMEMBERED_USERNAME_KEY = 'remembered_username';
+
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const remembered = localStorage.getItem(REMEMBERED_USERNAME_KEY)?.trim() ?? '';
+    if (remembered) {
+      setUsername(remembered);
+      setRememberMe(true);
+    }
+  }, []);
+
+  const handleForgotPassword = () => {
+    window.alert('Esqueceu a senha? Fale com o administrador para redefinir o acesso.');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +34,14 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      await login(username, password);
+      await login(username, password, rememberMe);
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, username.trim());
+      } else {
+        localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+      }
+
       navigate('/');
     } catch (err) {
       setError('Usuário ou senha incorretos');
@@ -137,6 +159,26 @@ export const LoginPage = () => {
               >
                 {isLoading ? 'Autenticando...' : 'Entrar'}
               </button>
+
+              <div className="login-options-row">
+                <label className="checkbox-label login-remember-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                    disabled={isLoading}
+                  />
+                  Lembrar-me
+                </label>
+                <button
+                  type="button"
+                  className="login-link-button"
+                  onClick={handleForgotPassword}
+                  disabled={isLoading}
+                >
+                  Esqueceu sua senha?
+                </button>
+              </div>
             </form>
 
             {/* Help Text - Desktop Only */}

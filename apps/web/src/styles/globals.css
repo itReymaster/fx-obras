@@ -2215,6 +2215,44 @@ textarea:focus-visible {
   cursor: not-allowed;
 }
 
+.login-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -2px;
+}
+
+.login-remember-label {
+  font-size: 12px;
+  color: #5b6b7d;
+}
+
+.login-remember-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.login-link-button {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #0176d3;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-link-button:hover:not(:disabled) {
+  color: #015eb8;
+  text-decoration: underline;
+}
+
+.login-link-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .login-footer {
   text-align: center;
   padding-top: 16px;
@@ -2336,9 +2374,9 @@ textarea:focus-visible {
   }
 
   .brand-logo--header {
-    width: min(82vw, 304px);
+    width: min(92vw, 360px);
     height: auto;
-    margin: 0 auto;
+    margin: 0 auto 4px;
   }
 
   .login-mobile-kicker {
@@ -2424,6 +2462,17 @@ textarea:focus-visible {
 
   .login-button:disabled {
     opacity: 0.7;
+  }
+
+  .login-options-row {
+    margin-top: -2px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .login-link-button,
+  .login-remember-label {
+    font-size: 12.5px;
   }
 
   .login-error {
