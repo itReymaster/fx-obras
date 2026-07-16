@@ -224,7 +224,6 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
 
     return this.prisma.constructionOpportunity.count({
       where: {
-        isDeleted: false,
         createdAt: { gte: start, lt: end },
       },
     });

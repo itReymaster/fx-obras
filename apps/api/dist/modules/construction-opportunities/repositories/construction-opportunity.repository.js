@@ -206,7 +206,6 @@ export class ConstructionOpportunityRepository {
         const end = new Date(`${year + 1}-01-01T00:00:00.000Z`);
         return this.prisma.constructionOpportunity.count({
             where: {
-                isDeleted: false,
                 createdAt: { gte: start, lt: end },
             },
         });
