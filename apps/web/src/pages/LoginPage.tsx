@@ -184,7 +184,7 @@ export const LoginPage = () => {
             {/* Help Text - Desktop Only */}
             <div className="login-footer login-footer-desktop">
               <p className="login-help">
-                Senha padrão: 123@mudar
+                Em caso de acesso bloqueado, contate o administrador.
               </p>
             </div>
           </div>
