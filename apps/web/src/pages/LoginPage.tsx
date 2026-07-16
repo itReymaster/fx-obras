@@ -18,12 +18,36 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const syncAutofilledInputs = () => {
+    const userValue = usernameInputRef.current?.value ?? '';
+    const passValue = passwordInputRef.current?.value ?? '';
+
+    if (userValue && userValue !== username) {
+      setUsername(userValue);
+    }
+
+    if (passValue && passValue !== password) {
+      setPassword(passValue);
+    }
+  };
+
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBERED_USERNAME_KEY)?.trim() ?? '';
     if (remembered) {
       setUsername(remembered);
       setRememberMe(true);
     }
+
+    // Mobile browsers may apply autofill after initial paint without firing onChange.
+    const t1 = window.setTimeout(syncAutofilledInputs, 60);
+    const t2 = window.setTimeout(syncAutofilledInputs, 240);
+    const t3 = window.setTimeout(syncAutofilledInputs, 900);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    };
   }, []);
 
   const handleForgotPassword = () => {
@@ -35,11 +59,23 @@ export const LoginPage = () => {
     setError('');
 
     // Read from DOM refs so browser autofill works even when React state is stale.
-    const usernameValue = (usernameInputRef.current?.value ?? username).trim();
-    const passwordValue = passwordInputRef.current?.value ?? password;
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const usernameFromForm = String(formData.get('username') ?? '').trim();
+    const passwordFromForm = String(formData.get('password') ?? '');
+    const usernameValue = (usernameInputRef.current?.value ?? usernameFromForm ?? username).trim();
+    const passwordValue = passwordInputRef.current?.value ?? passwordFromForm ?? password;
+
+    setUsername(usernameValue);
+    setPassword(passwordValue);
 
     if (!usernameValue || !passwordValue) {
-      setError('Informe usuário e senha para continuar');
+      if (!usernameValue && !passwordValue) {
+        setError('Informe usuário e senha para continuar');
+      } else if (!usernameValue) {
+        setError('Informe o usuário para continuar');
+      } else {
+        setError('Informe a senha para continuar');
+      }
       return;
     }
 
@@ -138,6 +174,7 @@ export const LoginPage = () => {
                   value={username}
                   ref={usernameInputRef}
                   onChange={(e) => setUsername(e.target.value)}
+                  onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
                   disabled={isLoading}
                   autoComplete="username"
                 />
@@ -156,6 +193,7 @@ export const LoginPage = () => {
                   value={password}
                   ref={passwordInputRef}
                   onChange={(e) => setPassword(e.target.value)}
+                  onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
                   disabled={isLoading}
                   autoComplete="current-password"
                 />
