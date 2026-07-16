@@ -1,9 +1,11 @@
 import { Router } from "express";
 import multer from "multer";
 import { env } from "../../../config/env.js";
+import { prisma } from "../../../shared/database/prisma.js";
 import { getSequelize } from "../../../shared/database/sequelize.js";
 import { AppError } from "../../../shared/errors/app-error.js";
 import { ConstructionOpportunitiesController } from "../controllers/construction-opportunities.controller.js";
+import { ConstructionOpportunitiesService } from "../services/construction-opportunities.service.js";
 import { SequelizeConstructionOpportunityRepository } from "../v2/construction-opportunity.sequelize.repository.js";
 import { ConstructionOpportunitiesV2Service } from "../v2/construction-opportunities.v2.service.js";
 
@@ -25,9 +27,11 @@ const upload = multer({
   },
 });
 
-const sequelize = getSequelize();
-const repository = new SequelizeConstructionOpportunityRepository(sequelize);
-const service = new ConstructionOpportunitiesV2Service(repository);
+const service = env.sqlDialect === "mssql"
+  ? new ConstructionOpportunitiesV2Service(
+      new SequelizeConstructionOpportunityRepository(getSequelize()),
+    )
+  : new ConstructionOpportunitiesService(prisma);
 const controller = new ConstructionOpportunitiesController(service);
 
 export const constructionOpportunitiesV2Router = Router();
