@@ -715,7 +715,7 @@ export function OpportunityWizardPage() {
         <section className="card section-card surface-card">
           <h3 className="section-title">Etapa 1 - Captura Endereço</h3>
           <div className="grid">
-            <button type="button" className="btn btn-secondary" onClick={captureLocation} disabled={capturingLocation}>
+            <button type="button" className="btn wizard-location-button" onClick={captureLocation} disabled={capturingLocation}>
               <Crosshair size={18} /> {capturingLocation ? "Capturando localização..." : "Capturar minha localização"}
             </button>
             {locationHint && <span className="success-text">{locationHint}</span>}
@@ -762,11 +762,11 @@ export function OpportunityWizardPage() {
                 Esta obra já possui {loadedOpportunity.photos.length} foto{loadedOpportunity.photos.length === 1 ? "" : "s"} cadastrada{loadedOpportunity.photos.length === 1 ? "" : "s"}.
               </div>
             )}
-            <label className="btn btn-secondary btn-link">
+            <label className="btn btn-link wizard-capture-button">
               <Camera size={18} /> Tirar foto
               <input type="file" accept="image/*" capture="environment" hidden onChange={(event) => addFiles(event.target.files)} />
             </label>
-            <label className="btn btn-ghost btn-link">
+            <label className="btn btn-link wizard-capture-button wizard-capture-button--secondary">
               <ImagePlus size={18} /> Selecionar imagens
               <input type="file" accept="image/*" multiple hidden onChange={(event) => addFiles(event.target.files)} />
             </label>

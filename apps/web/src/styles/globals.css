@@ -674,6 +674,66 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
+.wizard-location-button {
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  gap: 8px;
+  background: #1f8a45;
+  border: 1px solid #176b35;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(31, 138, 69, 0.24);
+}
+
+.wizard-location-button:hover:not(:disabled) {
+  background: #176b35;
+  border-color: #12572b;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(23, 107, 53, 0.28);
+}
+
+.wizard-location-button:focus-visible {
+  outline: 2px solid #1f8a45;
+  outline-offset: 2px;
+}
+
+.wizard-location-button:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.wizard-capture-button {
+  width: 100%;
+  min-height: 48px;
+  justify-content: center;
+  gap: 8px;
+  background: #1f8a45;
+  border: 1px solid #176b35;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(31, 138, 69, 0.22);
+}
+
+.wizard-capture-button:hover {
+  background: #176b35;
+  border-color: #12572b;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(23, 107, 53, 0.26);
+}
+
+.wizard-capture-button--secondary {
+  background: #f4fbf6;
+  border: 1px solid #8bc6a0;
+  color: #1f6c3a;
+  box-shadow: none;
+}
+
+.wizard-capture-button--secondary:hover {
+  background: #ebf7ef;
+  border-color: #67ad83;
+  color: #145b2f;
+  box-shadow: none;
+}
+
 .avatar-center {
   margin: 0 auto;
 }
@@ -2989,6 +3049,16 @@ textarea:focus-visible {
   .wizard-actions .btn {
     min-height: 56px;
     font-size: 16px;
+  }
+
+  .wizard-location-button {
+    min-height: 52px;
+    font-size: 15px;
+  }
+
+  .wizard-capture-button {
+    min-height: 50px;
+    font-size: 14px;
   }
 
   .detail-status-controls {

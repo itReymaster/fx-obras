@@ -53,7 +53,7 @@ export const LoginPage = () => {
       setRememberMe(true);
     }
 
-    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(window.navigator.userAgent);
     const navWithStandalone = window.navigator as Navigator & { standalone?: boolean };
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navWithStandalone.standalone === true;
 
@@ -68,7 +68,7 @@ export const LoginPage = () => {
       setShowInstallShortcut(false);
     };
 
-    if (isIOS && !isStandalone) {
+    if (isMobile && !isStandalone) {
       setShowInstallShortcut(true);
     }
 
