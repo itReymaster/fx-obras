@@ -95,7 +95,7 @@ export function HomePage() {
       </section>
 
       <section className="home-kpis metric-grid">
-        <div className="cluster cluster--spread" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
+        <div className="cluster cluster--spread home-kpi-filter-row">
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -109,9 +109,11 @@ export function HomePage() {
           const Icon = card.icon;
           return (
             <article key={card.label} className="card home-kpi-card metric-card">
-              <div className="metric-label">
-                <span>{card.label}</span>
-                <Icon size={16} />
+              <div className="home-kpi-head">
+                <span className="home-kpi-label">{card.label}</span>
+                <span className="home-kpi-icon" aria-hidden="true">
+                  <Icon size={15} />
+                </span>
               </div>
               <strong className="home-kpi-value metric-value">{card.value}</strong>
             </article>

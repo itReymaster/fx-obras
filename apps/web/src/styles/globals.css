@@ -2002,9 +2002,54 @@ textarea:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.home-kpi-filter-row {
+  grid-column: 1 / -1;
+  margin-bottom: 4px;
+}
+
 .home-kpi-card {
+  position: relative;
   padding: 14px;
-  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.home-kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #3f6ea1 0%, #7093ba 100%);
+}
+
+.home-kpi-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-kpi-label {
+  color: #4d637a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.home-kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid #cdd9e7;
+  background: #f8fbff;
+  color: #496a8f;
 }
 
 .home-kpi-value {
@@ -3106,6 +3151,36 @@ textarea:focus-visible {
   .home-page {
     padding-left: 8px;
     padding-right: 8px;
+  }
+
+  .home-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .home-kpi-filter-row {
+    margin-bottom: 2px;
+  }
+
+  .home-kpi-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .home-kpi-label {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .home-kpi-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+
+  .home-kpi-value {
+    margin-top: 8px;
+    font-size: 26px;
   }
 
   .status-chip-row {
