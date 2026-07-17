@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, CheckCircle2, Crosshair, ImagePlus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, type FocusEvent } from "react";
+import { Camera, CheckCircle2, Crosshair, ImagePlus, Mic, Square, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
 import type { FieldErrors } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
@@ -14,7 +14,7 @@ import { APP_CONFIG } from "../../../config/app";
 import { getAuthenticatedUser } from "../../../config/users";
 import { opportunityFormSchema, type OpportunityFormValues } from "../schemas/opportunity-form.schema";
 import { opportunitiesApi } from "../services/opportunities-api";
-import type { Opportunity } from "../types/opportunity.types";
+import type { Opportunity, OpportunityAudio } from "../types/opportunity.types";
 
 type ReverseGeocodePayload = {
   address?: {
@@ -179,6 +179,13 @@ const formDefaultValues: OpportunityFormValues = {
   isTest: false,
 };
 
+type PendingAudio = {
+  id: string;
+  file: File;
+  url: string;
+  createdAt: string;
+};
+
 const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormValues => {
   const source = opportunity as Opportunity & {
     complement?: string | null;
@@ -236,6 +243,183 @@ export function OpportunityWizardPage() {
   const [savedOpportunity, setSavedOpportunity] = useState<{ id: string; code: string } | null>(null);
   const [loadingOpportunity, setLoadingOpportunity] = useState(isEditing);
   const [loadedOpportunity, setLoadedOpportunity] = useState<Opportunity | null>(null);
+  const [existingAudios, setExistingAudios] = useState<OpportunityAudio[]>([]);
+  const [pendingAudios, setPendingAudios] = useState<PendingAudio[]>([]);
+  const [audioActionError, setAudioActionError] = useState<string | null>(null);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaChunksRef = useRef<BlobPart[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const pendingAudiosRef = useRef<PendingAudio[]>([]);
+
+  const isSecureContextForMic =
+    typeof window !== "undefined" &&
+    (window.isSecureContext || window.location.hostname === "localhost");
+
+  const formatAudioSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatRecordingTime = (seconds: number): string => {
+    const safeSeconds = Math.max(0, Math.min(60, seconds));
+    const minutesPart = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
+    const secondsPart = String(safeSeconds % 60).padStart(2, "0");
+    return `${minutesPart}:${secondsPart}`;
+  };
+
+  const clearRecordingTimer = () => {
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const stopRecordingResources = () => {
+    clearRecordingTimer();
+    mediaRecorderRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    mediaChunksRef.current = [];
+    setIsRecordingAudio(false);
+    setRecordingSeconds(0);
+  };
+
+  const makeAudioFileName = (mimeType: string) => {
+    const extension =
+      mimeType.includes("mpeg") ? "mp3" :
+      mimeType.includes("wav") ? "wav" :
+      mimeType.includes("ogg") ? "ogg" :
+      mimeType.includes("mp4") ? "mp4" :
+      "webm";
+    return `audio-${Date.now()}.${extension}`;
+  };
+
+  const addPendingAudioFile = (file: File) => {
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const url = URL.createObjectURL(file);
+    setPendingAudios((current) => [
+      {
+        id,
+        file,
+        url,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ]);
+  };
+
+  const onSelectAudioFiles = (selected: FileList | null) => {
+    if (!selected) return;
+    setAudioActionError(null);
+    const filesList = Array.from(selected)
+      .filter((file) => file.type.startsWith("audio/"))
+      .slice(0, 5);
+
+    if (filesList.length === 0) {
+      setAudioActionError("Selecione arquivos de audio validos.");
+      return;
+    }
+
+    filesList.forEach((file) => addPendingAudioFile(file));
+  };
+
+  const handleRemovePendingAudio = (audioId: string) => {
+    setPendingAudios((current) => {
+      const target = current.find((audio) => audio.id === audioId);
+      if (target) URL.revokeObjectURL(target.url);
+      return current.filter((audio) => audio.id !== audioId);
+    });
+  };
+
+  const handleDeleteExistingAudio = async (audioId: string) => {
+    if (!isEditing) return;
+    const confirmed = window.confirm("Remover este audio anexado?");
+    if (!confirmed) return;
+
+    try {
+      await opportunitiesApi.deleteAudio(opportunityId, audioId);
+      const data = await opportunitiesApi.listAudios(opportunityId);
+      setExistingAudios(data);
+      setAudioActionError(null);
+    } catch (error: any) {
+      setAudioActionError(error?.response?.data?.message ?? "Nao foi possivel remover o audio.");
+    }
+  };
+
+  const handleStartAudioRecording = async () => {
+    if (!isSecureContextForMic) {
+      setAudioActionError("Gravacao de audio requer HTTPS ou localhost.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setAudioActionError("Seu navegador nao suporta gravacao de audio.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const preferredTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg",
+      ];
+      const selectedType = preferredTypes.find((value) => MediaRecorder.isTypeSupported(value));
+      const recorder = selectedType ? new MediaRecorder(stream, { mimeType: selectedType }) : new MediaRecorder(stream);
+
+      mediaChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          mediaChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const mimeType = recorder.mimeType || "audio/webm";
+        const blob = new Blob(mediaChunksRef.current, { type: mimeType });
+        stopRecordingResources();
+        if (blob.size > 0) {
+          const file = new File([blob], makeAudioFileName(mimeType), { type: mimeType });
+          addPendingAudioFile(file);
+        }
+      };
+
+      recorder.start(200);
+      mediaRecorderRef.current = recorder;
+      setAudioActionError(null);
+      setIsRecordingAudio(true);
+      setRecordingSeconds(0);
+
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingSeconds((previous) => {
+          const next = previous + 1;
+          if (next >= 60 && mediaRecorderRef.current?.state === "recording") {
+            mediaRecorderRef.current.stop();
+          }
+          return Math.min(next, 60);
+        });
+      }, 1000);
+    } catch {
+      stopRecordingResources();
+      setAudioActionError("Nao foi possivel acessar o microfone.");
+    }
+  };
+
+  const handleStopAudioRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
   const mapGeolocationError = (error?: GeolocationPositionError) => {
     if (!error) return "Nao foi possivel capturar o GPS. Use endereco manual.";
@@ -320,13 +504,14 @@ export function OpportunityWizardPage() {
     setLoadingOpportunity(true);
     setSaveError(null);
 
-    void opportunitiesApi
-      .getById(opportunityId)
-      .then((opportunity) => {
+    void Promise.all([opportunitiesApi.getById(opportunityId), opportunitiesApi.listAudios(opportunityId)])
+      .then(([opportunity, audios]) => {
         if (cancelled) return;
 
         setLoadedOpportunity(opportunity);
+        setExistingAudios(audios);
         setPhotoActionError(null);
+        setAudioActionError(null);
         reset({
           ...formDefaultValues,
           ...mapOpportunityToFormValues(opportunity),
@@ -347,6 +532,17 @@ export function OpportunityWizardPage() {
       cancelled = true;
     };
   }, [isEditing, opportunityId, reset]);
+
+  useEffect(() => {
+    pendingAudiosRef.current = pendingAudios;
+  }, [pendingAudios]);
+
+  useEffect(() => {
+    return () => {
+      stopRecordingResources();
+      pendingAudiosRef.current.forEach((audio) => URL.revokeObjectURL(audio.url));
+    };
+  }, []);
 
   const values = watch();
 
@@ -622,7 +818,7 @@ export function OpportunityWizardPage() {
     setSaveError(null);
 
     // Timeout por foto: cadastro (15s) + até 30s por anexo
-    const safetyTimeoutMs = 15000 + files.length * 30000;
+    const safetyTimeoutMs = 15000 + files.length * 30000 + pendingAudios.length * 30000;
     const timeoutId = setTimeout(() => {
       setSaving(false);
       setUploadProgress(null);
@@ -644,6 +840,16 @@ export function OpportunityWizardPage() {
         if (primaryPhoto) {
           await opportunitiesApi.setPrimaryPhoto(saved.id, primaryPhoto.id);
         }
+      }
+
+      if (pendingAudios.length > 0) {
+        setIsUploadingAudio(true);
+        for (const audio of pendingAudios) {
+          await opportunitiesApi.uploadAudio(saved.id, audio.file);
+        }
+        pendingAudios.forEach((audio) => URL.revokeObjectURL(audio.url));
+        setPendingAudios([]);
+        setIsUploadingAudio(false);
       }
 
       clearTimeout(timeoutId);
@@ -668,6 +874,7 @@ export function OpportunityWizardPage() {
         error?.message ??
         `Nao foi possivel ${isEditing ? "atualizar" : "salvar"} a obra. Verifique conexao com a API e tente novamente.`;
       setSaveError(message);
+      setIsUploadingAudio(false);
       setSaving(false);
     }
   };
@@ -826,6 +1033,71 @@ export function OpportunityWizardPage() {
             )}
 
             {photoActionError && <span className="error-text">{photoActionError}</span>}
+
+            <div className="stack-sm mt-6">
+              <strong>Audio</strong>
+              <div className="grid-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
+                  disabled={saving || isUploadingAudio}
+                >
+                  {isRecordingAudio ? <Square size={16} /> : <Mic size={16} />}
+                  {isRecordingAudio ? `Parar gravacao (${formatRecordingTime(recordingSeconds)} / 01:00)` : "Gravar audio (ate 60s)"}
+                </button>
+                <label className="btn btn-link wizard-capture-button wizard-capture-button--secondary">
+                  <ImagePlus size={18} /> Selecionar audio
+                  <input type="file" accept="audio/*" multiple hidden onChange={(event) => onSelectAudioFiles(event.target.files)} />
+                </label>
+              </div>
+
+              {!isSecureContextForMic && (
+                <span className="muted" style={{ fontSize: 12 }}>
+                  Gravacao de audio exige HTTPS ou localhost.
+                </span>
+              )}
+
+              {pendingAudios.length > 0 && (
+                <div className="stack-sm">
+                  <span className="success-text">{pendingAudios.length} audio(s) pronto(s) para anexar no salvar.</span>
+                  {pendingAudios.map((audio) => (
+                    <div key={audio.id} className="card section-card--compact surface-card">
+                      <div className="justify-between-wrap mb-8">
+                        <span className="muted" style={{ fontSize: 12 }}>
+                          {audio.file.name} - {formatAudioSize(audio.file.size)}
+                        </span>
+                        <button type="button" className="btn btn-ghost" onClick={() => handleRemovePendingAudio(audio.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <audio controls preload="metadata" src={audio.url} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isEditing && existingAudios.length > 0 && (
+                <div className="stack-sm">
+                  <span className="muted" style={{ fontSize: 12 }}>Audios já anexados</span>
+                  {existingAudios.map((audio) => (
+                    <div key={audio.id} className="card section-card--compact surface-card">
+                      <div className="justify-between-wrap mb-8">
+                        <span className="muted" style={{ fontSize: 12 }}>
+                          {audio.originalName} - {formatAudioSize(audio.size)}
+                        </span>
+                        <button type="button" className="btn btn-ghost" onClick={() => handleDeleteExistingAudio(audio.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <audio controls preload="metadata" src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {audioActionError && <span className="error-text">{audioActionError}</span>}
+            </div>
           </div>
         </section>
       )}
@@ -840,6 +1112,7 @@ export function OpportunityWizardPage() {
             <div><strong>Endereco:</strong> {values.street || "-"} {values.number || ""}, {values.district || "-"} - {values.city || "-"}</div>
             <div><strong>Coordenadas:</strong> {values.latitude ?? "-"}, {values.longitude ?? "-"}</div>
             <div><strong>Qtd. fotos:</strong> {existingPhotos.length + files.length}</div>
+            <div><strong>Qtd. audios:</strong> {existingAudios.length + pendingAudios.length}</div>
             <div className="muted" style={{ fontSize: 13 }}>
               Depois você pode complementar qualquer informação na edição da obra.
             </div>
@@ -931,6 +1204,8 @@ export function OpportunityWizardPage() {
             {saving
               ? uploadProgress
                 ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
+                : isUploadingAudio
+                  ? "Enviando audios..."
                 : isEditing
                   ? "Atualizando..."
                   : "Salvando..."
@@ -978,6 +1253,8 @@ export function OpportunityWizardPage() {
             {saving
               ? uploadProgress
                 ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
+                : isUploadingAudio
+                  ? "Enviando audios..."
                 : isEditing
                   ? "Atualizando..."
                   : "Salvando..."

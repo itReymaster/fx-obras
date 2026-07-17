@@ -16,6 +16,15 @@ export interface OpportunityPhoto {
   createdAt: string;
 }
 
+export interface OpportunityAudio {
+  id: string;
+  originalName: string;
+  relativePath: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
 export interface Opportunity {
   id: string;
   code: string;

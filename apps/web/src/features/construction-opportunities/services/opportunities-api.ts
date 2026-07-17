@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import type { Opportunity, OpportunityListResponse } from "../types/opportunity.types";
+import type { Opportunity, OpportunityAudio, OpportunityListResponse } from "../types/opportunity.types";
 
 export const opportunitiesApi = {
   async dashboard(includeTests = false) {
@@ -67,6 +67,24 @@ export const opportunitiesApi = {
 
   async deletePhoto(id: string, photoId: string) {
     await api.delete(`/construction-opportunities/${id}/photos/${photoId}`);
+  },
+
+  async listAudios(id: string) {
+    const { data } = await api.get<OpportunityAudio[]>(`/construction-opportunities/${id}/audios`);
+    return data;
+  },
+
+  async uploadAudio(id: string, file: File) {
+    const formData = new FormData();
+    formData.append("audio", file);
+    const { data } = await api.post<OpportunityAudio>(`/construction-opportunities/${id}/audios`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
+  async deleteAudio(id: string, audioId: string) {
+    await api.delete(`/construction-opportunities/${id}/audios/${audioId}`);
   },
 
   async remove(id: string) {

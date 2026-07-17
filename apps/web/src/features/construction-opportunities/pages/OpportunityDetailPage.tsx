@@ -1,12 +1,12 @@
-import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap, Mic, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { addressLabel, formatDate } from "../../../utils/format";
 import { labels, statusOptions } from "../../../utils/labels";
 import { buildOpportunityPdf } from "../services/opportunity-pdf";
 import { opportunitiesApi } from "../services/opportunities-api";
-import type { Opportunity } from "../types/opportunity.types";
+import type { Opportunity, OpportunityAudio } from "../types/opportunity.types";
 
 export function OpportunityDetailPage() {
   const { id = "" } = useParams();
@@ -20,7 +20,19 @@ export function OpportunityDetailPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false);
+  const [audios, setAudios] = useState<OpportunityAudio[]>([]);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const [audioFeedback, setAudioFeedback] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaChunksRef = useRef<BlobPart[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
   const isSecureContextForShare =
+    typeof window !== "undefined" &&
+    (window.isSecureContext || window.location.hostname === "localhost");
+  const isSecureContextForMic =
     typeof window !== "undefined" &&
     (window.isSecureContext || window.location.hostname === "localhost");
 
@@ -31,7 +43,21 @@ export function OpportunityDetailPage() {
       const initialPhoto = data.photos.find((photo) => photo.isPrimary) ?? data.photos[0] ?? null;
       setSelectedPhotoId(initialPhoto?.id ?? null);
     });
+
+    void opportunitiesApi.listAudios(id)
+      .then((data) => setAudios(data))
+      .catch(() => setAudioFeedback("Nao foi possivel carregar os audios anexados."));
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        window.clearInterval(recordingTimerRef.current);
+      }
+      mediaRecorderRef.current?.stop();
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   useEffect(() => {
     if (!isPhotoZoomOpen) return;
@@ -68,6 +94,138 @@ export function OpportunityDetailPage() {
       await navigator.clipboard.writeText(value);
     } catch {
       // noop
+    }
+  };
+
+  const formatAudioSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatRecordingTime = (seconds: number): string => {
+    const safeSeconds = Math.max(0, Math.min(60, seconds));
+    const minutesPart = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
+    const secondsPart = String(safeSeconds % 60).padStart(2, "0");
+    return `${minutesPart}:${secondsPart}`;
+  };
+
+  const stopRecordingTimer = () => {
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const uploadRecordedAudio = async (blob: Blob, mimeType: string) => {
+    const extension =
+      mimeType.includes("mpeg") ? "mp3" :
+      mimeType.includes("wav") ? "wav" :
+      mimeType.includes("ogg") ? "ogg" :
+      mimeType.includes("mp4") ? "mp4" :
+      "webm";
+
+    const file = new File([blob], `audio-${Date.now()}.${extension}`, { type: mimeType || "audio/webm" });
+    setIsUploadingAudio(true);
+    setAudioFeedback(null);
+    try {
+      await opportunitiesApi.uploadAudio(id, file);
+      const data = await opportunitiesApi.listAudios(id);
+      setAudios(data);
+      setAudioFeedback("Audio anexado com sucesso.");
+    } catch {
+      setAudioFeedback("Nao foi possivel anexar o audio.");
+    } finally {
+      setIsUploadingAudio(false);
+    }
+  };
+
+  const handleStartAudioRecording = async () => {
+    if (!isSecureContextForMic) {
+      setAudioFeedback("Gravacao de audio requer HTTPS ou localhost.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setAudioFeedback("Seu navegador nao suporta gravacao de audio.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const preferredTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg",
+      ];
+      const selectedType = preferredTypes.find((value) => MediaRecorder.isTypeSupported(value));
+      const recorder = selectedType ? new MediaRecorder(stream, { mimeType: selectedType }) : new MediaRecorder(stream);
+
+      mediaChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          mediaChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        mediaChunksRef.current = [];
+        stopRecordingTimer();
+        setRecordingSeconds(0);
+        setIsRecordingAudio(false);
+        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+
+        if (blob.size > 0) {
+          await uploadRecordedAudio(blob, recorder.mimeType || "audio/webm");
+        }
+      };
+
+      recorder.start(200);
+      mediaRecorderRef.current = recorder;
+      setIsRecordingAudio(true);
+      setRecordingSeconds(0);
+      setAudioFeedback("Gravando audio...");
+
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingSeconds((previous) => {
+          const next = previous + 1;
+          if (next >= 60 && mediaRecorderRef.current?.state === "recording") {
+            mediaRecorderRef.current.stop();
+          }
+          return Math.min(next, 60);
+        });
+      }, 1000);
+    } catch {
+      setAudioFeedback("Nao foi possivel acessar o microfone.");
+      setIsRecordingAudio(false);
+      stopRecordingTimer();
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+  };
+
+  const handleStopAudioRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const handleDeleteAudio = async (audioId: string) => {
+    const confirmed = window.confirm("Remover este audio da oportunidade?");
+    if (!confirmed) return;
+
+    try {
+      await opportunitiesApi.deleteAudio(id, audioId);
+      const data = await opportunitiesApi.listAudios(id);
+      setAudios(data);
+      setAudioFeedback("Audio removido com sucesso.");
+    } catch {
+      setAudioFeedback("Nao foi possivel remover o audio.");
     }
   };
 
@@ -330,6 +488,62 @@ export function OpportunityDetailPage() {
             </div>
           </div>
         )}
+      </section>
+
+      <section className="card section-card surface-card">
+        <div className="justify-between-wrap" style={{ alignItems: "center", gap: 12 }}>
+          <h3 className="section-title" style={{ marginBottom: 0 }}>Audio da oportunidade</h3>
+          <button
+            type="button"
+            className={`btn ${isRecordingAudio ? "btn-danger" : "btn-secondary"}`}
+            onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
+            disabled={isUploadingAudio}
+            title={isRecordingAudio ? "Parar gravacao" : "Gravar audio"}
+          >
+            {isRecordingAudio ? <Square size={16} /> : <Mic size={16} />}
+            {isRecordingAudio ? `Parar (${formatRecordingTime(recordingSeconds)} / 01:00)` : "Gravar audio (ate 60s)"}
+          </button>
+        </div>
+
+        {audioFeedback && (
+          <p className="muted" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
+            {audioFeedback}
+          </p>
+        )}
+
+        {!isSecureContextForMic && (
+          <p className="muted" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+            A gravacao de audio exige HTTPS ou localhost.
+          </p>
+        )}
+
+        <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+          {audios.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>Nenhum audio anexado.</p>
+          ) : (
+            audios.map((audio) => (
+              <div
+                key={audio.id}
+                className="card"
+                style={{ padding: 12, display: "grid", gap: 8 }}
+              >
+                <div className="justify-between-wrap" style={{ alignItems: "center", gap: 8 }}>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {formatDate(audio.createdAt)} - {formatAudioSize(audio.size)}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => handleDeleteAudio(audio.id)}
+                  >
+                    <Trash2 size={14} /> Remover
+                  </button>
+                </div>
+                <audio controls preload="metadata" src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`} />
+              </div>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="card section-card surface-card">
