@@ -1036,7 +1036,7 @@ export function OpportunityWizardPage() {
 
             <div className="stack-sm mt-6">
               <strong>Audio</strong>
-              <div className="grid-2">
+              <div className="grid-2 wizard-audio-actions">
                 <button
                   type="button"
                   className={`btn audio-record-button audio-record-button--touch${isRecordingAudio ? " is-recording" : ""}`}
@@ -1064,14 +1064,14 @@ export function OpportunityWizardPage() {
                   {pendingAudios.map((audio) => (
                     <div key={audio.id} className="card section-card--compact surface-card">
                       <div className="justify-between-wrap mb-8">
-                        <span className="muted" style={{ fontSize: 12 }}>
+                        <span className="muted wizard-audio-meta" style={{ fontSize: 12 }}>
                           {audio.file.name} - {formatAudioSize(audio.file.size)}
                         </span>
                         <button type="button" className="btn btn-ghost" onClick={() => handleRemovePendingAudio(audio.id)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
-                      <audio controls preload="metadata" src={audio.url} />
+                      <audio className="opportunity-audio-player" controls preload="metadata" src={audio.url} />
                     </div>
                   ))}
                 </div>
@@ -1083,14 +1083,19 @@ export function OpportunityWizardPage() {
                   {existingAudios.map((audio) => (
                     <div key={audio.id} className="card section-card--compact surface-card">
                       <div className="justify-between-wrap mb-8">
-                        <span className="muted" style={{ fontSize: 12 }}>
+                        <span className="muted wizard-audio-meta" style={{ fontSize: 12 }}>
                           {audio.originalName} - {formatAudioSize(audio.size)}
                         </span>
                         <button type="button" className="btn btn-ghost" onClick={() => handleDeleteExistingAudio(audio.id)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
-                      <audio controls preload="metadata" src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`} />
+                      <audio
+                        className="opportunity-audio-player"
+                        controls
+                        preload="metadata"
+                        src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`}
+                      />
                     </div>
                   ))}
                 </div>

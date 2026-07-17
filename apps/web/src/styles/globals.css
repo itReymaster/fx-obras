@@ -3085,7 +3085,21 @@ textarea:focus-visible {
   justify-content: center;
   gap: 6px;
   font-size: 13px;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.opportunity-audio-player {
+  width: 100%;
+  max-width: 100%;
+}
+
+.wizard-audio-meta {
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 640px) {
@@ -3203,6 +3217,11 @@ textarea:focus-visible {
     max-width: 100%;
   }
 
+  .detail-actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
   .wizard-actions {
     grid-template-columns: 1fr;
   }
@@ -3220,6 +3239,10 @@ textarea:focus-visible {
   .wizard-capture-button {
     min-height: 50px;
     font-size: 14px;
+  }
+
+  .wizard-audio-actions {
+    grid-template-columns: 1fr;
   }
 
   .audio-record-header {

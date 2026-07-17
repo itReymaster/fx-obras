@@ -539,7 +539,12 @@ export function OpportunityDetailPage() {
                     <Trash2 size={14} /> Remover
                   </button>
                 </div>
-                <audio controls preload="metadata" src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`} />
+                <audio
+                  className="opportunity-audio-player"
+                  controls
+                  preload="metadata"
+                  src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`}
+                />
               </div>
             ))
           )}
