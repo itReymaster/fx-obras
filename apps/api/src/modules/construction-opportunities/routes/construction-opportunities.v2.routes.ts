@@ -34,6 +34,7 @@ const audioUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 12 * 1024 * 1024 },
   fileFilter: (_req, file, callback) => {
+    const normalizedMimeType = file.mimetype.split(";")[0]?.trim().toLowerCase() ?? "";
     const allowed = [
       "audio/webm",
       "audio/mp4",
@@ -43,7 +44,7 @@ const audioUpload = multer({
       "audio/x-m4a",
       "audio/aac",
     ];
-    if (!allowed.includes(file.mimetype)) {
+    if (!allowed.includes(normalizedMimeType)) {
       callback(new AppError("Formato de audio nao suportado.", 422));
       return;
     }

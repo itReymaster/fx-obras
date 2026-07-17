@@ -491,11 +491,11 @@ export function OpportunityDetailPage() {
       </section>
 
       <section className="card section-card surface-card">
-        <div className="justify-between-wrap" style={{ alignItems: "center", gap: 12 }}>
+        <div className="justify-between-wrap audio-record-header" style={{ alignItems: "center", gap: 12 }}>
           <h3 className="section-title" style={{ marginBottom: 0 }}>Audio da oportunidade</h3>
           <button
             type="button"
-            className={`btn ${isRecordingAudio ? "btn-danger" : "btn-secondary"}`}
+            className={`btn audio-record-button audio-record-button--compact${isRecordingAudio ? " is-recording" : ""}`}
             onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
             disabled={isUploadingAudio}
             title={isRecordingAudio ? "Parar gravacao" : "Gravar audio"}

@@ -1039,7 +1039,7 @@ export function OpportunityWizardPage() {
               <div className="grid-2">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className={`btn audio-record-button audio-record-button--touch${isRecordingAudio ? " is-recording" : ""}`}
                   onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
                   disabled={saving || isUploadingAudio}
                 >

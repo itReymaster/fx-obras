@@ -1658,6 +1658,76 @@ textarea:focus-visible {
   min-height: 40px;
 }
 
+.audio-record-header {
+  align-items: center;
+}
+
+.audio-record-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #c7d4e5;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+  color: #2f3f54;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.audio-record-button--compact {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-radius: 10px;
+}
+
+.audio-record-button--touch {
+  min-height: 50px;
+  padding: 12px 14px;
+  font-size: 14px;
+  border-radius: 14px;
+}
+
+.audio-record-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #b7c8df;
+  background: linear-gradient(180deg, #ffffff 0%, #edf3ff 100%);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+.audio-record-button.is-recording {
+  border-color: #b42318;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(185, 28, 28, 0.28);
+}
+
+.audio-record-button.is-recording::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+  animation: audio-record-pulse 1.25s ease-out infinite;
+}
+
+@keyframes audio-record-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
 .map-wrapper {
   position: relative;
   border: 1px solid var(--border);
@@ -3150,6 +3220,32 @@ textarea:focus-visible {
   .wizard-capture-button {
     min-height: 50px;
     font-size: 14px;
+  }
+
+  .audio-record-header {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .audio-record-button {
+    width: 100%;
+    min-height: 52px;
+    font-size: 14px;
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+
+  .audio-record-button--compact,
+  .audio-record-button--touch {
+    min-height: 52px;
+    font-size: 14px;
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+
+  .audio-record-button svg {
+    width: 17px;
+    height: 17px;
   }
 
   .detail-status-controls {
