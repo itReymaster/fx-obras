@@ -1918,11 +1918,19 @@ textarea:focus-visible {
 .audio-record-button:hover:not(:disabled) {
   transform: translateY(-1px);
   border-color: #b7c8df;
-  background: linear-gradient(180deg, #ffffff 0%, #edf3ff 100%);
+  background: linear-gradient(180deg, #f9fbff 0%, #e8f0fc 100%);
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
 }
 
 .audio-record-button.is-recording {
+  border-color: #b42318;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(185, 28, 28, 0.28);
+}
+
+.audio-record-button.is-recording:hover:not(:disabled) {
+  transform: none;
   border-color: #b42318;
   background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
