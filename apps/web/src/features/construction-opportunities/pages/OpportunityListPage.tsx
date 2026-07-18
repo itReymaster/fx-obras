@@ -1,5 +1,5 @@
 import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { AUTHORIZED_USERS } from "../../../config/users";
@@ -27,6 +27,8 @@ export function OpportunityListPage() {
   const [view, setView] = useState<"cards" | "table">("cards");
   const [testFilterMode, setTestFilterMode] = useState<TestFilterMode>("real_only");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [desktopFiltersOpen, setDesktopFiltersOpen] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900);
 
   const load = (overrides?: {
     search?: string;
@@ -121,7 +123,13 @@ export function OpportunityListPage() {
     load();
   }, []);
 
-  const isDesktop = useMemo(() => window.innerWidth >= 900, []);
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 900);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const filtersOpen = isDesktop ? desktopFiltersOpen : mobileFiltersOpen;
 
   return (
     <div className="page grid">
@@ -163,9 +171,20 @@ export function OpportunityListPage() {
             {mobileFiltersOpen ? "Fechar opções" : "Abrir opções"}
             {activeFiltersCount > 0 && <span className="filters-mobile-count">({activeFiltersCount})</span>}
           </button>
+
+          <button
+            type="button"
+            className="btn btn-ghost filters-desktop-toggle"
+            onClick={() => setDesktopFiltersOpen((value) => !value)}
+            aria-expanded={desktopFiltersOpen}
+          >
+            <SlidersHorizontal size={16} />
+            {desktopFiltersOpen ? "Recolher filtros" : "Expandir filtros"}
+            {activeFiltersCount > 0 && <span className="filters-mobile-count">({activeFiltersCount})</span>}
+          </button>
         </div>
 
-        <div className={`filters-collapsible ${mobileFiltersOpen ? "is-open" : "is-closed"}`}>
+        <div className={`filters-collapsible ${filtersOpen ? "is-open" : "is-closed"}`}>
           <div className="status-chip-row" aria-label="Filtros rápidos do funil">
             <button
               type="button"
