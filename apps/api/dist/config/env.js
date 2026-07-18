@@ -16,32 +16,32 @@ const stripWrappingQuotes = (value) => {
     }
     return trimmed;
 };
-const erpFlexHost = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_HOST ?? process.env.DB_HOST ?? process.env.SQLSERVER_HOST);
-const erpFlexPort = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_PORT ?? process.env.DB_PORT ?? process.env.SQLSERVER_PORT);
-const erpFlexDatabase = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_DATABASE ?? process.env.DB_DATABASE ?? process.env.SQLSERVER_DATABASE);
-const erpFlexUsername = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_USERNAME ?? process.env.DB_USER ?? process.env.SQLSERVER_USERNAME);
-const erpFlexPassword = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_PASSWORD ?? process.env.DB_PASSWORD ?? process.env.SQLSERVER_PASSWORD);
+const dbHost = stripWrappingQuotes(process.env.DB_HOST ?? process.env.SQLSERVER_HOST);
+const dbPort = stripWrappingQuotes(process.env.DB_PORT ?? process.env.SQLSERVER_PORT);
+const dbDatabase = stripWrappingQuotes(process.env.DB_DATABASE ?? process.env.SQLSERVER_DATABASE);
+const dbUsername = stripWrappingQuotes(process.env.DB_USER ?? process.env.SQLSERVER_USERNAME);
+const dbPassword = stripWrappingQuotes(process.env.DB_PASSWORD ?? process.env.SQLSERVER_PASSWORD);
 export const env = {
     nodeEnv: process.env.NODE_ENV ?? "development",
     port: toNumber(process.env.PORT, 3333),
     corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
     uploadDir: process.env.UPLOAD_DIR ?? "uploads/construction-opportunities",
     sqlDialect: process.env.SQL_DIALECT ?? "sqlite",
-    sqlServerHost: stripWrappingQuotes(process.env.SQLSERVER_HOST) ?? "localhost",
-    sqlServerPort: toNumber(stripWrappingQuotes(process.env.SQLSERVER_PORT), 1433),
-    sqlServerDatabase: stripWrappingQuotes(process.env.SQLSERVER_DATABASE) ?? "fx_obras",
-    sqlServerUsername: stripWrappingQuotes(process.env.SQLSERVER_USERNAME) ?? "sa",
-    sqlServerPassword: stripWrappingQuotes(process.env.SQLSERVER_PASSWORD) ?? "",
+    sqlServerHost: dbHost ?? "localhost",
+    sqlServerPort: toNumber(dbPort, 1433),
+    sqlServerDatabase: dbDatabase ?? "fx_obras",
+    sqlServerUsername: dbUsername ?? "sa",
+    sqlServerPassword: dbPassword ?? "",
     sqlServerEncrypt: (process.env.SQLSERVER_ENCRYPT ?? "false") === "true",
     sqlServerTrustServerCertificate: (process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
-    erpFlexSqlHost: erpFlexHost ?? "200.195.141.5",
-    erpFlexSqlPort: toNumber(erpFlexPort, 61433),
-    erpFlexSqlDatabase: erpFlexDatabase ?? "Flex",
-    erpFlexSqlUsername: erpFlexUsername ?? "UserService",
-    erpFlexSqlPassword: erpFlexPassword ?? "",
-    erpFlexSqlEncrypt: (process.env.ERP_FLEX_SQLSERVER_ENCRYPT ?? "false") === "true",
-    erpFlexSqlTrustServerCertificate: (process.env.ERP_FLEX_SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
-    erpFlexLoginProcedure: process.env.ERP_FLEX_SQLSERVER_LOGIN_PROCEDURE ?? "dbo.SPAuthLogin",
+    erpFlexSqlHost: dbHost ?? "200.195.141.5",
+    erpFlexSqlPort: toNumber(dbPort, 1433),
+    erpFlexSqlDatabase: dbDatabase ?? "Flex",
+    erpFlexSqlUsername: dbUsername ?? "UserService",
+    erpFlexSqlPassword: dbPassword ?? "",
+    erpFlexSqlEncrypt: (process.env.DB_ENCRYPT ?? process.env.SQLSERVER_ENCRYPT ?? "false") === "true",
+    erpFlexSqlTrustServerCertificate: (process.env.DB_TRUST_SERVER_CERTIFICATE ?? process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
+    erpFlexLoginProcedure: process.env.DB_LOGIN_PROCEDURE ?? "dbo.SPAuthLogin",
     maxPhotosPerOpportunity: toNumber(process.env.MAX_PHOTOS_PER_OPPORTUNITY, 15),
     maxPhotoSizeMb: toNumber(process.env.MAX_PHOTO_SIZE_MB, 10),
     appName: process.env.APP_NAME ?? "Obras Prospect",
