@@ -12,6 +12,15 @@ services:
       PORT: 3333
       DATABASE_URL: ${DATABASE_URL:-file:/app/data/prod.db}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://projetos.reymaster.com.br}
+      DB_HOST: ${DB_HOST:-200.195.141.5}
+      DB_PORT: ${DB_PORT:-1433}
+      DB_DATABASE: ${DB_DATABASE:-Flex}
+      DB_USER: ${DB_USER:-UserService}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_PASSWORD_B64: ${DB_PASSWORD_B64:-}
+      DB_ENCRYPT: ${DB_ENCRYPT:-false}
+      DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
+      DB_LOGIN_PROCEDURE: ${DB_LOGIN_PROCEDURE:-dbo.SPAuthLogin}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads/construction-opportunities}
       MAX_PHOTOS_PER_OPPORTUNITY: ${MAX_PHOTOS_PER_OPPORTUNITY:-15}
       MAX_PHOTO_SIZE_MB: ${MAX_PHOTO_SIZE_MB:-10}

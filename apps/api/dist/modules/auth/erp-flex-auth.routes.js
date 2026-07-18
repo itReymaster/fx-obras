@@ -80,6 +80,12 @@ export const erpFlexAuthRouter = Router();
 erpFlexAuthRouter.get("/erp-flex/status", (_req, res) => {
     res.json({
         configured: Boolean(env.erpFlexSqlPassword),
+        passwordSource: env.erpFlexSqlPasswordSource,
+        passwordLength: env.erpFlexSqlPassword.length,
+        hasDbPassword: Boolean(process.env.DB_PASSWORD),
+        hasDbPasswordB64: Boolean(process.env.DB_PASSWORD_B64),
+        hasLegacyPassword: Boolean(process.env.ERP_FLEX_SQLSERVER_PASSWORD),
+        hasLegacyPasswordB64: Boolean(process.env.ERP_FLEX_SQLSERVER_PASSWORD_B64),
         host: env.erpFlexSqlHost,
         port: env.erpFlexSqlPort,
         database: env.erpFlexSqlDatabase,

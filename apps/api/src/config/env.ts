@@ -18,6 +18,17 @@ const stripWrappingQuotes = (value: string | undefined): string | undefined => {
   return trimmed;
 };
 
+const pickFirstNonEmpty = (...values: Array<string | undefined>): string | undefined => {
+  for (const value of values) {
+    const normalized = stripWrappingQuotes(value);
+    if (normalized && normalized.length > 0) {
+      return normalized;
+    }
+  }
+
+  return undefined;
+};
+
 const decodeBase64 = (value: string | undefined): string | undefined => {
   const normalized = stripWrappingQuotes(value);
   if (!normalized) return undefined;
@@ -29,35 +40,40 @@ const decodeBase64 = (value: string | undefined): string | undefined => {
   }
 };
 
-const dbHost = stripWrappingQuotes(
-  process.env.DB_HOST ??
-    process.env.ERP_FLEX_SQLSERVER_HOST ??
-    process.env.SQLSERVER_HOST,
+const dbHost = pickFirstNonEmpty(
+  process.env.DB_HOST,
+  process.env.ERP_FLEX_SQLSERVER_HOST,
+  process.env.SQLSERVER_HOST,
 );
-const dbPort = stripWrappingQuotes(
-  process.env.DB_PORT ??
-    process.env.ERP_FLEX_SQLSERVER_PORT ??
-    process.env.SQLSERVER_PORT,
+const dbPort = pickFirstNonEmpty(
+  process.env.DB_PORT,
+  process.env.ERP_FLEX_SQLSERVER_PORT,
+  process.env.SQLSERVER_PORT,
 );
-const dbDatabase = stripWrappingQuotes(
-  process.env.DB_DATABASE ??
-    process.env.ERP_FLEX_SQLSERVER_DATABASE ??
-    process.env.SQLSERVER_DATABASE,
+const dbDatabase = pickFirstNonEmpty(
+  process.env.DB_DATABASE,
+  process.env.ERP_FLEX_SQLSERVER_DATABASE,
+  process.env.SQLSERVER_DATABASE,
 );
-const dbUsername = stripWrappingQuotes(
-  process.env.DB_USER ??
-    process.env.ERP_FLEX_SQLSERVER_USERNAME ??
-    process.env.SQLSERVER_USERNAME,
+const dbUsername = pickFirstNonEmpty(
+  process.env.DB_USER,
+  process.env.ERP_FLEX_SQLSERVER_USERNAME,
+  process.env.SQLSERVER_USERNAME,
 );
-const dbPasswordPlain = stripWrappingQuotes(
-  process.env.DB_PASSWORD ??
-    process.env.ERP_FLEX_SQLSERVER_PASSWORD ??
-    process.env.SQLSERVER_PASSWORD,
+const dbPasswordPlain = pickFirstNonEmpty(
+  process.env.DB_PASSWORD,
+  process.env.ERP_FLEX_SQLSERVER_PASSWORD,
+  process.env.SQLSERVER_PASSWORD,
 );
 const dbPasswordFromB64 = decodeBase64(
   process.env.DB_PASSWORD_B64 ?? process.env.ERP_FLEX_SQLSERVER_PASSWORD_B64,
 );
 const dbPassword = dbPasswordFromB64 ?? dbPasswordPlain;
+const dbPasswordSource = dbPasswordFromB64
+  ? "base64"
+  : dbPasswordPlain
+    ? "plain"
+    : "none";
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
@@ -77,11 +93,14 @@ export const env = {
   erpFlexSqlDatabase: dbDatabase ?? "Flex",
   erpFlexSqlUsername: dbUsername ?? "UserService",
   erpFlexSqlPassword: dbPassword ?? "",
+  erpFlexSqlPasswordSource: dbPasswordSource,
   erpFlexSqlEncrypt: (process.env.DB_ENCRYPT ?? process.env.SQLSERVER_ENCRYPT ?? "false") === "true",
   erpFlexSqlTrustServerCertificate: (process.env.DB_TRUST_SERVER_CERTIFICATE ?? process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
   erpFlexLoginProcedure:
-    process.env.DB_LOGIN_PROCEDURE ??
-    process.env.ERP_FLEX_SQLSERVER_LOGIN_PROCEDURE ??
+    pickFirstNonEmpty(
+      process.env.DB_LOGIN_PROCEDURE,
+      process.env.ERP_FLEX_SQLSERVER_LOGIN_PROCEDURE,
+    ) ??
     "dbo.SPAuthLogin",
   maxPhotosPerOpportunity: toNumber(process.env.MAX_PHOTOS_PER_OPPORTUNITY, 15),
   maxPhotoSizeMb: toNumber(process.env.MAX_PHOTO_SIZE_MB, 10),

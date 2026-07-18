@@ -14,6 +14,16 @@ concurrency:
 jobs:
   deploy:
     name: Deploy no servidor local
+    env:
+      DB_HOST: ${{ secrets.FX_OBRAS_DB_HOST }}
+      DB_PORT: ${{ secrets.FX_OBRAS_DB_PORT }}
+      DB_DATABASE: ${{ secrets.FX_OBRAS_DB_DATABASE }}
+      DB_USER: ${{ secrets.FX_OBRAS_DB_USER }}
+      DB_PASSWORD: ${{ secrets.FX_OBRAS_DB_PASSWORD }}
+      DB_PASSWORD_B64: ${{ secrets.FX_OBRAS_DB_PASSWORD_B64 }}
+      DB_ENCRYPT: ${{ secrets.FX_OBRAS_DB_ENCRYPT }}
+      DB_TRUST_SERVER_CERTIFICATE: ${{ secrets.FX_OBRAS_DB_TRUST_SERVER_CERTIFICATE }}
+      DB_LOGIN_PROCEDURE: ${{ secrets.FX_OBRAS_DB_LOGIN_PROCEDURE }}
 
     runs-on:
       - self-hosted
@@ -33,6 +43,11 @@ jobs:
 
       - name: Validar Docker Compose
         run: |
+          if [ -z "${DB_PASSWORD}" ] && [ -z "${DB_PASSWORD_B64}" ]; then
+            echo "Erro: defina FX_OBRAS_DB_PASSWORD ou FX_OBRAS_DB_PASSWORD_B64 nos Secrets do repositório."
+            exit 1
+          fi
+
           docker compose config --quiet
 
       - name: Construir imagens
