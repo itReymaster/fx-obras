@@ -1,6 +1,7 @@
-import { BarChart3, Home, Map, PlusSquare, Rows3, LogOut, Clock } from "lucide-react";
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { BarChart3, Clock, Database, Grid3X3, Home, LogOut, Map, PlusSquare, Rows3, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { ComponentType } from "react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { APP_CONFIG } from "../config/app";
 import { getAuthenticatedUser } from "../config/users";
 import { useAuth } from "../contexts/AuthContext";
@@ -16,11 +17,66 @@ const navItems = [
   { to: "/opportunities", label: "Registros", icon: Rows3 },
 ];
 
+type LauncherItem = {
+  label: string;
+  description: string;
+  to?: string;
+  icon: ComponentType<{ size?: number }>;
+  disabled?: boolean;
+};
+
+const appLauncherSections: Array<{ title: string; items: LauncherItem[] }> = [
+  {
+    title: "Operação",
+    items: [
+      { label: "Dashboard", description: "Visão executiva da operação", to: "/dashboard", icon: BarChart3 },
+      { label: "Registros", description: "Consulta e gestão das obras", to: "/opportunities", icon: Rows3 },
+      { label: "Mapa", description: "Cobertura territorial e densidade", to: "/map", icon: Map },
+      { label: "Próximas ações", description: "Agenda comercial e follow-up", to: "/actions", icon: Clock },
+      { label: "Nova oportunidade", description: "Captura rápida em campo", to: "/new", icon: PlusSquare },
+    ],
+  },
+  {
+    title: "Plataforma",
+    items: [
+      { label: "Analytics Salesforce", description: "Em breve", icon: Sparkles, disabled: true },
+      { label: "Editor SQL", description: "Em breve", icon: Database, disabled: true },
+    ],
+  },
+];
+
 export function AppLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(true);
+  const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const currentUser = formatUserDisplay(getAuthenticatedUser());
+  const launcherRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isLauncherOpen) return;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!launcherRef.current?.contains(target)) {
+        setIsLauncherOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsLauncherOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isLauncherOpen]);
 
   const handleLogout = () => {
     logout();
@@ -45,6 +101,60 @@ export function AppLayout() {
                 <span className="app-user-pill-label">Usuário:</span>
                 <span className="app-user-pill-name">{currentUser}</span>
               </span>
+            </div>
+            <div className="app-launcher-wrap" ref={launcherRef}>
+              <button
+                type="button"
+                className="app-launcher"
+                title="Abrir launcher de apps"
+                aria-label="Abrir launcher de apps"
+                aria-expanded={isLauncherOpen}
+                onClick={() => setIsLauncherOpen((value) => !value)}
+              >
+                {isLauncherOpen ? <X size={17} /> : <Grid3X3 size={17} />}
+              </button>
+
+              {isLauncherOpen && (
+                <div className="app-launcher-panel" role="dialog" aria-label="Launcher de apps">
+                  {appLauncherSections.map((section) => (
+                    <section key={section.title} className="app-launcher-section">
+                      <h4 className="app-launcher-title">{section.title}</h4>
+                      <div className="app-launcher-grid">
+                        {section.items.map((item) => {
+                          const Icon = item.icon;
+
+                          if (item.disabled || !item.to) {
+                            return (
+                              <div key={item.label} className="app-launcher-item is-disabled" aria-disabled="true">
+                                <span className="app-launcher-item-icon"><Icon size={16} /></span>
+                                <span className="app-launcher-item-body">
+                                  <span className="app-launcher-item-label">{item.label}</span>
+                                  <span className="app-launcher-item-description">{item.description}</span>
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <Link
+                              key={item.label}
+                              to={item.to}
+                              className="app-launcher-item"
+                              onClick={() => setIsLauncherOpen(false)}
+                            >
+                              <span className="app-launcher-item-icon"><Icon size={16} /></span>
+                              <span className="app-launcher-item-body">
+                                <span className="app-launcher-item-label">{item.label}</span>
+                                <span className="app-launcher-item-description">{item.description}</span>
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               onClick={handleLogout}
