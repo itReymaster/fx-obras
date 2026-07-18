@@ -64,7 +64,13 @@ const executeErpFlexLogin = async (username: string, password: string): Promise<
     const settle = (callback: () => void) => {
       if (settled) return;
       settled = true;
-      connection.close();
+
+      try {
+        connection.close();
+      } catch {
+        // Connection may already be closed or never fully opened.
+      }
+
       callback();
     };
 
