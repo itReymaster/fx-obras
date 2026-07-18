@@ -15,7 +15,13 @@ export class ConstructionOpportunitiesController {
     }
     create = async (req, res) => {
         const payload = constructionOpportunityCreateSchema.parse(req.body);
-        const result = await this.service.create(payload);
+        const authenticatedUser = String(res.locals.authenticatedUser ?? "").trim();
+        const payloadWithAudit = {
+            ...payload,
+            createdByUserId: authenticatedUser || payload.createdByUserId,
+            updatedByUserId: authenticatedUser || payload.updatedByUserId,
+        };
+        const result = await this.service.create(payloadWithAudit);
         res.status(201).json(result);
     };
     list = async (req, res) => {
@@ -33,7 +39,12 @@ export class ConstructionOpportunitiesController {
     };
     update = async (req, res) => {
         const payload = constructionOpportunityUpdateSchema.parse(req.body);
-        const result = await this.service.update(asParam(req.params.id), payload);
+        const authenticatedUser = String(res.locals.authenticatedUser ?? "").trim();
+        const payloadWithAudit = {
+            ...payload,
+            updatedByUserId: authenticatedUser || payload.updatedByUserId,
+        };
+        const result = await this.service.update(asParam(req.params.id), payloadWithAudit);
         res.json(result);
     };
     delete = async (req, res) => {

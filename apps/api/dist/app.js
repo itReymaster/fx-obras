@@ -12,6 +12,7 @@ import { erpFlexAuthRouter } from "./modules/auth/erp-flex-auth.routes.js";
 import { constructionOpportunitiesRouter } from "./modules/construction-opportunities/routes/construction-opportunities.routes.js";
 import { constructionOpportunitiesV2Router } from "./modules/construction-opportunities/routes/construction-opportunities.v2.routes.js";
 import { errorHandler } from "./shared/http/error-handler.js";
+import { requireAuthenticatedUser } from "./shared/middlewares/auth.js";
 export const app = express();
 void fs.mkdir(absoluteUploadDir, { recursive: true });
 const openapiPath = path.resolve(process.cwd(), "src/docs/openapi.yaml");
@@ -29,6 +30,6 @@ app.get("/health", (_req, res) => {
 });
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 app.use("/api/v2/auth", erpFlexAuthRouter);
-app.use("/api/v1/construction-opportunities", constructionOpportunitiesRouter);
-app.use("/api/v2/construction-opportunities", constructionOpportunitiesV2Router);
+app.use("/api/v1/construction-opportunities", requireAuthenticatedUser, constructionOpportunitiesRouter);
+app.use("/api/v2/construction-opportunities", requireAuthenticatedUser, constructionOpportunitiesV2Router);
 app.use(errorHandler);

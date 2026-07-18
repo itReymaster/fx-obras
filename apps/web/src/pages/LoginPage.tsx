@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, BarChart3, CheckCircle, Database } from 'lucide-react';
+import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import reymasterLogo from '../assets/reymaster-logo.svg';
 import { APP_CONFIG } from '../config/app';
@@ -271,10 +271,6 @@ export const LoginPage = () => {
                   {error}
                 </div>
               )}
-
-              <div className="login-provider-note">
-                <Database size={16} /> Escolha abaixo se deseja entrar com acesso interno ou ERP Flex.
-              </div>
 
               <div className="login-submit-stack">
                 <button
