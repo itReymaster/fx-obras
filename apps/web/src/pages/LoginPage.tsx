@@ -114,6 +114,8 @@ export const LoginPage = () => {
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const usernameFromForm = String(formData.get('username') ?? '').trim();
     const passwordFromForm = String(formData.get('password') ?? '');
+    const providerValue = String(formData.get('provider') ?? 'erp-flex');
+    const provider = providerValue === 'internal' ? 'internal' : 'erp-flex';
     const usernameValue = (usernameInputRef.current?.value ?? usernameFromForm ?? username).trim();
     const passwordValue = passwordInputRef.current?.value ?? passwordFromForm ?? password;
 
@@ -134,7 +136,7 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      await login(usernameValue, passwordValue, rememberMe);
+      await login(usernameValue, passwordValue, rememberMe, provider);
 
       if (rememberMe) {
         localStorage.setItem(REMEMBERED_USERNAME_KEY, usernameValue);
@@ -149,7 +151,7 @@ export const LoginPage = () => {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message ?? 'Não foi possível autenticar no ERP Flex');
       } else {
-        setError('Usuário ou senha incorretos');
+        setError(provider === 'internal' ? 'Usuário interno ou senha inválidos' : 'Usuário ou senha incorretos');
       }
     } finally {
       setIsLoading(false);
@@ -265,16 +267,30 @@ export const LoginPage = () => {
               )}
 
               <div className="login-provider-note">
-                <Database size={16} /> Use suas credenciais do ERP Flex para acessar o app.
+                <Database size={16} /> Escolha abaixo se deseja entrar com acesso interno ou ERP Flex.
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn btn-primary login-button"
-              >
-                {isLoading ? 'Autenticando no ERP Flex...' : 'Entrar com ERP Flex'}
-              </button>
+              <div className="login-submit-stack">
+                <button
+                  type="submit"
+                  name="provider"
+                  value="erp-flex"
+                  disabled={isLoading}
+                  className="btn btn-primary login-button"
+                >
+                  {isLoading ? 'Autenticando...' : 'Entrar com ERP Flex'}
+                </button>
+
+                <button
+                  type="submit"
+                  name="provider"
+                  value="internal"
+                  disabled={isLoading}
+                  className="btn btn-secondary login-button login-button-secondary"
+                >
+                  {isLoading ? 'Autenticando...' : 'Entrar com acesso interno'}
+                </button>
+              </div>
 
               <div className="login-options-row">
                 <label className="checkbox-label login-remember-label">

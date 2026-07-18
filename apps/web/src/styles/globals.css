@@ -3018,6 +3018,25 @@ textarea:focus-visible {
   text-align: center;
 }
 
+.login-submit-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.login-button-secondary {
+  background: #f6f9fc;
+  color: #29496d;
+  border-color: #c8d8e9;
+  box-shadow: none;
+}
+
+.login-button-secondary:hover:not(:disabled) {
+  background: #edf4fb;
+  color: #173d68;
+  border-color: #adc5df;
+  box-shadow: 0 8px 18px rgba(61, 92, 127, 0.12);
+}
+
 .login-options-row {
   display: flex;
   align-items: center;
