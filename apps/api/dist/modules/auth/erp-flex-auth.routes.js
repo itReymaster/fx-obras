@@ -77,6 +77,16 @@ const executeErpFlexLogin = async (username, password) => {
     });
 };
 export const erpFlexAuthRouter = Router();
+erpFlexAuthRouter.get("/erp-flex/status", (_req, res) => {
+    res.json({
+        configured: Boolean(env.erpFlexSqlPassword),
+        host: env.erpFlexSqlHost,
+        port: env.erpFlexSqlPort,
+        database: env.erpFlexSqlDatabase,
+        username: env.erpFlexSqlUsername,
+        procedure: env.erpFlexLoginProcedure,
+    });
+});
 erpFlexAuthRouter.post("/erp-flex", async (req, res, next) => {
     try {
         const payload = erpFlexLoginSchema.parse(req.body);

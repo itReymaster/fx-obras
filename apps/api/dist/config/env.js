@@ -3,22 +3,35 @@ const toNumber = (value, fallback) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
 };
-const erpFlexHost = process.env.ERP_FLEX_SQLSERVER_HOST ?? process.env.DB_HOST;
-const erpFlexPort = process.env.ERP_FLEX_SQLSERVER_PORT ?? process.env.DB_PORT;
-const erpFlexDatabase = process.env.ERP_FLEX_SQLSERVER_DATABASE ?? process.env.DB_DATABASE;
-const erpFlexUsername = process.env.ERP_FLEX_SQLSERVER_USERNAME ?? process.env.DB_USER;
-const erpFlexPassword = process.env.ERP_FLEX_SQLSERVER_PASSWORD ?? process.env.DB_PASSWORD;
+const stripWrappingQuotes = (value) => {
+    if (!value)
+        return value;
+    const trimmed = value.trim();
+    if (trimmed.length >= 2) {
+        const first = trimmed[0];
+        const last = trimmed[trimmed.length - 1];
+        if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+            return trimmed.slice(1, -1);
+        }
+    }
+    return trimmed;
+};
+const erpFlexHost = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_HOST ?? process.env.DB_HOST ?? process.env.SQLSERVER_HOST);
+const erpFlexPort = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_PORT ?? process.env.DB_PORT ?? process.env.SQLSERVER_PORT);
+const erpFlexDatabase = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_DATABASE ?? process.env.DB_DATABASE ?? process.env.SQLSERVER_DATABASE);
+const erpFlexUsername = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_USERNAME ?? process.env.DB_USER ?? process.env.SQLSERVER_USERNAME);
+const erpFlexPassword = stripWrappingQuotes(process.env.ERP_FLEX_SQLSERVER_PASSWORD ?? process.env.DB_PASSWORD ?? process.env.SQLSERVER_PASSWORD);
 export const env = {
     nodeEnv: process.env.NODE_ENV ?? "development",
     port: toNumber(process.env.PORT, 3333),
     corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
     uploadDir: process.env.UPLOAD_DIR ?? "uploads/construction-opportunities",
     sqlDialect: process.env.SQL_DIALECT ?? "sqlite",
-    sqlServerHost: process.env.SQLSERVER_HOST ?? "localhost",
-    sqlServerPort: toNumber(process.env.SQLSERVER_PORT, 1433),
-    sqlServerDatabase: process.env.SQLSERVER_DATABASE ?? "fx_obras",
-    sqlServerUsername: process.env.SQLSERVER_USERNAME ?? "sa",
-    sqlServerPassword: process.env.SQLSERVER_PASSWORD ?? "",
+    sqlServerHost: stripWrappingQuotes(process.env.SQLSERVER_HOST) ?? "localhost",
+    sqlServerPort: toNumber(stripWrappingQuotes(process.env.SQLSERVER_PORT), 1433),
+    sqlServerDatabase: stripWrappingQuotes(process.env.SQLSERVER_DATABASE) ?? "fx_obras",
+    sqlServerUsername: stripWrappingQuotes(process.env.SQLSERVER_USERNAME) ?? "sa",
+    sqlServerPassword: stripWrappingQuotes(process.env.SQLSERVER_PASSWORD) ?? "",
     sqlServerEncrypt: (process.env.SQLSERVER_ENCRYPT ?? "false") === "true",
     sqlServerTrustServerCertificate: (process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
     erpFlexSqlHost: erpFlexHost ?? "200.195.141.5",
