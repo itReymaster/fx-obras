@@ -55,6 +55,7 @@ export function AppLayout() {
   const [launcherHighlightedIndex, setLauncherHighlightedIndex] = useState(0);
   const currentUser = formatUserDisplay(getAuthenticatedUser());
   const launcherRef = useRef<HTMLDivElement | null>(null);
+  const launcherSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!isLauncherOpen) return;
@@ -79,6 +80,35 @@ export function AppLayout() {
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("keydown", handleEscape);
     };
+  }, [isLauncherOpen]);
+
+  useEffect(() => {
+    const handleLauncherShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setIsLauncherOpen((value) => {
+          const nextValue = !value;
+          if (nextValue) {
+            setLauncherHighlightedIndex(0);
+          }
+          return nextValue;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleLauncherShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handleLauncherShortcut);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLauncherOpen) return;
+    const input = launcherSearchInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.select();
   }, [isLauncherOpen]);
 
   const handleLogout = () => {
@@ -174,8 +204,8 @@ export function AppLayout() {
               <button
                 type="button"
                 className="app-launcher"
-                title="Abrir launcher de apps"
-                aria-label="Abrir launcher de apps"
+                title="Abrir launcher de apps (Ctrl+K)"
+                aria-label="Abrir launcher de apps (Ctrl+K)"
                 aria-expanded={isLauncherOpen}
                 onClick={() => {
                   setIsLauncherOpen((value) => {
@@ -195,6 +225,7 @@ export function AppLayout() {
                   <label className="app-launcher-search-field">
                     <span className="app-launcher-search-label">Buscar apps</span>
                     <input
+                      ref={launcherSearchInputRef}
                       className="input app-launcher-search-input"
                       value={launcherSearch}
                       onChange={(event) => setLauncherSearch(event.target.value)}

@@ -4082,3 +4082,261 @@ textarea:focus-visible {
     padding: 26px 28px 32px;
   }
 }
+
+/* Salesforce-like nav polish */
+.app-nav {
+  border-top: 1px solid #e4eaf2;
+  border-bottom: 1px solid #e4eaf2;
+  background: #ffffff;
+}
+
+.app-nav-link {
+  position: relative;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 16px;
+  color: #3f566e;
+  border-bottom: 0;
+  font-weight: 600;
+}
+
+.app-nav-link svg {
+  color: #52749f;
+}
+
+.app-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color var(--transition-fast);
+}
+
+.app-nav-link.is-active {
+  color: #0f4d92;
+  background: #f6faff;
+  box-shadow: none;
+}
+
+.app-nav-link.is-active::after {
+  background: #1b73d0;
+}
+
+.app-nav-link.is-active svg {
+  color: #1b73d0;
+}
+
+.app-nav-link:hover {
+  color: #195da8;
+  background: #f8fbff;
+}
+
+.app-nav-link:hover::after {
+  background: rgba(27, 115, 208, 0.35);
+}
+
+.app-launcher-item-icon {
+  border: 0;
+  color: #3f6897;
+  background: #eaf2fd;
+}
+
+@media (max-width: 899px) {
+  .app-mobile-nav .app-nav-link {
+    border: 1px solid transparent;
+    color: #446180;
+  }
+
+  .app-mobile-nav .app-nav-link.is-active {
+    background: #f4f9ff;
+    border-color: #d3e3f6;
+    box-shadow: none;
+    color: #0f4d92;
+  }
+
+  .app-mobile-nav .app-nav-link.is-active svg {
+    color: #1b73d0;
+  }
+}
+
+/* Density tuning for enterprise nav ergonomics */
+@media (min-width: 900px) {
+  .app-nav {
+    padding: 0 12px;
+  }
+
+  .app-nav-link {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .app-nav-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .app-nav-link::after {
+    left: 10px;
+    right: 10px;
+    height: 2px;
+  }
+}
+
+@media (max-width: 899px) {
+  .app-mobile-nav {
+    gap: 5px;
+    padding: 8px 10px 10px;
+  }
+
+  .app-mobile-nav .app-nav-link {
+    min-height: 48px;
+    padding: 3px;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .app-mobile-nav .app-nav-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .app-mobile-nav-toggle {
+    min-height: 32px;
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-mobile-nav {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .app-mobile-nav .app-nav-link {
+    min-height: 46px;
+    font-size: 9.6px;
+  }
+}
+
+/* Topbar microtypography refinement */
+.app-topbar {
+  gap: 12px;
+}
+
+.app-brand-copy {
+  gap: 2px;
+}
+
+.app-brand-title {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.04;
+  color: #203247;
+}
+
+.app-brand-subtitle {
+  font-size: 12px;
+  font-weight: 540;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: #5f748d;
+}
+
+.app-topbar-meta {
+  gap: 10px;
+}
+
+.app-user-pill {
+  min-height: 30px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+
+.app-user-pill-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: #63758d;
+}
+
+.app-user-pill-name {
+  font-size: 12px;
+  font-weight: 650;
+  color: #2d4057;
+}
+
+@media (max-width: 899px) {
+  .app-topbar {
+    row-gap: 6px;
+    padding: 9px 12px;
+  }
+
+  .app-branding {
+    gap: 9px;
+  }
+
+  .brand-logo--app {
+    width: 42px;
+    height: 42px;
+  }
+
+  .app-brand-title {
+    font-size: 16px;
+    line-height: 1.08;
+  }
+
+  .app-brand-subtitle {
+    font-size: 11px;
+    line-height: 1.14;
+  }
+
+  .app-user-pill {
+    min-height: 29px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+  }
+
+  .app-user-pill-label {
+    font-size: 10.5px;
+  }
+
+  .app-user-pill-name {
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-topbar {
+    padding: 8px 10px;
+  }
+
+  .brand-logo--app {
+    width: 40px;
+    height: 40px;
+  }
+
+  .app-brand-title {
+    font-size: 15px;
+  }
+
+  .app-brand-subtitle {
+    font-size: 10px;
+  }
+
+  .app-user-pill {
+    min-height: 28px;
+    font-size: 11px;
+  }
+}
