@@ -5,6 +5,12 @@ const toNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const erpFlexHost = process.env.ERP_FLEX_SQLSERVER_HOST ?? process.env.DB_HOST;
+const erpFlexPort = process.env.ERP_FLEX_SQLSERVER_PORT ?? process.env.DB_PORT;
+const erpFlexDatabase = process.env.ERP_FLEX_SQLSERVER_DATABASE ?? process.env.DB_DATABASE;
+const erpFlexUsername = process.env.ERP_FLEX_SQLSERVER_USERNAME ?? process.env.DB_USER;
+const erpFlexPassword = process.env.ERP_FLEX_SQLSERVER_PASSWORD ?? process.env.DB_PASSWORD;
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: toNumber(process.env.PORT, 3333),
@@ -18,11 +24,11 @@ export const env = {
   sqlServerPassword: process.env.SQLSERVER_PASSWORD ?? "",
   sqlServerEncrypt: (process.env.SQLSERVER_ENCRYPT ?? "false") === "true",
   sqlServerTrustServerCertificate: (process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
-  erpFlexSqlHost: process.env.ERP_FLEX_SQLSERVER_HOST ?? "200.195.141.5",
-  erpFlexSqlPort: toNumber(process.env.ERP_FLEX_SQLSERVER_PORT, 61433),
-  erpFlexSqlDatabase: process.env.ERP_FLEX_SQLSERVER_DATABASE ?? "Flex",
-  erpFlexSqlUsername: process.env.ERP_FLEX_SQLSERVER_USERNAME ?? "UserService",
-  erpFlexSqlPassword: process.env.ERP_FLEX_SQLSERVER_PASSWORD ?? "",
+  erpFlexSqlHost: erpFlexHost ?? "200.195.141.5",
+  erpFlexSqlPort: toNumber(erpFlexPort, 61433),
+  erpFlexSqlDatabase: erpFlexDatabase ?? "Flex",
+  erpFlexSqlUsername: erpFlexUsername ?? "UserService",
+  erpFlexSqlPassword: erpFlexPassword ?? "",
   erpFlexSqlEncrypt: (process.env.ERP_FLEX_SQLSERVER_ENCRYPT ?? "false") === "true",
   erpFlexSqlTrustServerCertificate: (process.env.ERP_FLEX_SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
   erpFlexLoginProcedure: process.env.ERP_FLEX_SQLSERVER_LOGIN_PROCEDURE ?? "dbo.SPAuthLogin",
