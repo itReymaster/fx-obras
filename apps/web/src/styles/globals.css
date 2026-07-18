@@ -1246,6 +1246,24 @@ textarea:focus-visible {
   gap: 10px;
 }
 
+.app-launcher-search-field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.app-launcher-search-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5d6f84;
+}
+
+.app-launcher-search-input {
+  min-height: 40px;
+}
+
 .app-launcher-section + .app-launcher-section {
   margin-top: 10px;
   padding-top: 10px;
@@ -1285,6 +1303,12 @@ textarea:focus-visible {
   transform: translateY(-1px);
 }
 
+.app-launcher-item.is-highlighted {
+  border-color: #7ea2ca;
+  background: #ecf4ff;
+  box-shadow: 0 0 0 2px rgba(89, 135, 190, 0.2);
+}
+
 .app-launcher-item.is-disabled {
   opacity: 0.62;
   pointer-events: none;
@@ -1319,6 +1343,51 @@ textarea:focus-visible {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.app-launcher-empty {
+  margin-top: 4px;
+  border: 1px dashed #c9d7e9;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fbff;
+  color: #4f647d;
+  font-size: 13px;
+}
+
+.partnerships-page {
+  gap: 14px;
+}
+
+.partnerships-placeholder-card {
+  max-width: 760px;
+}
+
+.partnerships-head {
+  gap: 10px;
+  align-items: center;
+}
+
+.partnerships-description {
+  margin-top: 10px;
+}
+
+.partnerships-note {
+  margin-top: 8px;
+}
+
+.partnerships-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  justify-items: start;
+}
+
+.partnerships-feedback {
+  margin: 0;
+  font-size: 12.5px;
+  color: #3a5575;
+  font-weight: 600;
 }
 
 .app-title {
@@ -3442,6 +3511,33 @@ textarea:focus-visible {
   .app-mobile-nav-toggle:hover {
     transform: none;
     color: #2f3d4f;
+  }
+
+  .app-launcher-panel {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: calc(68px + env(safe-area-inset-top, 0px));
+    width: auto;
+    max-height: min(72svh, 620px);
+    padding: 12px;
+    border-radius: 16px;
+    box-shadow: 0 22px 40px rgba(15, 23, 42, 0.24);
+  }
+
+  .app-launcher-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-launcher-item {
+    padding: 11px;
+  }
+
+  .app-launcher-item-description {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.25;
   }
 
   .app-main {

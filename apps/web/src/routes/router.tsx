@@ -8,6 +8,7 @@ import { OpportunityDetailPage } from "../features/construction-opportunities/pa
 import { OpportunityMapPage } from "../features/construction-opportunities/pages/OpportunityMapPage";
 import { NextActionsPage } from "../features/construction-opportunities/pages/NextActionsPage";
 import { LoginPage } from "../pages/LoginPage";
+import { PartnershipsPage } from "../pages/PartnershipsPage";
 import { PrivateRoute } from "../components/PrivateRoute";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -31,6 +32,7 @@ export const router = createBrowserRouter(
         { path: "map", element: <OpportunityMapPage /> },
         { path: "actions", element: <NextActionsPage /> },
         { path: "new", element: <OpportunityWizardPage /> },
+        { path: "partnerships", element: <PartnershipsPage /> },
         { path: "opportunities/:id/edit", element: <OpportunityWizardPage /> },
         { path: "opportunities", element: <OpportunityListPage /> },
         { path: "opportunities/:id", element: <OpportunityDetailPage /> },
