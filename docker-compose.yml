@@ -4,9 +4,6 @@ services:
       context: ./apps/api
     container_name: fx-obras-backend
     restart: unless-stopped
-    env_file:
-      - ./.env
-      - ./apps/api/.env
     environment:
       NODE_ENV: production
       PORT: 3333
