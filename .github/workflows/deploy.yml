@@ -123,9 +123,34 @@ jobs:
 
       - name: Validar status ERP público
         run: |
-          STATUS_JSON=$(curl -fsS "https://projetos.reymaster.com.br:17443/inovacao/fx-obras/api/v2/auth/erp-flex/status?ts=$(date +%s)")
-          echo "$STATUS_JSON"
-          echo "$STATUS_JSON" | grep -q '"configured":true' || (echo "Erro: endpoint ERP permanece com configured=false" && exit 1)
+          STATUS_URL="https://projetos.reymaster.com.br:17443/inovacao/fx-obras/api/v2/auth/erp-flex/status"
+          ATTEMPTS=20
+          INTERVAL_SECONDS=3
+          OK=0
+
+          for i in $(seq 1 $ATTEMPTS); do
+            echo "Tentativa ${i}/${ATTEMPTS}"
+
+            STATUS_JSON=$(curl -sS "${STATUS_URL}?ts=$(date +%s)" || true)
+
+            if [ -n "$STATUS_JSON" ]; then
+              echo "$STATUS_JSON"
+            else
+              echo "Sem resposta JSON (possível 502 transitório)."
+            fi
+
+            if echo "$STATUS_JSON" | grep -q '"configured":true'; then
+              OK=1
+              break
+            fi
+
+            sleep $INTERVAL_SECONDS
+          done
+
+          if [ "$OK" -ne 1 ]; then
+            echo "Erro: endpoint ERP não ficou configured=true dentro do tempo esperado."
+            exit 1
+          fi
 
       - name: Verificar containers
         run: |
