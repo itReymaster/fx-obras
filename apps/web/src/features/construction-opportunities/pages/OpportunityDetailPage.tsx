@@ -2,7 +2,7 @@ import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Ha
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
-import { addressLabel, formatDate } from "../../../utils/format";
+import { addressLabel, formatDate, formatUserDisplay } from "../../../utils/format";
 import { labels, statusOptions } from "../../../utils/labels";
 import { buildOpportunityPdf } from "../services/opportunity-pdf";
 import { opportunitiesApi } from "../services/opportunities-api";
@@ -88,6 +88,7 @@ export function OpportunityDetailPage() {
     constructionCompany?: string | null;
     estimatedCompletionDate?: string | null;
   };
+  const capturedByUser = formatUserDisplay(item.createdByUserId);
 
   const copyText = async (value: string) => {
     try {
@@ -336,7 +337,7 @@ export function OpportunityDetailPage() {
           <div>
             <h2 className="page-title mb-8">{item.title}</h2>
             <div className="muted" style={{ fontSize: 13 }}>
-              {item.code} - {formatDate(item.capturedAt)}
+              {item.code} - {formatDate(item.capturedAt)} - Capturado por: {capturedByUser}
             </div>
             <div className="cluster mt-10">
               <span className="badge">{labels.status(item.status)}</span>
@@ -582,6 +583,10 @@ export function OpportunityDetailPage() {
           <div className="detail-field">
             <span className="detail-field-label">Empresa da obra</span>
             <span className="detail-field-value">{detailRecord.constructionCompany ?? "-"}</span>
+          </div>
+          <div className="detail-field">
+            <span className="detail-field-label">Capturado por</span>
+            <span className="detail-field-value">{capturedByUser}</span>
           </div>
           <div className="detail-field">
             <span className="detail-field-label">Próxima ação</span>

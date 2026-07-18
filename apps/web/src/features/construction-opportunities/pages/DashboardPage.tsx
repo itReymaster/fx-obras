@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatDate } from "../../../utils/format";
+import { formatDate, formatUserDisplay } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { OpportunityDashboardData } from "../types/opportunity.types";
-
-const formatUserLabel = (userId: string | null) => {
-  if (!userId || userId.trim().length === 0) return "Usuario nao identificado";
-  return userId.replaceAll("-", " ");
-};
 
 export function DashboardPage() {
   const [data, setData] = useState<OpportunityDashboardData | null>(null);
@@ -32,7 +27,7 @@ export function DashboardPage() {
 
   const captureByUser = (data.capturedByUser ?? []).map((item) => ({
     ...item,
-    userLabel: formatUserLabel(item.userId),
+    userLabel: formatUserDisplay(item.userId),
   }));
   const captureByUserMax = Math.max(1, ...captureByUser.map((item) => item.count));
 
@@ -59,10 +54,10 @@ export function DashboardPage() {
         ))}
       </section>
       <section className="card section-card surface-card stack">
-        <h3 className="section-title">Captura por usuario</h3>
+        <h3 className="section-title">Captura por usuário</h3>
         <p className="section-note">Ranking de engajamento com volume de obras registradas por pessoa.</p>
         {captureByUser.length === 0 ? (
-          <div className="muted hero-note">Sem dados de captura por usuario para o filtro atual.</div>
+          <div className="muted hero-note">Sem dados de captura por usuário para o filtro atual.</div>
         ) : (
           <div className="capture-user-list">
             {captureByUser.map((item, index) => (

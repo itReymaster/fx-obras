@@ -1,14 +1,9 @@
 import { Building2, Clock3, Plus, Rows3, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatDate } from "../../../utils/format";
+import { formatDate, formatUserDisplay } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { OpportunityDashboardData } from "../types/opportunity.types";
-
-const formatUserLabel = (userId: string | null) => {
-  if (!userId || userId.trim().length === 0) return "Usuario nao identificado";
-  return userId.replaceAll("-", " ");
-};
 
 export function HomePage() {
   const [count, setCount] = useState(0);
@@ -47,7 +42,7 @@ export function HomePage() {
 
   const captureByUser = (dashboard?.capturedByUser ?? []).map((item) => ({
     ...item,
-    userLabel: formatUserLabel(item.userId),
+    userLabel: formatUserDisplay(item.userId),
   }));
   const captureByUserMax = Math.max(1, ...captureByUser.map((item) => item.count));
 
@@ -99,7 +94,7 @@ export function HomePage() {
       <section className="card section-card surface-card capture-user-card">
         <div className="cluster cluster--spread mb-10">
           <div>
-            <h3 className="section-title">Captura por usuario</h3>
+            <h3 className="section-title">Captura por usuário</h3>
             <div className="section-note">
               Engajamento do time por volume de obras capturadas.
             </div>
@@ -107,7 +102,7 @@ export function HomePage() {
         </div>
 
         {captureByUser.length === 0 ? (
-          <div className="muted hero-note">Sem dados de captura por usuario para o filtro atual.</div>
+          <div className="muted hero-note">Sem dados de captura por usuário para o filtro atual.</div>
         ) : (
           <div className="capture-user-list">
             {captureByUser.map((item, index) => (

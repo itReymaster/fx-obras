@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { APP_CONFIG } from "../config/app";
 import { getAuthenticatedUser } from "../config/users";
 import { useAuth } from "../contexts/AuthContext";
+import { formatUserDisplay } from "../utils/format";
 import reymasterLogo from "../assets/reymaster-logo.svg";
 
 const navItems = [
@@ -19,7 +20,7 @@ export function AppLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(true);
-  const currentUser = getAuthenticatedUser() ?? "-";
+  const currentUser = formatUserDisplay(getAuthenticatedUser());
 
   const handleLogout = () => {
     logout();

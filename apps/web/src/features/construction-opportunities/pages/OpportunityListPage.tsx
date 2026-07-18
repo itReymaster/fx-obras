@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { AUTHORIZED_USERS } from "../../../config/users";
-import { addressLabel, formatDate } from "../../../utils/format";
+import { addressLabel, formatDate, formatUserDisplay } from "../../../utils/format";
 import {
   commercialPotentialOptions,
   constructionStageOptions,
@@ -230,7 +230,7 @@ export function OpportunityListPage() {
                 <option value="">Todos</option>
                 {AUTHORIZED_USERS.map((user) => (
                   <option key={user} value={user}>
-                    {user}
+                    {formatUserDisplay(user)}
                   </option>
                 ))}
               </select>
@@ -301,7 +301,7 @@ export function OpportunityListPage() {
                   <td className="table-cell-potential"><span className="badge badge-secondary">{labels.commercialPotential(item.commercialPotential)}</span></td>
                   <td className="table-cell-action" title={item.nextAction ?? undefined}>{item.nextAction ? `${item.nextAction.slice(0, 20)}...` : "-"}</td>
                   <td className="table-cell-date">{formatDate(item.capturedAt)}</td>
-                  <td className="table-cell-user">{item.createdByUserId ?? "-"}</td>
+                  <td className="table-cell-user">{formatUserDisplay(item.createdByUserId)}</td>
                   <td>
                     <button
                       type="button"
@@ -351,7 +351,7 @@ export function OpportunityListPage() {
                   {item.isTest && <span className="badge-test">✨ Teste</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
-                  {item.photos.length} foto(s) - {formatDate(item.capturedAt)} - {item.createdByUserId ?? "Sem usuário"}
+                  {item.photos.length} foto(s) - {formatDate(item.capturedAt)} - {formatUserDisplay(item.createdByUserId)}
                 </div>
                 <div className="cluster">
                   <Link className="btn btn-ghost btn-sm" to={`/opportunities/${item.id}`}>

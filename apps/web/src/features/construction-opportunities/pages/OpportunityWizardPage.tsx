@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, CheckCircle2, Crosshair, ImagePlus, Mic, Square, Trash2 } from "lucide-react";
+import { Camera, CheckCircle2, ImagePlus, MapPin, Mic, Square, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
 import type { FieldErrors } from "react-hook-form";
 import { useForm } from "react-hook-form";
@@ -923,7 +923,7 @@ export function OpportunityWizardPage() {
           <h3 className="section-title">Etapa 1 - Captura Endereço</h3>
           <div className="grid">
             <button type="button" className="btn wizard-location-button" onClick={captureLocation} disabled={capturingLocation}>
-              <Crosshair size={18} /> {capturingLocation ? "Capturando localização..." : "Capturar minha localização"}
+              <MapPin size={18} /> {capturingLocation ? "Capturando localização..." : "Capturar minha localização"}
             </button>
             {locationHint && <span className="success-text">{locationHint}</span>}
             <div className="grid-2">

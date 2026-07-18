@@ -15,3 +15,8 @@ export const addressLabel = (item: {
   if (item.district && item.city) return `${item.district} - ${item.city}`;
   return "Endereço não informado";
 };
+
+export const formatUserDisplay = (userId?: string | null): string => {
+  if (!userId || userId.trim().length === 0) return "Usuário não identificado";
+  return userId.replaceAll("-", " ");
+};
