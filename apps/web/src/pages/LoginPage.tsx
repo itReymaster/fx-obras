@@ -14,6 +14,10 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+type LoginSubmitter = HTMLButtonElement & {
+  value?: string;
+};
+
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -112,9 +116,11 @@ export const LoginPage = () => {
 
     // Read from DOM refs so browser autofill works even when React state is stale.
     const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const nativeSubmitEvent = e.nativeEvent as SubmitEvent;
+    const submitter = nativeSubmitEvent.submitter as LoginSubmitter | null;
     const usernameFromForm = String(formData.get('username') ?? '').trim();
     const passwordFromForm = String(formData.get('password') ?? '');
-    const providerValue = String(formData.get('provider') ?? 'erp-flex');
+    const providerValue = submitter?.value ?? 'erp-flex';
     const provider = providerValue === 'internal' ? 'internal' : 'erp-flex';
     const usernameValue = (usernameInputRef.current?.value ?? usernameFromForm ?? username).trim();
     const passwordValue = passwordInputRef.current?.value ?? passwordFromForm ?? password;
