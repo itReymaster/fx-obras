@@ -59,72 +59,74 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="card section-card surface-card funnel-card">
-        <div className="cluster cluster--spread mb-10">
-          <div>
-            <h3 className="section-title">Funil de Obras</h3>
-            <div className="section-note">
-              Visao por etapa comercial com quantidade de obras no funil ativo.
-            </div>
-          </div>
-          <span className="funnel-total-pill">{funnelTotal} obras no funil</span>
-        </div>
-
-        <div className="funnel-list">
-          {funnelItems.map((stage, index) => (
-            <div key={stage.key} className="funnel-row">
-              <div className="funnel-row-head">
-                <div className="funnel-stage">
-                  <span className="funnel-stage-index">{index + 1}</span>
-                  <span className="funnel-stage-label">{stage.label}</span>
-                </div>
-                <span className="funnel-stage-count">{stage.count}</span>
-              </div>
-              <div className="funnel-bar-track">
-                <div
-                  className="funnel-bar-fill"
-                  style={{ width: `${Math.max(10, (stage.count / funnelMax) * 100)}%` }}
-                />
+      <div className="home-charts-grid">
+        <section className="card section-card surface-card funnel-card">
+          <div className="cluster cluster--spread mb-10">
+            <div>
+              <h3 className="section-title">Funil de Obras</h3>
+              <div className="section-note">
+                Visao por etapa comercial com quantidade de obras no funil ativo.
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="card section-card surface-card capture-user-card">
-        <div className="cluster cluster--spread mb-10">
-          <div>
-            <h3 className="section-title">Captura por usuário</h3>
-            <div className="section-note">
-              Engajamento do time por volume de obras capturadas.
-            </div>
+            <span className="funnel-total-pill">{funnelTotal} obras no funil</span>
           </div>
-        </div>
 
-        {captureByUser.length === 0 ? (
-          <div className="muted hero-note">Sem dados de captura por usuário para o filtro atual.</div>
-        ) : (
-          <div className="capture-user-list">
-            {captureByUser.map((item, index) => (
-              <div key={`${item.userId ?? "unknown"}-${index}`} className="capture-user-row">
-                <div className="capture-user-row-head">
-                  <div className="capture-user-label-wrap">
-                    <span className="capture-user-rank">{index + 1}</span>
-                    <span className="capture-user-label">{item.userLabel}</span>
+          <div className="funnel-list">
+            {funnelItems.map((stage, index) => (
+              <div key={stage.key} className="funnel-row">
+                <div className="funnel-row-head">
+                  <div className="funnel-stage">
+                    <span className="funnel-stage-index">{index + 1}</span>
+                    <span className="funnel-stage-label">{stage.label}</span>
                   </div>
-                  <span className="capture-user-count">{item.count}</span>
+                  <span className="funnel-stage-count">{stage.count}</span>
                 </div>
-                <div className="capture-user-track">
+                <div className="funnel-bar-track">
                   <div
-                    className="capture-user-fill"
-                    style={{ width: `${Math.max(10, (item.count / captureByUserMax) * 100)}%` }}
+                    className="funnel-bar-fill"
+                    style={{ width: `${Math.max(10, (stage.count / funnelMax) * 100)}%` }}
                   />
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+
+        <section className="card section-card surface-card capture-user-card">
+          <div className="cluster cluster--spread mb-10">
+            <div>
+              <h3 className="section-title">Captura por usuário</h3>
+              <div className="section-note">
+                Engajamento do time por volume de obras capturadas.
+              </div>
+            </div>
+          </div>
+
+          {captureByUser.length === 0 ? (
+            <div className="muted hero-note">Sem dados de captura por usuário para o filtro atual.</div>
+          ) : (
+            <div className="capture-user-list">
+              {captureByUser.map((item, index) => (
+                <div key={`${item.userId ?? "unknown"}-${index}`} className="capture-user-row">
+                  <div className="capture-user-row-head">
+                    <div className="capture-user-label-wrap">
+                      <span className="capture-user-rank">{index + 1}</span>
+                      <span className="capture-user-label">{item.userLabel}</span>
+                    </div>
+                    <span className="capture-user-count">{item.count}</span>
+                  </div>
+                  <div className="capture-user-track">
+                    <div
+                      className="capture-user-fill"
+                      style={{ width: `${Math.max(10, (item.count / captureByUserMax) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       <section className="home-kpis metric-grid">
         <div className="cluster cluster--spread home-kpi-filter-row">

@@ -2018,6 +2018,11 @@ textarea:focus-visible {
   background: linear-gradient(90deg, #74a27e 0%, #33894b 100%);
 }
 
+.home-charts-grid {
+  display: grid;
+  gap: 12px;
+}
+
 .home-signal {
   display: flex;
   gap: 10px;
@@ -3551,6 +3556,11 @@ textarea:focus-visible {
 @media (min-width: 900px) {
   .page {
     padding: 24px 24px 28px;
+  }
+
+  .home-charts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
   }
 
   .app-main {
