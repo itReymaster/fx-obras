@@ -96,6 +96,12 @@ jobs:
 
       - name: Validar Docker Compose
         run: |
+          echo "diag: DB_PASSWORD_len=${#DB_PASSWORD} DB_PASSWORD_B64_len=${#DB_PASSWORD_B64}"
+          echo "diag: FX_OBRAS_DB_PASSWORD_set=$([ -n \"${{ secrets.FX_OBRAS_DB_PASSWORD }}\" ] && echo yes || echo no) FX_OBRAS_DB_PASSWORD_B64_set=$([ -n \"${{ secrets.FX_OBRAS_DB_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+          echo "diag: DB_PASSWORD_secret_set=$([ -n \"${{ secrets.DB_PASSWORD }}\" ] && echo yes || echo no) DB_PASSWORD_B64_secret_set=$([ -n \"${{ secrets.DB_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+          echo "diag: ERP_FLEX_SQLSERVER_PASSWORD_set=$([ -n \"${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD }}\" ] && echo yes || echo no) ERP_FLEX_SQLSERVER_PASSWORD_B64_set=$([ -n \"${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+          echo "diag: VAR_DB_PASSWORD_set=$([ -n \"${{ vars.DB_PASSWORD }}\" ] && echo yes || echo no) VAR_DB_PASSWORD_B64_set=$([ -n \"${{ vars.DB_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+
           if [ -z "${DB_PASSWORD}" ] && [ -z "${DB_PASSWORD_B64}" ]; then
             echo "Erro: nenhuma senha encontrada em Secrets/Variables (FX_OBRAS_DB_PASSWORD, FX_OBRAS_DB_PASSWORD_B64, DB_PASSWORD, DB_PASSWORD_B64, ERP_FLEX_SQLSERVER_PASSWORD, ERP_FLEX_SQLSERVER_PASSWORD_B64)."
             exit 1
