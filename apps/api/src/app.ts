@@ -8,6 +8,7 @@ import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import { absoluteUploadDir, env } from "./config/env.js";
+import { erpFlexAuthRouter } from "./modules/auth/erp-flex-auth.routes.js";
 import { constructionOpportunitiesRouter } from "./modules/construction-opportunities/routes/construction-opportunities.routes.js";
 import { constructionOpportunitiesV2Router } from "./modules/construction-opportunities/routes/construction-opportunities.v2.routes.js";
 import { errorHandler } from "./shared/http/error-handler.js";
@@ -35,6 +36,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
+app.use("/api/v2/auth", erpFlexAuthRouter);
 app.use("/api/v1/construction-opportunities", constructionOpportunitiesRouter);
 app.use("/api/v2/construction-opportunities", constructionOpportunitiesV2Router);
 

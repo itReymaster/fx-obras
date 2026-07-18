@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, BarChart3, CheckCircle } from 'lucide-react';
+import axios from 'axios';
+import { MapPin, BarChart3, CheckCircle, Database } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import reymasterLogo from '../assets/reymaster-logo.svg';
 import { APP_CONFIG } from '../config/app';
@@ -145,7 +146,11 @@ export const LoginPage = () => {
 
       navigate('/');
     } catch (err) {
-      setError('Usuário ou senha incorretos');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message ?? 'Não foi possível autenticar no ERP Flex');
+      } else {
+        setError('Usuário ou senha incorretos');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -259,12 +264,16 @@ export const LoginPage = () => {
                 </div>
               )}
 
+              <div className="login-provider-note">
+                <Database size={16} /> Use suas credenciais do ERP Flex para acessar o app.
+              </div>
+
               <button
                 type="submit"
                 disabled={isLoading}
                 className="btn btn-primary login-button"
               >
-                {isLoading ? 'Autenticando...' : 'Entrar'}
+                {isLoading ? 'Autenticando no ERP Flex...' : 'Entrar com ERP Flex'}
               </button>
 
               <div className="login-options-row">

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { resolveAuthorizedUser } from '../config/users';
+import { authApi } from '../services/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -27,26 +27,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (username: string, password: string, rememberMe = false) => {
     setIsLoading(true);
     try {
-      const resolvedUser = resolveAuthorizedUser(username);
+      const response = await authApi.loginWithErpFlex(username, password);
+      const storage = rememberMe ? localStorage : sessionStorage;
+      const otherStorage = rememberMe ? sessionStorage : localStorage;
+      const displayUser = response.user.name?.trim() || response.user.username;
 
-      if (resolvedUser && password === '123@mudar') {
-        // Simple token-based auth
-        const token = btoa(`${resolvedUser}:${Date.now()}`);
-        if (rememberMe) {
-          localStorage.setItem('auth_token', token);
-          localStorage.setItem('auth_user', resolvedUser);
-          sessionStorage.removeItem('auth_token');
-          sessionStorage.removeItem('auth_user');
-        } else {
-          sessionStorage.setItem('auth_token', token);
-          sessionStorage.setItem('auth_user', resolvedUser);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
-        }
-        setIsAuthenticated(true);
+      storage.setItem('auth_token', response.token);
+      storage.setItem('auth_user', displayUser);
+      storage.setItem('auth_user_id', String(response.user.id));
+      storage.setItem('auth_username', response.user.username);
+
+      if (response.user.email) {
+        storage.setItem('auth_user_email', response.user.email);
       } else {
-        throw new Error('Invalid credentials');
+        storage.removeItem('auth_user_email');
       }
+
+      otherStorage.removeItem('auth_token');
+      otherStorage.removeItem('auth_user');
+      otherStorage.removeItem('auth_user_id');
+      otherStorage.removeItem('auth_username');
+      otherStorage.removeItem('auth_user_email');
+
+      setIsAuthenticated(true);
     } finally {
       setIsLoading(false);
     }
@@ -55,8 +58,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_user_id');
+    localStorage.removeItem('auth_username');
+    localStorage.removeItem('auth_user_email');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('auth_user');
+    sessionStorage.removeItem('auth_user_id');
+    sessionStorage.removeItem('auth_username');
+    sessionStorage.removeItem('auth_user_email');
     setIsAuthenticated(false);
   }, []);
 

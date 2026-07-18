@@ -3002,6 +3002,22 @@ textarea:focus-visible {
   cursor: not-allowed;
 }
 
+.login-provider-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d9e3ef;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f9fbfe 0%, #f2f6fb 100%);
+  color: #445b76;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .login-options-row {
   display: flex;
   align-items: center;
