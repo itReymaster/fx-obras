@@ -186,6 +186,16 @@ type PendingAudio = {
   createdAt: string;
 };
 
+const AUDIO_WAVE_BAR_COUNT = 24;
+const AUDIO_WAVE_NOISE_FLOOR = 0.03;
+
+const createIdleWaveform = () =>
+  Array.from({ length: AUDIO_WAVE_BAR_COUNT }, (_, index) => {
+    const base = 0.22;
+    const variation = ((index % 5) + 1) * 0.015;
+    return Math.min(0.34, base + variation);
+  });
+
 const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormValues => {
   const source = opportunity as Opportunity & {
     complement?: string | null;
@@ -248,11 +258,18 @@ export function OpportunityWizardPage() {
   const [audioActionError, setAudioActionError] = useState<string | null>(null);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordingWaveform, setRecordingWaveform] = useState<number[]>(() => createIdleWaveform());
+  const [isHighSensitivityEnabled, setIsHighSensitivityEnabled] = useState(false);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaChunksRef = useRef<BlobPart[]>([]);
   const recordingTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserNodeRef = useRef<AnalyserNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const waveformFrameRef = useRef<number | null>(null);
+  const previousWaveformRef = useRef<number[]>(createIdleWaveform());
   const pendingAudiosRef = useRef<PendingAudio[]>([]);
 
   const isSecureContextForMic =
@@ -272,6 +289,8 @@ export function OpportunityWizardPage() {
     return `${minutesPart}:${secondsPart}`;
   };
 
+  const recordingProgress = Math.min(100, Math.round((recordingSeconds / 60) * 100));
+
   const clearRecordingTimer = () => {
     if (recordingTimerRef.current) {
       window.clearInterval(recordingTimerRef.current);
@@ -279,8 +298,87 @@ export function OpportunityWizardPage() {
     }
   };
 
+  const stopWaveformMonitor = () => {
+    if (waveformFrameRef.current) {
+      window.cancelAnimationFrame(waveformFrameRef.current);
+      waveformFrameRef.current = null;
+    }
+
+    sourceNodeRef.current?.disconnect();
+    sourceNodeRef.current = null;
+
+    analyserNodeRef.current?.disconnect();
+    analyserNodeRef.current = null;
+
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
+
+    const idleWaveform = createIdleWaveform();
+    previousWaveformRef.current = idleWaveform;
+    setRecordingWaveform(idleWaveform);
+  };
+
+  const startWaveformMonitor = (stream: MediaStream, highSensitivityEnabled: boolean) => {
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const sourceNode = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.7;
+
+    sourceNode.connect(analyser);
+
+    audioContextRef.current = audioContext;
+    sourceNodeRef.current = sourceNode;
+    analyserNodeRef.current = analyser;
+
+    const sampleBuffer = new Uint8Array(analyser.frequencyBinCount);
+
+    const renderWaveform = () => {
+      const currentAnalyser = analyserNodeRef.current;
+      if (!currentAnalyser) return;
+
+      currentAnalyser.getByteFrequencyData(sampleBuffer);
+
+      const averageLevel = sampleBuffer.reduce((sum, value) => sum + value, 0) / (sampleBuffer.length * 255);
+      const baseGain = averageLevel < 0.12 ? 1.75 : averageLevel < 0.2 ? 1.45 : 1.2;
+      const sensitivityMultiplier = highSensitivityEnabled ? 1.35 : 1;
+      const adaptiveGain = baseGain * sensitivityMultiplier;
+      const noiseFloor = highSensitivityEnabled ? 0.015 : AUDIO_WAVE_NOISE_FLOOR;
+
+      const nextWaveform = Array.from({ length: AUDIO_WAVE_BAR_COUNT }, (_, barIndex) => {
+        const start = Math.floor((barIndex * sampleBuffer.length) / AUDIO_WAVE_BAR_COUNT);
+        const end = Math.max(start + 1, Math.floor(((barIndex + 1) * sampleBuffer.length) / AUDIO_WAVE_BAR_COUNT));
+        let peak = 0;
+
+        for (let index = start; index < end; index += 1) {
+          peak = Math.max(peak, sampleBuffer[index] ?? 0);
+        }
+
+        const normalized = peak / 255;
+        const gated = normalized <= noiseFloor ? 0 : (normalized - noiseFloor) / (1 - noiseFloor);
+        const boosted = Math.min(1, Math.pow(gated, 0.78) * adaptiveGain);
+        const previous = previousWaveformRef.current[barIndex] ?? 0.2;
+        const smoothed = previous * 0.5 + boosted * 0.5;
+        return Math.min(1, 0.18 + smoothed * 0.82);
+      });
+
+      previousWaveformRef.current = nextWaveform;
+      setRecordingWaveform(nextWaveform);
+      waveformFrameRef.current = window.requestAnimationFrame(renderWaveform);
+    };
+
+    waveformFrameRef.current = window.requestAnimationFrame(renderWaveform);
+  };
+
   const stopRecordingResources = () => {
     clearRecordingTimer();
+    stopWaveformMonitor();
     mediaRecorderRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     mediaStreamRef.current = null;
@@ -396,6 +494,7 @@ export function OpportunityWizardPage() {
 
       recorder.start(200);
       mediaRecorderRef.current = recorder;
+      startWaveformMonitor(stream, isHighSensitivityEnabled);
       setAudioActionError(null);
       setIsRecordingAudio(true);
       setRecordingSeconds(0);
@@ -536,6 +635,12 @@ export function OpportunityWizardPage() {
   useEffect(() => {
     pendingAudiosRef.current = pendingAudios;
   }, [pendingAudios]);
+
+  useEffect(() => {
+    if (!isRecordingAudio || !mediaStreamRef.current) return;
+    stopWaveformMonitor();
+    startWaveformMonitor(mediaStreamRef.current, isHighSensitivityEnabled);
+  }, [isHighSensitivityEnabled, isRecordingAudio]);
 
   useEffect(() => {
     return () => {
@@ -981,10 +1086,25 @@ export function OpportunityWizardPage() {
             <div className="grid-auto-100">
               {files.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="card section-card--compact surface-card photo-card">
-                  <img src={URL.createObjectURL(file)} alt={file.name} className="photo-thumb h-90" />
+                  <button
+                    type="button"
+                    className={`photo-thumb-button${primaryIndex === index ? " is-primary" : ""}`}
+                    onClick={() => setPrimaryIndex(index)}
+                    aria-label={primaryIndex === index ? "Foto principal selecionada" : "Definir esta foto como principal"}
+                    title={primaryIndex === index ? "Foto principal selecionada" : "Definir esta foto como principal"}
+                  >
+                    <img src={URL.createObjectURL(file)} alt={file.name} className="photo-thumb h-90" />
+                    <span className={`photo-primary-badge${primaryIndex === index ? " is-active" : ""}`}>
+                      {primaryIndex === index ? "Principal" : "Definir principal"}
+                    </span>
+                  </button>
                   <div className="justify-between mt-6">
-                    <button type="button" className="btn btn-ghost" onClick={() => setPrimaryIndex(index)}>
-                      {primaryIndex === index ? "Principal" : "Definir"}
+                    <button
+                      type="button"
+                      className={`btn btn-ghost photo-primary-action${primaryIndex === index ? " is-active" : ""}`}
+                      onClick={() => setPrimaryIndex(index)}
+                    >
+                      {primaryIndex === index ? "Foto principal" : "Definir principal"}
                     </button>
                     <button type="button" className="btn btn-ghost" onClick={() => removeFile(index)}>
                       <Trash2 size={14} />
@@ -1000,18 +1120,34 @@ export function OpportunityWizardPage() {
                 <div className="grid-auto-160">
                   {existingPhotos.map((photo) => (
                     <div key={photo.id} className="card section-card--compact surface-card photo-card">
-                      <img
-                        src={`${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath}`}
-                        alt={photo.originalName}
-                        className="photo-thumb h-110"
-                      />
+                      <button
+                        type="button"
+                        className={`photo-thumb-button${photo.isPrimary ? " is-primary" : ""}`}
+                        onClick={() => {
+                          if (!photo.isPrimary && photoBusyId !== photo.id) {
+                            void handleSetPrimaryExistingPhoto(photo.id);
+                          }
+                        }}
+                        disabled={photoBusyId === photo.id}
+                        aria-label={photo.isPrimary ? "Foto principal da obra" : "Definir foto como principal"}
+                        title={photo.isPrimary ? "Foto principal da obra" : "Definir foto como principal"}
+                      >
+                        <img
+                          src={`${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath}`}
+                          alt={photo.originalName}
+                          className="photo-thumb h-110"
+                        />
+                        <span className={`photo-primary-badge${photo.isPrimary ? " is-active" : ""}`}>
+                          {photo.isPrimary ? "Principal" : "Definir principal"}
+                        </span>
+                      </button>
                       <div className="summary-box-sm mt-6">
                         {photo.isPrimary ? "Foto principal" : "Foto da obra"}
                       </div>
                       <div className="button-stack">
                         <button
                           type="button"
-                          className="btn btn-ghost"
+                          className={`btn btn-ghost photo-primary-action${photo.isPrimary ? " is-active" : ""}`}
                           onClick={() => handleSetPrimaryExistingPhoto(photo.id)}
                           disabled={photoBusyId === photo.id || photo.isPrimary}
                         >
@@ -1036,16 +1172,55 @@ export function OpportunityWizardPage() {
 
             <div className="stack-sm mt-6">
               <strong>Audio</strong>
+              <div className="audio-recorder-player">
+                <div className="audio-recorder-player-main">
+                  <button
+                    type="button"
+                    className={`btn audio-record-button audio-record-button--touch${isRecordingAudio ? " is-recording" : ""}`}
+                    onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
+                    disabled={saving || isUploadingAudio}
+                    aria-label={isRecordingAudio ? "Parar gravacao" : "Iniciar gravacao"}
+                  >
+                    {isRecordingAudio ? <Square size={16} /> : <Mic size={16} />}
+                  </button>
+
+                  <div className="audio-recorder-info">
+                    <div className="audio-recorder-status-row">
+                      <span className={`audio-recorder-status${isRecordingAudio ? " is-recording" : ""}`}>
+                        {isRecordingAudio ? "Gravando" : "Pronto para gravar"}
+                      </span>
+                      <span className="audio-recorder-time">{formatRecordingTime(recordingSeconds)} / 01:00</span>
+                    </div>
+
+                    <div className="audio-recorder-controls">
+                      <button
+                        type="button"
+                        className={`audio-sensitivity-toggle${isHighSensitivityEnabled ? " is-active" : ""}`}
+                        aria-pressed={isHighSensitivityEnabled}
+                        onClick={() => setIsHighSensitivityEnabled((value) => !value)}
+                      >
+                        {isHighSensitivityEnabled ? "Sensibilidade alta" : "Sensibilidade normal"}
+                      </button>
+                    </div>
+
+                    <div className={`audio-recorder-wave${isRecordingAudio ? " is-live" : ""}`} aria-hidden="true">
+                      {recordingWaveform.map((level, index) => (
+                        <span key={`wave-${index}`} style={{ height: `${Math.round(level * 100)}%` }} />
+                      ))}
+                    </div>
+
+                    <div className="audio-recorder-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={recordingProgress}>
+                      <div className="audio-recorder-progress-fill" style={{ width: `${recordingProgress}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                <span className="muted audio-recorder-hint">
+                  {isRecordingAudio ? "Toque para parar e anexar automaticamente." : "Toque para gravar (maximo de 60 segundos)."}
+                </span>
+              </div>
+
               <div className="grid-2 wizard-audio-actions">
-                <button
-                  type="button"
-                  className={`btn audio-record-button audio-record-button--touch${isRecordingAudio ? " is-recording" : ""}`}
-                  onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
-                  disabled={saving || isUploadingAudio}
-                >
-                  {isRecordingAudio ? <Square size={16} /> : <Mic size={16} />}
-                  {isRecordingAudio ? `Parar gravacao (${formatRecordingTime(recordingSeconds)} / 01:00)` : "Gravar audio (ate 60s)"}
-                </button>
                 <label className="btn btn-link wizard-capture-button wizard-capture-button--secondary">
                   <ImagePlus size={18} /> Selecionar audio
                   <input type="file" accept="audio/*" multiple hidden onChange={(event) => onSelectAudioFiles(event.target.files)} />
