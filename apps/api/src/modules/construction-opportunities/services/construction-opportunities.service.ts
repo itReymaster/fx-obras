@@ -295,6 +295,7 @@ export class ConstructionOpportunitiesService {
       notSentToCrm,
       latest,
       groupedStatus,
+      groupedByUser,
     ] = await Promise.all([
       this.prisma.constructionOpportunity.count({ where: { isDeleted: false, ...testFilter } }),
       this.prisma.constructionOpportunity.count({
@@ -332,6 +333,11 @@ export class ConstructionOpportunitiesService {
         where: { isDeleted: false, ...testFilter },
         _count: true,
       }),
+      this.prisma.constructionOpportunity.groupBy({
+        by: ["createdByUserId"],
+        where: { isDeleted: false, ...testFilter },
+        _count: true,
+      }),
     ]);
 
     const statusCounts = groupedStatus.reduce<Record<string, number>>((acc, item) => {
@@ -340,6 +346,10 @@ export class ConstructionOpportunitiesService {
     }, {});
 
     const funnelTotal = funnelStages.reduce((sum, status) => sum + (statusCounts[status] ?? 0), 0);
+
+    const capturedByUser = groupedByUser
+      .map((item) => ({ userId: item.createdByUserId, count: item._count }))
+      .sort((a, b) => b.count - a.count);
 
     return {
       total,
@@ -350,6 +360,7 @@ export class ConstructionOpportunitiesService {
       notSentToCrm,
       statusCounts,
       funnelTotal,
+      capturedByUser,
       latest,
     };
   }

@@ -3,20 +3,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatDate } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
+import type { OpportunityDashboardData } from "../types/opportunity.types";
 
-interface HomeDashboardData {
-  total: number;
-  last30: number;
-  highPotential: number;
-  overdueNextAction: number;
-  statusCounts?: Record<string, number>;
-  funnelTotal?: number;
-  latest: Array<{ id: string; title: string; code: string; capturedAt: string }>;
-}
+const formatUserLabel = (userId: string | null) => {
+  if (!userId || userId.trim().length === 0) return "Usuario nao identificado";
+  return userId.replaceAll("-", " ");
+};
 
 export function HomePage() {
   const [count, setCount] = useState(0);
-  const [dashboard, setDashboard] = useState<HomeDashboardData | null>(null);
+  const [dashboard, setDashboard] = useState<OpportunityDashboardData | null>(null);
   const [includeTests, setIncludeTests] = useState(false);
 
   useEffect(() => {
@@ -48,6 +44,12 @@ export function HomePage() {
   const funnelTotal =
     dashboard?.funnelTotal ??
     funnelItems.reduce((sum, stage) => sum + stage.count, 0);
+
+  const captureByUser = (dashboard?.capturedByUser ?? []).map((item) => ({
+    ...item,
+    userLabel: formatUserLabel(item.userId),
+  }));
+  const captureByUserMax = Math.max(1, ...captureByUser.map((item) => item.count));
 
   return (
     <div className="page grid home-page">
@@ -92,6 +94,41 @@ export function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="card section-card surface-card capture-user-card">
+        <div className="cluster cluster--spread mb-10">
+          <div>
+            <h3 className="section-title">Captura por usuario</h3>
+            <div className="section-note">
+              Engajamento do time por volume de obras capturadas.
+            </div>
+          </div>
+        </div>
+
+        {captureByUser.length === 0 ? (
+          <div className="muted hero-note">Sem dados de captura por usuario para o filtro atual.</div>
+        ) : (
+          <div className="capture-user-list">
+            {captureByUser.map((item, index) => (
+              <div key={`${item.userId ?? "unknown"}-${index}`} className="capture-user-row">
+                <div className="capture-user-row-head">
+                  <div className="capture-user-label-wrap">
+                    <span className="capture-user-rank">{index + 1}</span>
+                    <span className="capture-user-label">{item.userLabel}</span>
+                  </div>
+                  <span className="capture-user-count">{item.count}</span>
+                </div>
+                <div className="capture-user-track">
+                  <div
+                    className="capture-user-fill"
+                    style={{ width: `${Math.max(10, (item.count / captureByUserMax) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="home-kpis metric-grid">

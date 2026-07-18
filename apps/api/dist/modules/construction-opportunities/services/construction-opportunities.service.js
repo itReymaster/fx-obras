@@ -232,7 +232,7 @@ export class ConstructionOpportunitiesService {
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(now.getDate() - 30);
         const testFilter = includeTests ? {} : { isTest: false };
-        const [total, last30, highPotential, notEvaluated, overdueNextAction, notSentToCrm, latest, groupedStatus,] = await Promise.all([
+        const [total, last30, highPotential, notEvaluated, overdueNextAction, notSentToCrm, latest, groupedStatus, groupedByUser,] = await Promise.all([
             this.prisma.constructionOpportunity.count({ where: { isDeleted: false, ...testFilter } }),
             this.prisma.constructionOpportunity.count({
                 where: { isDeleted: false, capturedAt: { gte: thirtyDaysAgo }, ...testFilter },
@@ -269,12 +269,20 @@ export class ConstructionOpportunitiesService {
                 where: { isDeleted: false, ...testFilter },
                 _count: true,
             }),
+            this.prisma.constructionOpportunity.groupBy({
+                by: ["createdByUserId"],
+                where: { isDeleted: false, ...testFilter },
+                _count: true,
+            }),
         ]);
         const statusCounts = groupedStatus.reduce((acc, item) => {
             acc[item.status] = item._count;
             return acc;
         }, {});
         const funnelTotal = funnelStages.reduce((sum, status) => sum + (statusCounts[status] ?? 0), 0);
+        const capturedByUser = groupedByUser
+            .map((item) => ({ userId: item.createdByUserId, count: item._count }))
+            .sort((a, b) => b.count - a.count);
         return {
             total,
             last30,
@@ -284,6 +292,7 @@ export class ConstructionOpportunitiesService {
             notSentToCrm,
             statusCounts,
             funnelTotal,
+            capturedByUser,
             latest,
         };
     }

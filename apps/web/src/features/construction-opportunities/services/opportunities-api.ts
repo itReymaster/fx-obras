@@ -1,9 +1,14 @@
 import { api } from "../../../services/api";
-import type { Opportunity, OpportunityAudio, OpportunityListResponse } from "../types/opportunity.types";
+import type {
+  Opportunity,
+  OpportunityAudio,
+  OpportunityDashboardData,
+  OpportunityListResponse,
+} from "../types/opportunity.types";
 
 export const opportunitiesApi = {
   async dashboard(includeTests = false) {
-    const { data } = await api.get("/construction-opportunities/dashboard", {
+    const { data } = await api.get<OpportunityDashboardData>("/construction-opportunities/dashboard", {
       params: includeTests ? { includeTests: "true" } : undefined,
     });
     return data;

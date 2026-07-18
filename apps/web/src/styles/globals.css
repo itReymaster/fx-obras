@@ -1949,6 +1949,75 @@ textarea:focus-visible {
   background: linear-gradient(90deg, #6c8eb6 0%, #4974a7 100%);
 }
 
+.capture-user-card {
+  background: linear-gradient(160deg, #fbfdff 0%, #f2f6fb 100%);
+}
+
+.capture-user-list {
+  display: grid;
+  gap: 10px;
+}
+
+.capture-user-row {
+  display: grid;
+  gap: 6px;
+}
+
+.capture-user-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.capture-user-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.capture-user-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid #cfdceb;
+  background: #ffffff;
+  color: #4d5c70;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+
+.capture-user-label {
+  color: #2f3f53;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.capture-user-count {
+  color: #1f2f43;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.capture-user-track {
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid #d7e2ef;
+  background: #edf2f8;
+  overflow: hidden;
+}
+
+.capture-user-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #74a27e 0%, #33894b 100%);
+}
+
 .home-signal {
   display: flex;
   gap: 10px;
@@ -3448,6 +3517,14 @@ textarea:focus-visible {
   }
 
   .funnel-stage-count {
+    font-size: 13px;
+  }
+
+  .capture-user-label {
+    font-size: 12.5px;
+  }
+
+  .capture-user-count {
     font-size: 13px;
   }
 

@@ -2,19 +2,15 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatDate } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
+import type { OpportunityDashboardData } from "../types/opportunity.types";
 
-interface DashboardData {
-  total: number;
-  last30: number;
-  highPotential: number;
-  notEvaluated: number;
-  overdueNextAction: number;
-  notSentToCrm: number;
-  latest: Array<{ id: string; title: string; code: string; capturedAt: string }>;
-}
+const formatUserLabel = (userId: string | null) => {
+  if (!userId || userId.trim().length === 0) return "Usuario nao identificado";
+  return userId.replaceAll("-", " ");
+};
 
 export function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<OpportunityDashboardData | null>(null);
   const [includeTests, setIncludeTests] = useState(false);
 
   useEffect(() => {
@@ -33,6 +29,12 @@ export function DashboardPage() {
     ["Próxima ação vencida", data.overdueNextAction],
     ["Não enviado ao CRM", data.notSentToCrm],
   ];
+
+  const captureByUser = (data.capturedByUser ?? []).map((item) => ({
+    ...item,
+    userLabel: formatUserLabel(item.userId),
+  }));
+  const captureByUserMax = Math.max(1, ...captureByUser.map((item) => item.count));
 
   return (
     <div className="page grid">
@@ -56,6 +58,34 @@ export function DashboardPage() {
           </article>
         ))}
       </section>
+      <section className="card section-card surface-card stack">
+        <h3 className="section-title">Captura por usuario</h3>
+        <p className="section-note">Ranking de engajamento com volume de obras registradas por pessoa.</p>
+        {captureByUser.length === 0 ? (
+          <div className="muted hero-note">Sem dados de captura por usuario para o filtro atual.</div>
+        ) : (
+          <div className="capture-user-list">
+            {captureByUser.map((item, index) => (
+              <div key={`${item.userId ?? "unknown"}-${index}`} className="capture-user-row">
+                <div className="capture-user-row-head">
+                  <div className="capture-user-label-wrap">
+                    <span className="capture-user-rank">{index + 1}</span>
+                    <span className="capture-user-label">{item.userLabel}</span>
+                  </div>
+                  <span className="capture-user-count">{item.count}</span>
+                </div>
+                <div className="capture-user-track">
+                  <div
+                    className="capture-user-fill"
+                    style={{ width: `${Math.max(10, (item.count / captureByUserMax) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="card section-card surface-card stack">
         <h3 className="section-title">Últimos registros</h3>
         <div className="stack-sm">

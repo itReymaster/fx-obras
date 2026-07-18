@@ -407,6 +407,24 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     return rows.map((row) => ({ status: row.status, count: Number(row.count) }));
   }
 
+  async aggregateByCreatedByUser(includeTests = false): Promise<Array<{ userId: string | null; count: number }>> {
+    const { whereSql, replacements } = this.buildWhereClause({
+      isTest: includeTests ? undefined : false,
+    });
+
+    const rows = await this.sequelize.query<{ userId: string | null; count: number }>(
+      `SELECT createdByUserId AS userId, COUNT(1) AS count
+       FROM ConstructionOpportunity
+       WHERE ${whereSql}
+       GROUP BY createdByUserId`,
+      { replacements, type: QueryTypes.SELECT },
+    );
+
+    return rows
+      .map((row) => ({ userId: row.userId, count: Number(row.count) }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   async countCreatedSince(since: Date, includeTests = false): Promise<number> {
     const { whereSql, replacements } = this.buildWhereClause({
       isTest: includeTests ? undefined : false,

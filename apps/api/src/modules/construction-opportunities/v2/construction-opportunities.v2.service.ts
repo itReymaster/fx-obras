@@ -224,6 +224,7 @@ export class ConstructionOpportunitiesV2Service {
       notSentToCrm,
       latest,
       groupedStatus,
+      capturedByUser,
     ] = await Promise.all([
       this.repository.count({ isTest: testFilter } as any),
       this.repository.countCreatedSince(thirtyDaysAgo, includeTests),
@@ -233,6 +234,7 @@ export class ConstructionOpportunitiesV2Service {
       this.repository.countNotSentToCrm(includeTests),
       this.repository.findLatest(includeTests),
       this.repository.aggregateByStatus(includeTests),
+      this.repository.aggregateByCreatedByUser(includeTests),
     ]);
 
     const statusCounts = groupedStatus.reduce<Record<string, number>>((acc, item) => {
@@ -258,6 +260,7 @@ export class ConstructionOpportunitiesV2Service {
       notSentToCrm,
       statusCounts,
       funnelTotal,
+      capturedByUser,
       latest,
     };
   }

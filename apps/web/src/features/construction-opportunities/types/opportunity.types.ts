@@ -68,3 +68,21 @@ export interface OpportunityListResponse {
     totalPages: number;
   };
 }
+
+export interface DashboardCaptureByUser {
+  userId: string | null;
+  count: number;
+}
+
+export interface OpportunityDashboardData {
+  total: number;
+  last30: number;
+  highPotential: number;
+  notEvaluated: number;
+  overdueNextAction: number;
+  notSentToCrm: number;
+  statusCounts?: Record<string, number>;
+  funnelTotal?: number;
+  capturedByUser?: DashboardCaptureByUser[];
+  latest: Array<{ id: string; title: string; code: string; capturedAt: string }>;
+}

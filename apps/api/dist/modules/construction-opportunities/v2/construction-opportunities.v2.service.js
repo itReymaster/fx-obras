@@ -166,7 +166,7 @@ export class ConstructionOpportunitiesV2Service {
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(now.getDate() - 30);
         const testFilter = includeTests ? undefined : false;
-        const [total, last30, highPotential, notEvaluated, overdueNextAction, notSentToCrm, latest, groupedStatus,] = await Promise.all([
+        const [total, last30, highPotential, notEvaluated, overdueNextAction, notSentToCrm, latest, groupedStatus, capturedByUser,] = await Promise.all([
             this.repository.count({ isTest: testFilter }),
             this.repository.countCreatedSince(thirtyDaysAgo, includeTests),
             this.repository.count({ isTest: testFilter, commercialPotential: "HIGH" }),
@@ -175,6 +175,7 @@ export class ConstructionOpportunitiesV2Service {
             this.repository.countNotSentToCrm(includeTests),
             this.repository.findLatest(includeTests),
             this.repository.aggregateByStatus(includeTests),
+            this.repository.aggregateByCreatedByUser(includeTests),
         ]);
         const statusCounts = groupedStatus.reduce((acc, item) => {
             acc[item.status] = item.count;
@@ -197,6 +198,7 @@ export class ConstructionOpportunitiesV2Service {
             notSentToCrm,
             statusCounts,
             funnelTotal,
+            capturedByUser,
             latest,
         };
     }
