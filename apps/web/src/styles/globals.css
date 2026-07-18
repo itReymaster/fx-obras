@@ -2023,6 +2023,25 @@ textarea:focus-visible {
   gap: 12px;
 }
 
+.home-chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.home-chart-card .funnel-list,
+.home-chart-card .capture-user-list {
+  margin-top: 2px;
+}
+
+.home-chart-head {
+  align-items: flex-start;
+}
+
+.home-chart-note {
+  max-width: 42ch;
+}
+
 .home-signal {
   display: flex;
   gap: 10px;
@@ -3558,9 +3577,46 @@ textarea:focus-visible {
     padding: 24px 24px 28px;
   }
 
+  .home-hero {
+    order: 1;
+  }
+
+  .home-kpis {
+    order: 2;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .home-kpi-filter-row {
+    margin-bottom: 0;
+    padding: 2px 2px 0;
+    justify-content: flex-end;
+  }
+
+  .home-kpi-card {
+    min-height: 116px;
+  }
+
   .home-charts-grid {
+    order: 3;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
+  }
+
+  .home-chart-card {
+    min-height: 332px;
+  }
+
+  .home-chart-head {
+    min-height: 74px;
+  }
+
+  .home-chart-note {
+    min-height: 38px;
+  }
+
+  .home-recent-card {
+    order: 4;
   }
 
   .app-main {

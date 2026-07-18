@@ -60,11 +60,11 @@ export function HomePage() {
       </section>
 
       <div className="home-charts-grid">
-        <section className="card section-card surface-card funnel-card">
-          <div className="cluster cluster--spread mb-10">
+        <section className="card section-card surface-card funnel-card home-chart-card">
+          <div className="cluster cluster--spread mb-10 home-chart-head">
             <div>
               <h3 className="section-title">Funil de Obras</h3>
-              <div className="section-note">
+              <div className="section-note home-chart-note">
                 Visao por etapa comercial com quantidade de obras no funil ativo.
               </div>
             </div>
@@ -92,11 +92,11 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="card section-card surface-card capture-user-card">
-          <div className="cluster cluster--spread mb-10">
+        <section className="card section-card surface-card capture-user-card home-chart-card">
+          <div className="cluster cluster--spread mb-10 home-chart-head">
             <div>
               <h3 className="section-title">Captura por usuário</h3>
-              <div className="section-note">
+              <div className="section-note home-chart-note">
                 Engajamento do time por volume de obras capturadas.
               </div>
             </div>
@@ -155,7 +155,7 @@ export function HomePage() {
         })}
       </section>
 
-      <section className="card section-card surface-card">
+      <section className="card section-card surface-card home-recent-card">
         <div className="cluster cluster--spread mb-10">
           <div>
             <h3 className="section-title">Últimos registros</h3>
