@@ -1746,6 +1746,17 @@ textarea:focus-visible {
   color: var(--color-text-strong);
 }
 
+.map-filters-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  width: min(100%, 760px);
+}
+
+.map-filter-label--search {
+  min-width: 220px;
+}
+
 .map-filter-label__text {
   font-size: 12px;
   font-weight: 500;
@@ -1797,7 +1808,41 @@ textarea:focus-visible {
   border: none;
 }
 
+.map-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: grid;
+  gap: 8px;
+}
+
+.map-control-btn {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.22);
+  background: rgba(255, 255, 255, 0.96);
+  color: #243447;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+}
+
+.map-control-btn.is-active {
+  background: #1a1a2e;
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.45);
+}
+
 @media (max-width: 899px) {
+  .map-filters-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
   .map-legend {
     top: 10px;
     left: 10px;
@@ -1808,6 +1853,13 @@ textarea:focus-visible {
   .map-legend__item {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .map-controls {
+    top: auto;
+    bottom: 10px;
+    right: 10px;
+    grid-auto-flow: column;
   }
 }
 
