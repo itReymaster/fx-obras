@@ -40,15 +40,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const token = btoa(`${resolvedUser}:${Date.now()}`);
 
         storage.setItem('auth_token', token);
+        otherStorage.setItem('auth_token', token);
         storage.setItem('auth_user', resolvedUser);
+        otherStorage.setItem('auth_user', resolvedUser);
         storage.removeItem('auth_user_id');
-        storage.setItem('auth_username', resolvedUser);
-        storage.removeItem('auth_user_email');
-
-        otherStorage.removeItem('auth_token');
-        otherStorage.removeItem('auth_user');
         otherStorage.removeItem('auth_user_id');
-        otherStorage.removeItem('auth_username');
+        storage.setItem('auth_username', resolvedUser);
+        otherStorage.setItem('auth_username', resolvedUser);
+        storage.removeItem('auth_user_email');
         otherStorage.removeItem('auth_user_email');
 
         setIsAuthenticated(true);
@@ -59,21 +58,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const displayUser = response.user.name?.trim() || response.user.username;
 
       storage.setItem('auth_token', response.token);
+      otherStorage.setItem('auth_token', response.token);
       storage.setItem('auth_user', displayUser);
+      otherStorage.setItem('auth_user', displayUser);
       storage.setItem('auth_user_id', String(response.user.id));
+      otherStorage.setItem('auth_user_id', String(response.user.id));
       storage.setItem('auth_username', response.user.username);
+      otherStorage.setItem('auth_username', response.user.username);
 
       if (response.user.email) {
         storage.setItem('auth_user_email', response.user.email);
+        otherStorage.setItem('auth_user_email', response.user.email);
       } else {
         storage.removeItem('auth_user_email');
+        otherStorage.removeItem('auth_user_email');
       }
-
-      otherStorage.removeItem('auth_token');
-      otherStorage.removeItem('auth_user');
-      otherStorage.removeItem('auth_user_id');
-      otherStorage.removeItem('auth_username');
-      otherStorage.removeItem('auth_user_email');
 
       setIsAuthenticated(true);
     } finally {
