@@ -58,6 +58,16 @@ jobs:
         run: |
           docker compose up -d --remove-orphans
 
+      - name: Diagnóstico ERP no container
+        run: |
+          docker compose exec -T backend node -e "const out={hasDbPassword:Boolean(process.env.DB_PASSWORD),dbPasswordLen:(process.env.DB_PASSWORD||'').length,hasDbPasswordB64:Boolean(process.env.DB_PASSWORD_B64),dbPasswordB64Len:(process.env.DB_PASSWORD_B64||'').length,dbHost:process.env.DB_HOST||null,dbUser:process.env.DB_USER||null,dbDatabase:process.env.DB_DATABASE||null}; console.log(JSON.stringify(out));"
+
+      - name: Validar status ERP público
+        run: |
+          STATUS_JSON=$(curl -fsS "https://projetos.reymaster.com.br:17443/inovacao/fx-obras/api/v2/auth/erp-flex/status?ts=$(date +%s)")
+          echo "$STATUS_JSON"
+          echo "$STATUS_JSON" | grep -q '"configured":true' || (echo "Erro: endpoint ERP permanece com configured=false" && exit 1)
+
       - name: Verificar containers
         run: |
           docker compose ps
