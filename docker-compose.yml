@@ -4,6 +4,9 @@ services:
       context: ./apps/api
     container_name: fx-obras-backend
     restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./apps/api/.env
     environment:
       NODE_ENV: production
       PORT: 3333
@@ -13,7 +16,7 @@ services:
       DB_PORT: ${DB_PORT:-1433}
       DB_DATABASE: ${DB_DATABASE:-Flex}
       DB_USER: ${DB_USER:-UserService}
-      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD not set}
       DB_ENCRYPT: ${DB_ENCRYPT:-false}
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
       DB_LOGIN_PROCEDURE: ${DB_LOGIN_PROCEDURE:-dbo.SPAuthLogin}
