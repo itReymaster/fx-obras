@@ -16,6 +16,17 @@ const stripWrappingQuotes = (value) => {
     }
     return trimmed;
 };
+const decodeBase64 = (value) => {
+    const normalized = stripWrappingQuotes(value);
+    if (!normalized)
+        return undefined;
+    try {
+        return Buffer.from(normalized, "base64").toString("utf-8");
+    }
+    catch {
+        return undefined;
+    }
+};
 const dbHost = stripWrappingQuotes(process.env.DB_HOST ??
     process.env.ERP_FLEX_SQLSERVER_HOST ??
     process.env.SQLSERVER_HOST);
@@ -28,9 +39,11 @@ const dbDatabase = stripWrappingQuotes(process.env.DB_DATABASE ??
 const dbUsername = stripWrappingQuotes(process.env.DB_USER ??
     process.env.ERP_FLEX_SQLSERVER_USERNAME ??
     process.env.SQLSERVER_USERNAME);
-const dbPassword = stripWrappingQuotes(process.env.DB_PASSWORD ??
+const dbPasswordPlain = stripWrappingQuotes(process.env.DB_PASSWORD ??
     process.env.ERP_FLEX_SQLSERVER_PASSWORD ??
     process.env.SQLSERVER_PASSWORD);
+const dbPasswordFromB64 = decodeBase64(process.env.DB_PASSWORD_B64 ?? process.env.ERP_FLEX_SQLSERVER_PASSWORD_B64);
+const dbPassword = dbPasswordFromB64 ?? dbPasswordPlain;
 export const env = {
     nodeEnv: process.env.NODE_ENV ?? "development",
     port: toNumber(process.env.PORT, 3333),
