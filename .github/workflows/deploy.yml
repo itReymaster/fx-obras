@@ -23,6 +23,13 @@ jobs:
       DB_PASSWORD_B64: ${{ secrets.FX_OBRAS_DB_PASSWORD_B64 }}
       LEGACY_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       LEGACY_DB_PASSWORD_B64: ${{ secrets.DB_PASSWORD_B64 }}
+      ERP_FLEX_SECRET_PASSWORD: ${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD }}
+      ERP_FLEX_SECRET_PASSWORD_B64: ${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD_B64 }}
+      SQLSERVER_SECRET_PASSWORD: ${{ secrets.SQLSERVER_PASSWORD }}
+      VAR_DB_PASSWORD: ${{ vars.DB_PASSWORD }}
+      VAR_DB_PASSWORD_B64: ${{ vars.DB_PASSWORD_B64 }}
+      VAR_ERP_FLEX_PASSWORD: ${{ vars.ERP_FLEX_SQLSERVER_PASSWORD }}
+      VAR_ERP_FLEX_PASSWORD_B64: ${{ vars.ERP_FLEX_SQLSERVER_PASSWORD_B64 }}
       DB_ENCRYPT: ${{ secrets.FX_OBRAS_DB_ENCRYPT }}
       DB_TRUST_SERVER_CERTIFICATE: ${{ secrets.FX_OBRAS_DB_TRUST_SERVER_CERTIFICATE }}
       DB_LOGIN_PROCEDURE: ${{ secrets.FX_OBRAS_DB_LOGIN_PROCEDURE }}
@@ -56,13 +63,41 @@ jobs:
             EFFECTIVE_DB_PASSWORD_B64="${LEGACY_DB_PASSWORD_B64}"
           fi
 
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${ERP_FLEX_SECRET_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${ERP_FLEX_SECRET_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${ERP_FLEX_SECRET_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${ERP_FLEX_SECRET_PASSWORD_B64}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${SQLSERVER_SECRET_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${SQLSERVER_SECRET_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${VAR_DB_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${VAR_DB_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${VAR_DB_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${VAR_DB_PASSWORD_B64}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${VAR_ERP_FLEX_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${VAR_ERP_FLEX_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${VAR_ERP_FLEX_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${VAR_ERP_FLEX_PASSWORD_B64}"
+          fi
+
           echo "DB_PASSWORD=${EFFECTIVE_DB_PASSWORD}" >> "$GITHUB_ENV"
           echo "DB_PASSWORD_B64=${EFFECTIVE_DB_PASSWORD_B64}" >> "$GITHUB_ENV"
 
       - name: Validar Docker Compose
         run: |
           if [ -z "${DB_PASSWORD}" ] && [ -z "${DB_PASSWORD_B64}" ]; then
-            echo "Erro: defina FX_OBRAS_DB_PASSWORD ou FX_OBRAS_DB_PASSWORD_B64 nos Secrets do repositório."
+            echo "Erro: nenhuma senha encontrada em Secrets/Variables (FX_OBRAS_DB_PASSWORD, FX_OBRAS_DB_PASSWORD_B64, DB_PASSWORD, DB_PASSWORD_B64, ERP_FLEX_SQLSERVER_PASSWORD, ERP_FLEX_SQLSERVER_PASSWORD_B64)."
             exit 1
           fi
 
