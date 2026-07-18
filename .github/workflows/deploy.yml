@@ -21,6 +21,8 @@ jobs:
       DB_USER: ${{ secrets.FX_OBRAS_DB_USER }}
       DB_PASSWORD: ${{ secrets.FX_OBRAS_DB_PASSWORD }}
       DB_PASSWORD_B64: ${{ secrets.FX_OBRAS_DB_PASSWORD_B64 }}
+      LEGACY_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      LEGACY_DB_PASSWORD_B64: ${{ secrets.DB_PASSWORD_B64 }}
       DB_ENCRYPT: ${{ secrets.FX_OBRAS_DB_ENCRYPT }}
       DB_TRUST_SERVER_CERTIFICATE: ${{ secrets.FX_OBRAS_DB_TRUST_SERVER_CERTIFICATE }}
       DB_LOGIN_PROCEDURE: ${{ secrets.FX_OBRAS_DB_LOGIN_PROCEDURE }}
@@ -40,6 +42,22 @@ jobs:
           echo "Usuário: $(whoami)"
           echo "Branch: $GITHUB_REF_NAME"
           echo "Commit: $GITHUB_SHA"
+
+      - name: Normalizar secrets de senha
+        run: |
+          EFFECTIVE_DB_PASSWORD="${DB_PASSWORD}"
+          EFFECTIVE_DB_PASSWORD_B64="${DB_PASSWORD_B64}"
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${LEGACY_DB_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${LEGACY_DB_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${LEGACY_DB_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${LEGACY_DB_PASSWORD_B64}"
+          fi
+
+          echo "DB_PASSWORD=${EFFECTIVE_DB_PASSWORD}" >> "$GITHUB_ENV"
+          echo "DB_PASSWORD_B64=${EFFECTIVE_DB_PASSWORD_B64}" >> "$GITHUB_ENV"
 
       - name: Validar Docker Compose
         run: |
