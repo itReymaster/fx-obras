@@ -11,6 +11,9 @@ jobs:
       - x64
 
     steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
       - name: Informações do servidor
         run: |
           echo "Runner funcionando"
@@ -26,3 +29,18 @@ jobs:
           docker --version
           docker compose version
           docker ps
+
+      - name: Status ERP público
+        run: |
+          curl -i "https://projetos.reymaster.com.br:17443/inovacao/fx-obras/api/v2/auth/erp-flex/status?ts=$(date +%s)"
+
+      - name: Testar login ERP público
+        run: |
+          curl -i -X POST "https://projetos.reymaster.com.br:17443/inovacao/fx-obras/api/v2/auth/erp-flex" \
+            -H "Content-Type: application/json" \
+            --data '{"username":"SILVA","password":"418493"}'
+
+      - name: Logs backend (últimas 200 linhas)
+        run: |
+          docker compose ps
+          docker compose logs backend --tail=200
