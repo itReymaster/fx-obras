@@ -1,5 +1,6 @@
-import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap, Mic, Square } from "lucide-react";
+import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap, Mic, Square, Image } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { addressLabel, formatDate, formatUserDisplay } from "../../../utils/format";
@@ -11,6 +12,8 @@ import type { Opportunity, OpportunityAudio } from "../types/opportunity.types";
 export function OpportunityDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const photosSectionRef = useRef<HTMLElement | null>(null);
+  const qualificationSectionRef = useRef<HTMLElement | null>(null);
   const [item, setItem] = useState<Opportunity | null>(null);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -89,6 +92,10 @@ export function OpportunityDetailPage() {
     estimatedCompletionDate?: string | null;
   };
   const capturedByUser = formatUserDisplay(item.createdByUserId);
+
+  const scrollToSection = (sectionRef: RefObject<HTMLElement | null>) => {
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const copyText = async (value: string) => {
     try {
@@ -344,6 +351,22 @@ export function OpportunityDetailPage() {
               <span className="badge">{labels.commercialPotential(item.commercialPotential)}</span>
               {item.isTest && <span className="badge-test">✨ Teste</span>}
             </div>
+            <div className="cluster mt-10 detail-quick-jump-row">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => scrollToSection(photosSectionRef)}
+              >
+                <Image size={14} /> Ir para fotos
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => scrollToSection(qualificationSectionRef)}
+              >
+                <Briefcase size={14} /> Ir para qualificação
+              </button>
+            </div>
           </div>
           <div className="detail-actions">
             <div className="detail-status-editor">
@@ -411,7 +434,7 @@ export function OpportunityDetailPage() {
         )}
       </section>
 
-      <section className="card section-card surface-card">
+      <section className="card section-card surface-card" ref={photosSectionRef} id="opportunity-photos">
         <h3 className="section-title">Imagens</h3>
         <div className="photo-gallery">
           <div className="photo-preview-frame photo-preview-main" aria-label="Pré-visualização da foto selecionada">
@@ -637,7 +660,7 @@ export function OpportunityDetailPage() {
         </div>
       </section>
 
-      <section className="card section-card surface-card">
+      <section className="card section-card surface-card" ref={qualificationSectionRef} id="opportunity-qualification">
         <h3 className="section-title">Qualificação da obra</h3>
         <div className="info-cards-grid">
           <div className="info-card">
