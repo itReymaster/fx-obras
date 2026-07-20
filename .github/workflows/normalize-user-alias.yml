@@ -119,7 +119,7 @@ jobs:
               await sequelize.authenticate();
 
               const [before] = await sequelize.query(
-                "SELECT COUNT(1) AS total FROM ConstructionOpportunity WHERE createdByUserId = :oldUser OR updatedByUserId = :oldUser",
+                "SELECT COUNT(1) AS total FROM dbo.ConstructionOpportunity WHERE createdByUserId = :oldUser OR updatedByUserId = :oldUser",
                 {
                   replacements: { oldUser },
                   type: QueryTypes.SELECT,
@@ -136,7 +136,7 @@ jobs:
               }
 
               await sequelize.query(
-                `UPDATE ConstructionOpportunity
+                `UPDATE dbo.ConstructionOpportunity
                  SET createdByUserId = CASE WHEN createdByUserId = :oldUser THEN :newUser ELSE createdByUserId END,
                      updatedByUserId = CASE WHEN updatedByUserId = :oldUser THEN :newUser ELSE updatedByUserId END,
                      updatedAt = SYSUTCDATETIME()
@@ -148,7 +148,7 @@ jobs:
               );
 
               const [after] = await sequelize.query(
-                "SELECT COUNT(1) AS total FROM ConstructionOpportunity WHERE createdByUserId = :oldUser OR updatedByUserId = :oldUser",
+                "SELECT COUNT(1) AS total FROM dbo.ConstructionOpportunity WHERE createdByUserId = :oldUser OR updatedByUserId = :oldUser",
                 {
                   replacements: { oldUser },
                   type: QueryTypes.SELECT,
@@ -156,7 +156,7 @@ jobs:
               );
 
               const [newCount] = await sequelize.query(
-                "SELECT COUNT(1) AS total FROM ConstructionOpportunity WHERE createdByUserId = :newUser OR updatedByUserId = :newUser",
+                "SELECT COUNT(1) AS total FROM dbo.ConstructionOpportunity WHERE createdByUserId = :newUser OR updatedByUserId = :newUser",
                 {
                   replacements: { newUser },
                   type: QueryTypes.SELECT,
