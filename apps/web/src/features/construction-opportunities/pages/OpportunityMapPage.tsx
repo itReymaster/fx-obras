@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { DivIcon, LatLngBounds } from "leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
+import { AUTHORIZED_USER_OPTIONS } from "../../../config/users";
 import { formatDate, formatUserDisplay } from "../../../utils/format";
 import { labels } from "../../../utils/labels";
 import { opportunitiesApi } from "../services/opportunities-api";
@@ -372,19 +373,34 @@ export function OpportunityMapPage() {
   }, [items, cityCenters, addressCenters]);
 
   const creatorOptions = useMemo(() => {
-    const unique = new Set<string>();
+    const unique = new Map<string, { value: string; label: string }>();
     for (const item of items) {
       const creator = item.createdByUserId?.trim();
-      if (creator) unique.add(creator);
+      if (!creator) continue;
+
+      const normalized = creator.toLowerCase().replace(/[\s-]+/g, "");
+      const canonical = AUTHORIZED_USER_OPTIONS.find((option) => {
+        const optionKey = option.value.toLowerCase().replace(/[\s-]+/g, "");
+        return optionKey === normalized || option.aliases.some((alias) => alias.toLowerCase().replace(/[\s-]+/g, "") === normalized);
+      });
+
+      unique.set(normalized, {
+        value: canonical?.value ?? creator,
+        label: canonical?.label ?? formatUserDisplay(creator),
+      });
     }
-    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [items]);
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchText.trim().toLowerCase();
     return items.filter((item) => {
       if (selectedStatus && item.status !== selectedStatus) return false;
-      if (selectedCreator && (item.createdByUserId ?? "") !== selectedCreator) return false;
+      if (selectedCreator) {
+        const creator = (item.createdByUserId ?? "").trim().toLowerCase().replace(/[\s-]+/g, "");
+        const selected = selectedCreator.trim().toLowerCase().replace(/[\s-]+/g, "");
+        if (creator !== selected) return false;
+      }
       if (!normalizedSearch) return true;
       const searchable = [
         item.title,
@@ -563,9 +579,9 @@ export function OpportunityMapPage() {
               <span className="map-filter-label__text">Criador</span>
               <select className="select" value={selectedCreator} onChange={(event) => setSelectedCreator(event.target.value)}>
                 <option value="">Todos</option>
-                {creatorOptions.map((creator) => (
-                  <option key={creator} value={creator}>
-                    {formatUserDisplay(creator)}
+                    {creatorOptions.map((creator) => (
+                      <option key={creator.value} value={creator.value}>
+                        {creator.label}
                   </option>
                 ))}
               </select>

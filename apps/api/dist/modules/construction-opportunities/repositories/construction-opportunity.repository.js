@@ -60,6 +60,20 @@ function mapPrismaToModel(prismaRecord) {
             : undefined,
     };
 }
+const normalizeUserKey = (value) => value.trim().toLowerCase().replace(/[\s-]+/g, "");
+const USER_ALIAS_GROUPS = {
+    adm: ["adm"],
+    jeffersonmartins: ["Jefferson-Martins"],
+    alissoncotrim: ["ALISSON-COTRIM", "Alisson-Cotrim", "Alisson Cotrim", "alisson"],
+    barbaracristina: ["Barbara-Cristina", "Barbara Cristina"],
+    silva: ["SILVA", "Marcelo-Silva", "Marcelo Silva", "Marcelo-Silva", "marcelo"],
+    elainecolaco: ["Elaine-Colaco", "Elaine Colaco"],
+    marciobarreto: ["Marcio-Barreto", "Marcio Barreto"],
+};
+const resolveUserAliases = (userId) => {
+    const normalized = normalizeUserKey(userId);
+    return USER_ALIAS_GROUPS[normalized] ?? [userId];
+};
 export class ConstructionOpportunityRepository {
     prisma;
     constructor(prisma) {
@@ -257,7 +271,8 @@ export class ConstructionOpportunityRepository {
             andFilters.push({ isTest: query.isTest });
         }
         if (query.createdByUserId) {
-            andFilters.push({ createdByUserId: query.createdByUserId });
+            const aliases = resolveUserAliases(query.createdByUserId);
+            andFilters.push({ OR: aliases.map((alias) => ({ createdByUserId: alias })) });
         }
         return { AND: andFilters };
     }

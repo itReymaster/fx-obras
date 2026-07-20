@@ -2,7 +2,7 @@ import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
-import { AUTHORIZED_USERS } from "../../../config/users";
+import { AUTHORIZED_USER_OPTIONS } from "../../../config/users";
 import { addressLabel, formatDate, formatUserDisplay } from "../../../utils/format";
 import {
   commercialPotentialOptions,
@@ -247,9 +247,9 @@ export function OpportunityListPage() {
               Usuário
               <select className="select" value={createdByUserId} onChange={(event) => setCreatedByUserId(event.target.value)}>
                 <option value="">Todos</option>
-                {AUTHORIZED_USERS.map((user) => (
-                  <option key={user} value={user}>
-                    {formatUserDisplay(user)}
+                  {AUTHORIZED_USER_OPTIONS.map((user) => (
+                    <option key={user.value} value={user.value}>
+                      {user.label}
                   </option>
                 ))}
               </select>
