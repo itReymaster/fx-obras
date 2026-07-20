@@ -117,6 +117,29 @@ jobs:
         run: |
           docker compose up -d --remove-orphans
 
+      - name: Recarregar proxy central
+        run: |
+          set -e
+
+          PROXY_CONTAINERS="$(docker ps --format '{{.Names}}' | grep -Ei '(nginx|proxy|gateway)' || true)"
+
+          if [ -n "$PROXY_CONTAINERS" ]; then
+            while IFS= read -r container_name; do
+              if [ -n "$container_name" ]; then
+                echo "Recarregando proxy em $container_name"
+                docker exec "$container_name" nginx -s reload || true
+              fi
+            done <<EOF
+$PROXY_CONTAINERS
+EOF
+          else
+            echo "Nenhum proxy central identificado para reload via Docker."
+          fi
+
+          if command -v systemctl >/dev/null 2>&1; then
+            systemctl reload nginx || true
+          fi
+
       - name: Diagnóstico ERP no container
         run: |
           docker compose exec -T backend node -e "const out={hasDbPassword:Boolean(process.env.DB_PASSWORD),dbPasswordLen:(process.env.DB_PASSWORD||'').length,hasDbPasswordB64:Boolean(process.env.DB_PASSWORD_B64),dbPasswordB64Len:(process.env.DB_PASSWORD_B64||'').length,dbHost:process.env.DB_HOST||null,dbUser:process.env.DB_USER||null,dbDatabase:process.env.DB_DATABASE||null}; console.log(JSON.stringify(out));"
