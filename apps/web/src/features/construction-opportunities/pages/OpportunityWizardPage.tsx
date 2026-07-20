@@ -291,6 +291,16 @@ export function OpportunityWizardPage() {
 
   const recordingProgress = Math.min(100, Math.round((recordingSeconds / 60) * 100));
 
+  const goToPhotos = () => {
+    setShowQualificationFlow(false);
+    setStep(2);
+  };
+
+  const goToQualification = () => {
+    setShowQualificationFlow(true);
+    setStep(5);
+  };
+
   const clearRecordingTimer = () => {
     if (recordingTimerRef.current) {
       window.clearInterval(recordingTimerRef.current);
@@ -1021,6 +1031,16 @@ export function OpportunityWizardPage() {
         <div className="progress-track">
           <div className="progress-bar" style={{ width: `${progress}%` }} />
         </div>
+        {isEditing && (
+          <div className="cluster wizard-shortcuts">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={goToPhotos}>
+              <ImagePlus size={16} /> Ir para fotos
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={goToQualification}>
+              <CheckCircle2 size={16} /> Ir para qualificação
+            </button>
+          </div>
+        )}
       </section>
 
       {step === 1 && (

@@ -705,6 +705,10 @@ textarea:focus-visible {
   background: var(--color-primary-strong);
 }
 
+.wizard-shortcuts {
+  margin-top: 12px;
+}
+
 .wizard-actions {
   align-items: stretch;
 }
