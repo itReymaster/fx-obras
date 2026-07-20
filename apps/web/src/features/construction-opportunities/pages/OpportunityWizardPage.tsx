@@ -3,7 +3,7 @@ import { Camera, CheckCircle2, ImagePlus, MapPin, Mic, Square, Trash2 } from "lu
 import { useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
 import type { FieldErrors } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   commercialPotentialOptions,
   constructionStageOptions,
@@ -235,7 +235,9 @@ const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormVa
 export function OpportunityWizardPage() {
   const navigate = useNavigate();
   const { id: opportunityId = "" } = useParams();
+  const [searchParams] = useSearchParams();
   const isEditing = Boolean(opportunityId);
+  const requestedFocus = searchParams.get("focus");
   const [step, setStep] = useState(1);
   const [showQualificationFlow, setShowQualificationFlow] = useState(false);
   const [showAdvancedContact, setShowAdvancedContact] = useState(false);
@@ -300,6 +302,21 @@ export function OpportunityWizardPage() {
     setShowQualificationFlow(true);
     setStep(5);
   };
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    if (requestedFocus === "photos") {
+      setShowQualificationFlow(false);
+      setStep(2);
+      return;
+    }
+
+    if (requestedFocus === "qualification") {
+      setShowQualificationFlow(true);
+      setStep(5);
+    }
+  }, [isEditing, requestedFocus]);
 
   const clearRecordingTimer = () => {
     if (recordingTimerRef.current) {

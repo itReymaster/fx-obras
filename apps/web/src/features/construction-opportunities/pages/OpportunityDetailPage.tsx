@@ -1,4 +1,4 @@
-import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap, Mic, Square } from "lucide-react";
+import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Hammer, CheckCircle, Clock, User, Zap, Mic, Square, Image } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
@@ -377,6 +377,18 @@ export function OpportunityDetailPage() {
             </button>
             <button className="btn btn-secondary detail-action-primary" onClick={handleSharePdfWhatsApp} disabled={sharingPdf}>
               <MessageCircle size={16} /> {sharingPdf ? "Preparando..." : "WhatsApp (PDF)"}
+            </button>
+            <button
+              className="btn btn-ghost detail-action-secondary"
+              onClick={() => navigate(`/opportunities/${id}/edit?focus=photos`)}
+            >
+              <Image size={16} /> Editar fotos
+            </button>
+            <button
+              className="btn btn-ghost detail-action-secondary"
+              onClick={() => navigate(`/opportunities/${id}/edit?focus=qualification`)}
+            >
+              <Briefcase size={16} /> Editar qualificação
             </button>
             <button className="btn btn-ghost detail-action-secondary" onClick={() => navigate(`/opportunities/${id}/edit`)}>
               <Pencil size={16} /> Editar
