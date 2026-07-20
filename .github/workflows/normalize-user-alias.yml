@@ -39,23 +39,77 @@ jobs:
             const oldUser = process.env.OLD_USER;
             const newUser = process.env.NEW_USER;
 
+            const pickFirstNonEmpty = (...values) => {
+              for (const value of values) {
+                if (typeof value === "string") {
+                  const trimmed = value.trim().replace(/^(["\"])|(["\"])$/g, "");
+                  if (trimmed.length > 0) return trimmed;
+                }
+              }
+              return undefined;
+            };
+
+            const decodeBase64 = (value) => {
+              if (!value) return undefined;
+              try {
+                return Buffer.from(String(value).trim(), "base64").toString("utf-8");
+              } catch {
+                return undefined;
+              }
+            };
+
             if (!oldUser || !newUser) {
               throw new Error("OLD_USER e NEW_USER são obrigatórios.");
             }
 
+            const dbHost = pickFirstNonEmpty(
+              process.env.DB_HOST,
+              process.env.ERP_FLEX_SQLSERVER_HOST,
+              process.env.SQLSERVER_HOST,
+            );
+            const dbPort = pickFirstNonEmpty(
+              process.env.DB_PORT,
+              process.env.ERP_FLEX_SQLSERVER_PORT,
+              process.env.SQLSERVER_PORT,
+              "1433",
+            );
+            const dbDatabase = pickFirstNonEmpty(
+              process.env.DB_DATABASE,
+              process.env.ERP_FLEX_SQLSERVER_DATABASE,
+              process.env.SQLSERVER_DATABASE,
+            );
+            const dbUsername = pickFirstNonEmpty(
+              process.env.DB_USER,
+              process.env.ERP_FLEX_SQLSERVER_USERNAME,
+              process.env.SQLSERVER_USERNAME,
+            );
+            const dbPassword =
+              decodeBase64(process.env.DB_PASSWORD_B64 || process.env.ERP_FLEX_SQLSERVER_PASSWORD_B64) ||
+              pickFirstNonEmpty(
+                process.env.DB_PASSWORD,
+                process.env.ERP_FLEX_SQLSERVER_PASSWORD,
+                process.env.SQLSERVER_PASSWORD,
+              ) ||
+              "";
+
             const sequelize = new Sequelize(
-              process.env.DB_DATABASE || process.env.SQLSERVER_DATABASE || "",
-              process.env.DB_USER || process.env.SQLSERVER_USERNAME || "",
-              process.env.DB_PASSWORD || process.env.SQLSERVER_PASSWORD || "",
+              dbDatabase || "",
+              dbUsername || "",
+              dbPassword,
               {
                 dialect: "mssql",
-                host: process.env.DB_HOST || process.env.SQLSERVER_HOST || "",
-                port: Number(process.env.DB_PORT || process.env.SQLSERVER_PORT || "1433"),
+                host: dbHost || "",
+                port: Number(dbPort),
                 logging: false,
                 dialectOptions: {
                   options: {
-                    encrypt: (process.env.DB_ENCRYPT || process.env.SQLSERVER_ENCRYPT || "false") === "true",
-                    trustServerCertificate: (process.env.DB_TRUST_SERVER_CERTIFICATE || process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE || "true") === "true",
+                    encrypt: (pickFirstNonEmpty(process.env.DB_ENCRYPT, process.env.SQLSERVER_ENCRYPT, "false") || "false") === "true",
+                    trustServerCertificate:
+                      (pickFirstNonEmpty(
+                        process.env.DB_TRUST_SERVER_CERTIFICATE,
+                        process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE,
+                        "true",
+                      ) || "true") === "true",
                   },
                 },
               },
