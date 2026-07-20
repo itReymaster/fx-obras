@@ -124,14 +124,12 @@ jobs:
           PROXY_CONTAINERS="$(docker ps --format '{{.Names}}' | grep -Ei '(nginx|proxy|gateway)' || true)"
 
           if [ -n "$PROXY_CONTAINERS" ]; then
-            while IFS= read -r container_name; do
+            printf '%s\n' "$PROXY_CONTAINERS" | while IFS= read -r container_name; do
               if [ -n "$container_name" ]; then
                 echo "Recarregando proxy em $container_name"
                 docker exec "$container_name" nginx -s reload || true
               fi
-            done <<EOF
-$PROXY_CONTAINERS
-EOF
+            done
           else
             echo "Nenhum proxy central identificado para reload via Docker."
           fi
