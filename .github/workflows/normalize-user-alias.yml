@@ -33,7 +33,7 @@ jobs:
           OLD_USER: ${{ inputs.oldUser }}
           NEW_USER: ${{ inputs.newUser }}
         run: |
-          docker compose exec -T backend node -e '
+          docker compose exec -T -e OLD_USER -e NEW_USER backend node -e '
             const { Sequelize, QueryTypes } = require("sequelize");
 
             const oldUser = process.env.OLD_USER;
