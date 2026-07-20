@@ -709,6 +709,10 @@ textarea:focus-visible {
   margin-top: 12px;
 }
 
+.wizard-shortcuts .btn {
+  min-width: 0;
+}
+
 .wizard-actions {
   align-items: stretch;
 }
@@ -3887,6 +3891,21 @@ textarea:focus-visible {
   .wizard-actions .btn {
     min-height: 56px;
     font-size: 16px;
+  }
+
+  .wizard-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .wizard-shortcuts .btn {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 8px;
+    font-size: 12px;
+    line-height: 1.15;
+    gap: 6px;
   }
 
   .wizard-location-button {

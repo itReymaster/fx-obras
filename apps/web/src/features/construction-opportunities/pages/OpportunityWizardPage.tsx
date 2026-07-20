@@ -1028,9 +1028,6 @@ export function OpportunityWizardPage() {
           <strong>Fluxo de captura</strong>
           <span>{progress}%</span>
         </div>
-        <div className="progress-track">
-          <div className="progress-bar" style={{ width: `${progress}%` }} />
-        </div>
         {isEditing && (
           <div className="cluster wizard-shortcuts">
             <button type="button" className="btn btn-ghost btn-sm" onClick={goToPhotos}>
@@ -1041,6 +1038,9 @@ export function OpportunityWizardPage() {
             </button>
           </div>
         )}
+        <div className="progress-track">
+          <div className="progress-bar" style={{ width: `${progress}%` }} />
+        </div>
       </section>
 
       {step === 1 && (
@@ -1328,7 +1328,7 @@ export function OpportunityWizardPage() {
             <label>Telefone do contato<input className="input" {...register("contactPhone")} /></label>
             <label>E-mail do contato<input className="input" {...register("contactEmail")} /></label>
             {errors.contactEmail && <span className="error-text">E-mail inválido.</span>}
-            <label>Observações<textarea className="textarea" {...register("notes")} /></label>
+            {!showQualificationFlow && <label>Observações<textarea className="textarea" {...register("notes")} /></label>}
 
             <button
               type="button"
