@@ -1,7 +1,7 @@
 import { Building2, Clock3, Plus, Rows3, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatDate, formatUserDisplay } from "../../../utils/format";
+import { formatDate, mergeUserRankings } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { OpportunityDashboardData } from "../types/opportunity.types";
 
@@ -40,10 +40,7 @@ export function HomePage() {
     dashboard?.funnelTotal ??
     funnelItems.reduce((sum, stage) => sum + stage.count, 0);
 
-  const captureByUser = (dashboard?.capturedByUser ?? []).map((item) => ({
-    ...item,
-    userLabel: formatUserDisplay(item.userId),
-  }));
+  const captureByUser = mergeUserRankings(dashboard?.capturedByUser ?? []);
   const captureByUserMax = Math.max(1, ...captureByUser.map((item) => item.count));
 
   return (
