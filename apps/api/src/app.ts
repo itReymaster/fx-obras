@@ -11,6 +11,7 @@ import { absoluteUploadDir, env } from "./config/env.js";
 import { erpFlexAuthRouter } from "./modules/auth/erp-flex-auth.routes.js";
 import { constructionOpportunitiesRouter } from "./modules/construction-opportunities/routes/construction-opportunities.routes.js";
 import { constructionOpportunitiesV2Router } from "./modules/construction-opportunities/routes/construction-opportunities.v2.routes.js";
+import { serviceProvidersRouter } from "./modules/service-providers/routes/service-providers.routes.js";
 import { errorHandler } from "./shared/http/error-handler.js";
 import { requireAuthenticatedUser } from "./shared/middlewares/auth.js";
 
@@ -40,5 +41,6 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 app.use("/api/v2/auth", erpFlexAuthRouter);
 app.use("/api/v1/construction-opportunities", requireAuthenticatedUser, constructionOpportunitiesRouter);
 app.use("/api/v2/construction-opportunities", requireAuthenticatedUser, constructionOpportunitiesV2Router);
+app.use("/api/v2/service-providers", requireAuthenticatedUser, serviceProvidersRouter);
 
 app.use(errorHandler);

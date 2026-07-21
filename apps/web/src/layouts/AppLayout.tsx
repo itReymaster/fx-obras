@@ -1,4 +1,4 @@
-import { BarChart3, Clock, Database, Grid3X3, Handshake, Home, LogOut, Map, PlusSquare, Rows3, Sparkles, X } from "lucide-react";
+import { BarChart3, Clock, Database, Grid3X3, Handshake, Home, LogOut, Map, PlusSquare, Rows3, Sparkles, UserRoundCog, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ const navItems = [
   { to: "/actions", label: "Próximas Ações", icon: Clock },
   { to: "/new", label: "Nova oportunidade", icon: PlusSquare },
   { to: "/opportunities", label: "Registros", icon: Rows3 },
+  { to: "/service-providers", label: "Prestadores", icon: UserRoundCog },
 ];
 
 type LauncherItem = {
@@ -40,6 +41,7 @@ const appLauncherSections: Array<{ title: string; items: LauncherItem[] }> = [
     title: "Plataforma",
     items: [
       { label: "Parcerias", description: "Ecossistema de parceiros para obras", to: "/partnerships", icon: Handshake },
+      { label: "Prestadores", description: "Cadastro e vínculo com obras", to: "/service-providers", icon: UserRoundCog },
       { label: "Analytics Salesforce", description: "Em breve", icon: Sparkles, disabled: true },
       { label: "Editor SQL", description: "Em breve", icon: Database, disabled: true },
     ],

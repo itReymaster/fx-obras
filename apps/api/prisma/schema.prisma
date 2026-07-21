@@ -56,11 +56,46 @@ model ConstructionOpportunity {
 
   photos                  ConstructionOpportunityPhoto[]
   history                 ConstructionOpportunityHistory[]
+  serviceProviders        OpportunityServiceProvider[]
 
   @@index([city, district])
   @@index([status])
   @@index([constructionType])
   @@index([capturedAt])
+}
+
+model ServiceProvider {
+  id             String                       @id @default(uuid())
+  name           String
+  type           String
+  phone          String?
+  email          String?
+  city           String?
+  notes          String?
+  isActive       Boolean                      @default(true)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  deletedAt      DateTime?
+  opportunities  OpportunityServiceProvider[]
+
+  @@index([name])
+  @@index([type])
+  @@index([isActive])
+}
+
+model OpportunityServiceProvider {
+  id                        String                  @id @default(uuid())
+  constructionOpportunityId String
+  serviceProviderId         String
+  role                      String?
+  createdAt                 DateTime                @default(now())
+
+  constructionOpportunity   ConstructionOpportunity @relation(fields: [constructionOpportunityId], references: [id], onDelete: Cascade)
+  serviceProvider           ServiceProvider         @relation(fields: [serviceProviderId], references: [id], onDelete: Cascade)
+
+  @@unique([constructionOpportunityId, serviceProviderId])
+  @@index([constructionOpportunityId])
+  @@index([serviceProviderId])
 }
 
 model ConstructionOpportunityPhoto {
