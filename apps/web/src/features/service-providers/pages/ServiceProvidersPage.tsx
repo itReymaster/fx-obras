@@ -43,7 +43,6 @@ export function ServiceProvidersPage() {
   const [opportunitySearch, setOpportunitySearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [recordsSearch, setRecordsSearch] = useState("");
-  const [recordsView, setRecordsView] = useState<"cards" | "table">("cards");
   const [form, setForm] = useState({
     name: "",
     type: "EMPREITEIRO",
@@ -492,22 +491,6 @@ export function ServiceProvidersPage() {
               {filteredProviderRecords.length} registro(s) encontrado(s)
             </span>
           </div>
-          <div className="view-toggle">
-            <button
-              type="button"
-              className={`btn btn-sm ${recordsView === "cards" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setRecordsView("cards")}
-            >
-              Cards
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm ${recordsView === "table" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setRecordsView("table")}
-            >
-              Tabela
-            </button>
-          </div>
         </div>
 
         <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
@@ -522,44 +505,6 @@ export function ServiceProvidersPage() {
 
         {filteredProviderRecords.length === 0 ? (
           <span className="muted" style={{ marginTop: 12 }}>Nenhum prestador cadastrado ainda.</span>
-        ) : recordsView === "table" ? (
-          <div className="table-wrap" style={{ marginTop: 12 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Tipo</th>
-                  <th>Cidade</th>
-                  <th>Telefone</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProviderRecords.map((provider) => (
-                  <tr key={provider.id}>
-                    <td>{provider.name}</td>
-                    <td><span className="badge">{toFriendlyLabel(provider.type)}</span></td>
-                    <td>{provider.city || "-"}</td>
-                    <td>{provider.phone || "-"}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => onToggleProviderActive(provider)}
-                        disabled={togglingProviderId === provider.id}
-                      >
-                        {togglingProviderId === provider.id
-                          ? "Atualizando..."
-                          : provider.isActive
-                            ? "Inativar"
-                            : "Ativar"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         ) : (
           <div className="grid-auto-260" style={{ marginTop: 12 }}>
             {filteredProviderRecords.map((provider) => (
@@ -584,7 +529,6 @@ export function ServiceProvidersPage() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => {
                       setSelectedProviderId(provider.id);
-                      setRecordsView("cards");
                     }}
                   >
                     Vincular obras
