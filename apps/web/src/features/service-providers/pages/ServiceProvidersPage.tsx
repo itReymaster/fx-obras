@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { APP_CONFIG } from "../../../config/app";
+import { addressLabel, formatDate, resolvePhotoPath } from "../../../utils/format";
+import { labels } from "../../../utils/labels";
 import { opportunitiesApi } from "../../construction-opportunities/services/opportunities-api";
 import type { Opportunity } from "../../construction-opportunities/types/opportunity.types";
 import { serviceProvidersApi } from "../services/service-providers-api";
@@ -428,6 +431,7 @@ export function ServiceProvidersPage() {
             ) : (
               filteredOpportunities.map((opportunity) => {
                 const checked = selectedOpportunityIdsByProvider.includes(opportunity.id);
+                const photo = opportunity.photos.find((value) => value.isPrimary) ?? opportunity.photos[0];
                 return (
                   <article
                     key={opportunity.id}
@@ -441,24 +445,43 @@ export function ServiceProvidersPage() {
                         : "var(--color-surface)",
                     }}
                   >
-                    <label style={{ display: "grid", gap: 8, cursor: "pointer" }}>
-                      <span className="cluster" style={{ justifyContent: "space-between" }}>
-                        <span className="cluster" style={{ gap: 8 }}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => onToggleOpportunity(opportunity.id)}
-                          />
-                          <strong>{opportunity.code}</strong>
-                        </span>
-                        {checked && <span className="badge">Selecionada</span>}
-                      </span>
+                    <div
+                      style={{
+                        borderRadius: 10,
+                        background: "var(--color-primary-soft)",
+                        height: 136,
+                        backgroundImage: photo
+                          ? `url(${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(photo)})`
+                          : "none",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    />
 
-                      <span>{opportunity.title}</span>
+                    <strong>{opportunity.title}</strong>
 
-                      <span className="muted" style={{ fontSize: 12 }}>
-                        {opportunity.city || "Cidade não informada"}
-                      </span>
+                    <div className="muted" style={{ fontSize: 13 }}>
+                      {addressLabel(opportunity)}
+                    </div>
+
+                    <div className="cluster">
+                      <span className="badge">{labels.status(opportunity.status)}</span>
+                      <span className="badge">{labels.commercialPotential(opportunity.commercialPotential)}</span>
+                      <span className="badge">{labels.addressSource(opportunity.addressSource)}</span>
+                      {checked && <span className="badge">Selecionada</span>}
+                    </div>
+
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {opportunity.photos.length} foto(s) - {formatDate(opportunity.capturedAt)}
+                    </div>
+
+                    <label className="checkbox-label" style={{ alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => onToggleOpportunity(opportunity.id)}
+                      />
+                      Selecionar esta obra
                     </label>
                   </article>
                 );
