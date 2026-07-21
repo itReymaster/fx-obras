@@ -7,6 +7,8 @@ import { labels, statusOptions } from "../../../utils/labels";
 import { buildOpportunityPdf } from "../services/opportunity-pdf";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { Opportunity, OpportunityAudio } from "../types/opportunity.types";
+import { serviceProvidersApi } from "../../service-providers/services/service-providers-api";
+import type { ServiceProvider } from "../../service-providers/types/service-provider.types";
 
 export function OpportunityDetailPage() {
   const { id = "" } = useParams();
@@ -21,6 +23,10 @@ export function OpportunityDetailPage() {
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false);
   const [audios, setAudios] = useState<OpportunityAudio[]>([]);
+  const [providers, setProviders] = useState<ServiceProvider[]>([]);
+  const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
+  const [isUpdatingProviders, setIsUpdatingProviders] = useState(false);
+  const [providersFeedback, setProvidersFeedback] = useState<string | null>(null);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
@@ -43,6 +49,14 @@ export function OpportunityDetailPage() {
       const initialPhoto = data.photos.find((photo) => photo.isPrimary) ?? data.photos[0] ?? null;
       setSelectedPhotoId(initialPhoto?.id ?? null);
     });
+
+    void serviceProvidersApi.list()
+      .then((data) => setProviders(data))
+      .catch(() => setProviders([]));
+
+    void serviceProvidersApi.listByOpportunity(id)
+      .then((links) => setSelectedProviderIds(links.map((link) => link.provider.id)))
+      .catch(() => setProvidersFeedback("Nao foi possivel carregar os prestadores desta obra."));
 
     void opportunitiesApi.listAudios(id)
       .then((data) => setAudios(data))
@@ -330,6 +344,35 @@ export function OpportunityDetailPage() {
     }
   };
 
+  const toFriendlyLabel = (value: string) =>
+    value
+      .toLowerCase()
+      .split(" ")
+      .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+      .join(" ");
+
+  const toggleProvider = (providerId: string) => {
+    setSelectedProviderIds((current) =>
+      current.includes(providerId)
+        ? current.filter((value) => value !== providerId)
+        : [...current, providerId],
+    );
+  };
+
+  const handleSaveProviders = async () => {
+    setIsUpdatingProviders(true);
+    setProvidersFeedback(null);
+    try {
+      const links = await serviceProvidersApi.bindToOpportunity(id, selectedProviderIds);
+      setSelectedProviderIds(links.map((link) => link.provider.id));
+      setProvidersFeedback("Prestadores vinculados com sucesso.");
+    } catch {
+      setProvidersFeedback("Nao foi possivel salvar os prestadores desta obra.");
+    } finally {
+      setIsUpdatingProviders(false);
+    }
+  };
+
   return (
     <div className="page grid">
       <section className="card section-card surface-card">
@@ -562,6 +605,62 @@ export function OpportunityDetailPage() {
             ))
           )}
         </div>
+      </section>
+
+      <section className="card section-card surface-card">
+        <h3 className="section-title">Prestadores desta obra</h3>
+        {providers.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>Nenhum prestador cadastrado ainda.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {providers.map((provider) => {
+              const checked = selectedProviderIds.includes(provider.id);
+              return (
+                <label key={provider.id} className="checkbox-label" style={{ alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!provider.isActive && !checked}
+                    onChange={() => toggleProvider(provider.id)}
+                  />
+                  <span>
+                    <strong>{provider.name}</strong> - {toFriendlyLabel(provider.type)}
+                    {!provider.isActive && <span className="muted" style={{ marginLeft: 6 }}>(inativo)</span>}
+                    {(provider.city || provider.phone) && (
+                      <span className="muted" style={{ marginLeft: 6 }}>
+                        {provider.city ? `• ${provider.city}` : ""} {provider.phone ? `• ${provider.phone}` : ""}
+                      </span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+
+            <div className="cluster" style={{ justifyContent: "space-between" }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={isUpdatingProviders}
+                onClick={handleSaveProviders}
+              >
+                {isUpdatingProviders ? "Salvando..." : "Salvar prestadores"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => navigate("/service-providers")}
+              >
+                Gerenciar prestadores
+              </button>
+            </div>
+
+            {providersFeedback && (
+              <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                {providersFeedback}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="card section-card surface-card">

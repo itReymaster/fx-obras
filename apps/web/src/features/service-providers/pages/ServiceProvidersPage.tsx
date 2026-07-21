@@ -9,20 +9,28 @@ import type {
 } from "../types/service-provider.types";
 
 const providerTypeOptions = [
-  "EMPREITEIRO",
-  "ELETRICISTA",
-  "ENCANADOR",
-  "PINTOR",
-  "GESSEIRO",
-  "MARCENEIRO",
-  "SERRALHEIRO",
-  "OUTROS",
+  { value: "EMPREITEIRO", label: "Empreiteiro" },
+  { value: "ELETRICISTA", label: "Eletricista" },
+  { value: "ENCANADOR", label: "Encanador" },
+  { value: "PINTOR", label: "Pintor" },
+  { value: "GESSEIRO", label: "Gesseiro" },
+  { value: "MARCENEIRO", label: "Marceneiro" },
+  { value: "SERRALHEIRO", label: "Serralheiro" },
+  { value: "OUTROS", label: "Outros" },
 ];
+
+const toFriendlyLabel = (value: string) =>
+  value
+    .toLowerCase()
+    .split(" ")
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
 
 export function ServiceProvidersPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [binding, setBinding] = useState(false);
+  const [togglingProviderId, setTogglingProviderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -170,6 +178,10 @@ export function ServiceProvidersPage() {
     try {
       const links = await serviceProvidersApi.bindToOpportunity(selectedOpportunityId, selectedProviderIds);
       setCurrentLinks(links);
+      if (selectedProviderId) {
+        const providerLinks = await serviceProvidersApi.listOpportunitiesByProvider(selectedProviderId);
+        setCurrentProviderLinks(providerLinks);
+      }
       setFeedback("Vínculos atualizados com sucesso.");
     } catch {
       setFeedback("Não foi possível atualizar os vínculos.");
@@ -196,11 +208,29 @@ export function ServiceProvidersPage() {
         selectedOpportunityIdsByProvider,
       );
       setCurrentProviderLinks(links);
+      if (selectedOpportunityId) {
+        const opportunityLinks = await serviceProvidersApi.listByOpportunity(selectedOpportunityId);
+        setCurrentLinks(opportunityLinks);
+      }
       setFeedback("Obras do prestador atualizadas com sucesso.");
     } catch {
       setFeedback("Não foi possível atualizar as obras do prestador.");
     } finally {
       setBinding(false);
+    }
+  };
+
+  const onToggleProviderActive = async (provider: ServiceProvider) => {
+    setTogglingProviderId(provider.id);
+    setFeedback(null);
+    try {
+      const updated = await serviceProvidersApi.update(provider.id, { isActive: !provider.isActive });
+      setProviders((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setFeedback(updated.isActive ? "Prestador ativado." : "Prestador inativado.");
+    } catch {
+      setFeedback("Não foi possível atualizar o status do prestador.");
+    } finally {
+      setTogglingProviderId(null);
     }
   };
 
@@ -238,7 +268,7 @@ export function ServiceProvidersPage() {
                 onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}
               >
                 {providerTypeOptions.map((item) => (
-                  <option key={item} value={item}>{item}</option>
+                  <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
             </label>
@@ -325,10 +355,12 @@ export function ServiceProvidersPage() {
                     <input
                       type="checkbox"
                       checked={checked}
+                      disabled={!provider.isActive && !checked}
                       onChange={() => onToggleProvider(provider.id)}
                     />
                     <span>
-                      <strong>{provider.name}</strong> - {provider.type}
+                      <strong>{provider.name}</strong> - {toFriendlyLabel(provider.type)}
+                      {!provider.isActive && <span className="muted" style={{ marginLeft: 6 }}>(inativo)</span>}
                       {(provider.city || provider.phone) && (
                         <span className="muted" style={{ marginLeft: 6 }}>
                           {provider.city ? `• ${provider.city}` : ""} {provider.phone ? `• ${provider.phone}` : ""}
@@ -364,7 +396,7 @@ export function ServiceProvidersPage() {
               onChange={(event) => setSelectedProviderId(event.target.value)}
             >
               {providers.map((item) => (
-                <option key={item.id} value={item.id}>{item.name} - {item.type}</option>
+                <option key={item.id} value={item.id}>{item.name} - {toFriendlyLabel(item.type)}</option>
               ))}
             </select>
           </label>
@@ -416,7 +448,7 @@ export function ServiceProvidersPage() {
           </button>
 
           <div className="summary-box-sm">
-            <strong>Prestador selecionado:</strong> {selectedProvider ? `${selectedProvider.name} - ${selectedProvider.type}` : "-"}
+            <strong>Prestador selecionado:</strong> {selectedProvider ? `${selectedProvider.name} - ${toFriendlyLabel(selectedProvider.type)}` : "-"}
             <br />
             <strong>Obras vinculadas:</strong> {currentProviderLinks.length}
           </div>
@@ -436,15 +468,30 @@ export function ServiceProvidersPage() {
                   <th>Tipo</th>
                   <th>Cidade</th>
                   <th>Telefone</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {providers.map((provider) => (
                   <tr key={provider.id}>
                     <td>{provider.name}</td>
-                    <td><span className="badge">{provider.type}</span></td>
+                    <td><span className="badge">{toFriendlyLabel(provider.type)}</span></td>
                     <td>{provider.city || "-"}</td>
                     <td>{provider.phone || "-"}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => onToggleProviderActive(provider)}
+                        disabled={togglingProviderId === provider.id}
+                      >
+                        {togglingProviderId === provider.id
+                          ? "Atualizando..."
+                          : provider.isActive
+                            ? "Inativar"
+                            : "Ativar"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

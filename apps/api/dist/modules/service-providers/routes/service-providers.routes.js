@@ -13,6 +13,15 @@ const createServiceProviderSchema = z.object({
     city: z.string().trim().max(80).optional(),
     notes: z.string().trim().max(500).optional(),
 });
+const updateServiceProviderSchema = z.object({
+    name: z.string().trim().min(2).max(120).optional(),
+    type: z.string().trim().min(2).max(80).optional(),
+    phone: z.string().trim().max(40).nullable().optional(),
+    email: z.string().trim().email().nullable().optional(),
+    city: z.string().trim().max(80).nullable().optional(),
+    notes: z.string().trim().max(500).nullable().optional(),
+    isActive: z.boolean().optional(),
+});
 const bindProvidersSchema = z.object({
     providerIds: z.array(z.string().trim().min(1)).default([]),
 });
@@ -45,13 +54,18 @@ serviceProvidersRouter.get("/", async (req, res) => {
 serviceProvidersRouter.post("/", async (req, res) => {
     const payload = createServiceProviderSchema.parse(req.body);
     const created = await prisma.serviceProvider.create({
-        data: {
-            ...payload,
-            name: payload.name.toUpperCase(),
-            type: payload.type.toUpperCase(),
-        },
+        data: payload,
     });
     res.status(201).json(created);
+});
+serviceProvidersRouter.patch("/:id", async (req, res) => {
+    const providerId = asParam(req.params.id);
+    const payload = updateServiceProviderSchema.parse(req.body);
+    const updated = await prisma.serviceProvider.update({
+        where: { id: providerId },
+        data: payload,
+    });
+    res.json(updated);
 });
 serviceProvidersRouter.get("/opportunities/:id", async (req, res) => {
     const opportunityId = asParam(req.params.id);

@@ -23,6 +23,22 @@ export const serviceProvidersApi = {
     return data;
   },
 
+  async update(
+    id: string,
+    payload: Partial<{
+      name: string;
+      type: string;
+      phone: string | null;
+      email: string | null;
+      city: string | null;
+      notes: string | null;
+      isActive: boolean;
+    }>,
+  ) {
+    const { data } = await api.patch<ServiceProvider>(`/service-providers/${id}`, payload);
+    return data;
+  },
+
   async listByOpportunity(opportunityId: string) {
     const { data } = await api.get<OpportunityProviderLink[]>(`/service-providers/opportunities/${opportunityId}`);
     return data;
