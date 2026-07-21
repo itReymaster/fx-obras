@@ -42,6 +42,8 @@ export function ServiceProvidersPage() {
   const [currentProviderLinks, setCurrentProviderLinks] = useState<ProviderOpportunityLink[]>([]);
   const [opportunitySearch, setOpportunitySearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [recordsSearch, setRecordsSearch] = useState("");
+  const [recordsView, setRecordsView] = useState<"cards" | "table">("cards");
   const [form, setForm] = useState({
     name: "",
     type: "EMPREITEIRO",
@@ -124,6 +126,16 @@ export function ServiceProvidersPage() {
         .includes(normalized),
     );
   }, [opportunities, opportunitySearch]);
+
+  const filteredProviderRecords = useMemo(() => {
+    const normalized = recordsSearch.trim().toLowerCase();
+    if (!normalized) return providers;
+    return providers.filter((provider) =>
+      `${provider.name} ${provider.type} ${provider.city ?? ""} ${provider.phone ?? ""}`
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [providers, recordsSearch]);
 
   const onToggleProvider = (providerId: string) => {
     setSelectedProviderIds((current) =>
@@ -456,11 +468,45 @@ export function ServiceProvidersPage() {
       </section>
 
       <section className="card section-card surface-card">
-        <h3 className="section-title">Base de prestadores</h3>
-        {providers.length === 0 ? (
-          <span className="muted">Nenhum prestador cadastrado ainda.</span>
-        ) : (
-          <div className="table-wrap">
+        <div className="justify-between-wrap" style={{ alignItems: "end", gap: 10 }}>
+          <div>
+            <h3 className="section-title" style={{ marginBottom: 6 }}>Registros de prestadores</h3>
+            <span className="muted" style={{ fontSize: 13 }}>
+              {filteredProviderRecords.length} registro(s) encontrado(s)
+            </span>
+          </div>
+          <div className="view-toggle">
+            <button
+              type="button"
+              className={`btn btn-sm ${recordsView === "cards" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setRecordsView("cards")}
+            >
+              Cards
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${recordsView === "table" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setRecordsView("table")}
+            >
+              Tabela
+            </button>
+          </div>
+        </div>
+
+        <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+          Buscar registro
+          <input
+            className="input"
+            value={recordsSearch}
+            onChange={(event) => setRecordsSearch(event.target.value)}
+            placeholder="Nome, tipo, cidade ou telefone"
+          />
+        </label>
+
+        {filteredProviderRecords.length === 0 ? (
+          <span className="muted" style={{ marginTop: 12 }}>Nenhum prestador cadastrado ainda.</span>
+        ) : recordsView === "table" ? (
+          <div className="table-wrap" style={{ marginTop: 12 }}>
             <table className="table">
               <thead>
                 <tr>
@@ -472,7 +518,7 @@ export function ServiceProvidersPage() {
                 </tr>
               </thead>
               <tbody>
-                {providers.map((provider) => (
+                {filteredProviderRecords.map((provider) => (
                   <tr key={provider.id}>
                     <td>{provider.name}</td>
                     <td><span className="badge">{toFriendlyLabel(provider.type)}</span></td>
@@ -496,6 +542,51 @@ export function ServiceProvidersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : (
+          <div className="grid-auto-260" style={{ marginTop: 12 }}>
+            {filteredProviderRecords.map((provider) => (
+              <article className="card pad-12 stack-sm" key={provider.id}>
+                <strong>{provider.name}</strong>
+                <div className="muted" style={{ fontSize: 13 }}>
+                  {provider.city || "Cidade não informada"}
+                </div>
+                <div className="cluster">
+                  <span className="badge">{toFriendlyLabel(provider.type)}</span>
+                  <span className={provider.isActive ? "badge" : "badge badge-secondary"}>
+                    {provider.isActive ? "Ativo" : "Inativo"}
+                  </span>
+                </div>
+                <div className="muted" style={{ fontSize: 12 }}>
+                  {provider.phone || "Sem telefone"}
+                  {provider.email ? ` - ${provider.email}` : ""}
+                </div>
+                <div className="cluster" style={{ justifyContent: "space-between" }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setSelectedProviderId(provider.id);
+                      setRecordsView("cards");
+                    }}
+                  >
+                    Vincular obras
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => onToggleProviderActive(provider)}
+                    disabled={togglingProviderId === provider.id}
+                  >
+                    {togglingProviderId === provider.id
+                      ? "Atualizando..."
+                      : provider.isActive
+                        ? "Inativar"
+                        : "Ativar"}
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </section>
