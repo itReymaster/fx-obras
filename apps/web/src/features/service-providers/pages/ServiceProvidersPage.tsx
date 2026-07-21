@@ -423,28 +423,45 @@ export function ServiceProvidersPage() {
             />
           </label>
 
-          <div className="grid" style={{ gap: 8 }}>
+          <div className="grid-auto-260" style={{ gap: 10 }}>
             {filteredOpportunities.length === 0 ? (
               <span className="muted">Nenhuma obra encontrada.</span>
             ) : (
               filteredOpportunities.map((opportunity) => {
                 const checked = selectedOpportunityIdsByProvider.includes(opportunity.id);
                 return (
-                  <label key={opportunity.id} className="checkbox-label" style={{ alignItems: "flex-start" }}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => onToggleOpportunity(opportunity.id)}
-                    />
-                    <span>
-                      <strong>{opportunity.code}</strong> - {opportunity.title}
-                      {opportunity.city && (
-                        <span className="muted" style={{ marginLeft: 6 }}>
-                          • {opportunity.city}
+                  <article
+                    key={opportunity.id}
+                    className="card pad-12 stack-sm"
+                    style={{
+                      border: checked
+                        ? "1px solid var(--color-primary)"
+                        : "1px solid color-mix(in srgb, var(--color-border) 88%, transparent)",
+                      background: checked
+                        ? "color-mix(in srgb, var(--color-primary-soft) 55%, white)"
+                        : "var(--color-surface)",
+                    }}
+                  >
+                    <label style={{ display: "grid", gap: 8, cursor: "pointer" }}>
+                      <span className="cluster" style={{ justifyContent: "space-between" }}>
+                        <span className="cluster" style={{ gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => onToggleOpportunity(opportunity.id)}
+                          />
+                          <strong>{opportunity.code}</strong>
                         </span>
-                      )}
-                    </span>
-                  </label>
+                        {checked && <span className="badge">Selecionada</span>}
+                      </span>
+
+                      <span>{opportunity.title}</span>
+
+                      <span className="muted" style={{ fontSize: 12 }}>
+                        {opportunity.city || "Cidade não informada"}
+                      </span>
+                    </label>
+                  </article>
                 );
               })
             )}
