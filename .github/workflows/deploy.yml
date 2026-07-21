@@ -119,24 +119,37 @@ jobs:
 
           mkdir -p "$BACKUP_DIR"
 
-          if docker volume inspect fx-obras-data >/dev/null 2>&1; then
-            docker run --rm \
-              -v fx-obras-data:/from:ro \
-              -v "$BACKUP_DIR":/to \
-              alpine sh -c "cd /from && tar -czf /to/fx-obras-data.tar.gz ."
-            echo "Backup criado: $BACKUP_DIR/fx-obras-data.tar.gz"
-          else
-            echo "Volume fx-obras-data não encontrado. Backup do banco ignorado."
-          fi
+          if docker compose ps --services --filter status=running | grep -q '^backend$'; then
+            docker compose exec -T backend sh -c "tar -czf - -C /app/data ." > "$BACKUP_DIR/app-data.tar.gz"
+            echo "Backup criado: $BACKUP_DIR/app-data.tar.gz"
 
-          if docker volume inspect fx-obras-uploads >/dev/null 2>&1; then
-            docker run --rm \
-              -v fx-obras-uploads:/from:ro \
-              -v "$BACKUP_DIR":/to \
-              alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ."
-            echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
+            docker compose exec -T backend sh -c "tar -czf - -C /app/uploads ." > "$BACKUP_DIR/app-uploads.tar.gz"
+            echo "Backup criado: $BACKUP_DIR/app-uploads.tar.gz"
           else
-            echo "Volume fx-obras-uploads não encontrado. Backup de uploads ignorado."
+            echo "Container backend não está em execução. Tentando backup por volume."
+
+            DATA_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(fx-obras-data|fx_obras_data)' | head -n1 || true)"
+            UPLOADS_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(fx-obras-uploads|fx_obras_uploads)' | head -n1 || true)"
+
+            if [ -n "$DATA_VOLUME" ]; then
+              docker run --rm \
+                -v "$DATA_VOLUME":/from:ro \
+                -v "$BACKUP_DIR":/to \
+                alpine sh -c "cd /from && tar -czf /to/fx-obras-data.tar.gz ."
+              echo "Backup criado: $BACKUP_DIR/fx-obras-data.tar.gz"
+            else
+              echo "Volume de dados não encontrado. Backup do banco ignorado."
+            fi
+
+            if [ -n "$UPLOADS_VOLUME" ]; then
+              docker run --rm \
+                -v "$UPLOADS_VOLUME":/from:ro \
+                -v "$BACKUP_DIR":/to \
+                alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ."
+              echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
+            else
+              echo "Volume de uploads não encontrado. Backup de uploads ignorado."
+            fi
           fi
 
           ls -lah "$BACKUP_DIR"
