@@ -25,7 +25,7 @@ export class LocalFileStorageService {
             await fs.mkdir(this.thumbnailAbsoluteDir, { recursive: true });
             const thumbnailFileName = `${baseName}.webp`;
             const thumbnailAbsolutePath = path.join(this.thumbnailAbsoluteDir, thumbnailFileName);
-            await sharp(inputPath)
+            await sharp(inputPath, { failOn: "none" })
                 .rotate()
                 .resize({ width: 360, height: 360, fit: "inside", withoutEnlargement: true })
                 .webp({ quality: 72 })
