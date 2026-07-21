@@ -159,6 +159,9 @@ export class ConstructionOpportunitiesService {
     if (!photo) throw new AppError("Photo not found", 404);
 
     await this.fileStorage.delete(photo.relativePath);
+    if (photo.thumbnailRelativePath) {
+      await this.fileStorage.delete(photo.thumbnailRelativePath);
+    }
     await this.prisma.constructionOpportunityPhoto.delete({ where: { id: photoId } });
 
     if (photo.isPrimary) {

@@ -47,6 +47,7 @@ function mapPrismaToModel(prismaRecord) {
             id: p.id,
             originalName: p.originalName,
             relativePath: p.relativePath,
+            thumbnailRelativePath: p.thumbnailRelativePath ?? undefined,
             mimeType: p.mimeType,
             isPrimary: p.isPrimary,
         })),

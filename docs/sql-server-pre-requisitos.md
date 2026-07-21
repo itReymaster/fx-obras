@@ -1,26 +1,57 @@
-# SQL Server - pre-requisitos para o app
+# SQL Server 2008 R2 - pre-requisitos e analise de migracao
 
-Este guia assume que voce **ja tem um banco existente** no SQL Server e nao pode criar outro database novo.
+Este guia foi ajustado para o cenario real do projeto: SQL Server 2008 R2.
 
-A ideia aqui e deixar o banco pronto para o app usar um **schema dedicado**, sem misturar as tabelas do projeto com o restante do ambiente.
+Objetivo:
+1. dar ao dev um checklist tecnico de preparo;
+2. deixar claro o que muda por ser 2008 R2;
+3. orientar uma migracao segura do app (sem perda de funcionalidade).
 
-## O que o app precisa
+## 1) Ponto critico do 2008 R2
 
-O Prisma vai criar as tabelas do projeto depois da conexao ficar pronta. No banco, o minimo necessario e:
+Para SQL Server 2008 R2, nao assuma migracao automatica via Prisma como caminho principal.
 
-1. Um schema dedicado para o app.
-2. Um usuario/login com permissao nesse schema.
-3. Permissao para criar e alterar objetos dentro desse schema.
+Motivos praticos:
+1. 2008 R2 e legado e tem gaps de compatibilidade com stacks atuais;
+2. varias sintaxes modernas de SQL nao existem no 2008 R2 (ex.: OFFSET/FETCH);
+3. migracao precisa priorizar SQL compativel e testes de regressao.
 
-As tabelas esperadas pelo projeto sao:
+Recomendacao para avaliacao:
+1. Caminho A (manter 2008 R2): usar camada de persistencia SQL nativa (mssql/Sequelize), com scripts manuais de schema;
+2. Caminho B (upgrade de SQL Server): manter/retomar fluxo moderno com Prisma e migrations.
 
-1. `ConstructionOpportunity`
-2. `ConstructionOpportunityPhoto`
-3. `ConstructionOpportunityHistory`
+## 2) Escopo minimo da migracao
 
-## Script 1 - criar o schema do app
+As entidades chave do app sao:
+1. ConstructionOpportunity
+2. ConstructionOpportunityPhoto
+3. ConstructionOpportunityHistory
 
-Execute no banco existente:
+Os fluxos que nao podem quebrar:
+1. criar/editar/excluir (soft delete) obra;
+2. upload/remocao de fotos e audio;
+3. filtros/listagem/dashboard;
+4. historico e detalhe;
+5. autoria (createdByUserId e updatedByUserId).
+
+## 3) Pre-requisitos tecnicos (infra e banco)
+
+Checklist obrigatorio para o DBA/dev:
+1. Instancia SQL Server 2008 R2 acessivel da API (rede + firewall + porta 1433 ou porta definida).
+2. Banco alvo existente e aprovado para receber o schema fx_obras.
+3. Login/usuario de aplicacao com permissao no schema dedicado.
+4. Backup validado antes de qualquer carga (banco alvo e base atual do app).
+5. Homologacao separada de producao para ensaiar carga e rollback.
+
+Checklist de configuracao recomendado:
+1. Authentication mode habilitado conforme politica (Windows ou Mixed Mode).
+2. SQL Server Browser habilitado se a conexao depende de nome de instancia.
+3. Collation definida e conhecida (documentar para evitar divergencias em comparacoes).
+4. Plano de manutencao de indices e estatisticas definido (job de rotina).
+
+## 4) Script base de preparo do banco
+
+### 4.1 Criar schema dedicado
 
 ```sql
 USE [SEU_BANCO_EXISTENTE];
@@ -37,15 +68,12 @@ END
 GO
 ```
 
-## Script 2 - criar usuario do app, se necessario
-
-Use este script apenas se voce quiser um login proprio para a aplicacao. Se ja existir um login/usuario, pule esta etapa.
+### 4.2 Criar usuario do app (se necessario)
 
 ```sql
 USE [SEU_BANCO_EXISTENTE];
 GO
 
--- Troque os nomes abaixo pelo login real que voce vai usar.
 IF NOT EXISTS (
     SELECT 1
     FROM sys.database_principals
@@ -57,22 +85,19 @@ END
 GO
 ```
 
-> Observacao: o login de servidor precisa existir antes. Se o login ainda nao existir, ele deve ser criado no nivel do servidor por um administrador do SQL Server.
+### 4.3 Permissoes no schema
 
-## Script 3 - permissao no schema
-
-Se o app for criar as tabelas via Prisma migration, a forma mais simples e dar permissao de criacao e manutencao no schema.
+Opcao simples para fase de migracao/homologacao:
 
 ```sql
 USE [SEU_BANCO_EXISTENTE];
 GO
 
--- Troque fx_obras_app pelo usuario real do banco
 ALTER ROLE db_owner ADD MEMBER [fx_obras_app];
 GO
 ```
 
-Se voce quiser uma abordagem mais restrita, use permissao somente no schema:
+Opcao restrita (apertar seguranca apos estabilizar):
 
 ```sql
 USE [SEU_BANCO_EXISTENTE];
@@ -83,9 +108,7 @@ GRANT ALTER, CONTROL ON SCHEMA::fx_obras TO [fx_obras_app];
 GO
 ```
 
-## Script 4 - definir schema padrao do usuario
-
-Se o usuario do app for usar sempre o mesmo schema, vale configurar o schema padrao:
+### 4.4 Definir schema padrao
 
 ```sql
 USE [SEU_BANCO_EXISTENTE];
@@ -95,9 +118,7 @@ ALTER USER [fx_obras_app] WITH DEFAULT_SCHEMA = [fx_obras];
 GO
 ```
 
-## Script 5 - validacao
-
-Depois de rodar os scripts, valide assim:
+### 4.5 Validacao rapida
 
 ```sql
 USE [SEU_BANCO_EXISTENTE];
@@ -113,19 +134,40 @@ WHERE name = 'fx_obras_app';
 GO
 ```
 
-## O que nao deve ser criado manualmente
+## 5) Regras de compatibilidade SQL 2008 R2
 
-Nao crie as tabelas do app na mao se a ideia for usar Prisma. O fluxo correto e:
+Durante a migracao, o dev deve seguir estas regras:
+1. nao usar OFFSET/FETCH (usar ROW_NUMBER para paginacao);
+2. evitar funcoes/sintaxes introduzidas em versoes mais novas;
+3. padronizar tipos compativeis (NVARCHAR, BIT, DATETIME, INT, FLOAT, UNIQUEIDENTIFIER);
+4. validar queries de dashboard/lista com volume real de dados;
+5. criar indices para filtros principais (status, city, constructionType, capturedAt).
 
-1. ajustar o datasource do Prisma para SQL Server;
-2. apontar o `DATABASE_URL` para o banco existente;
-3. rodar as migrations;
-4. deixar o Prisma criar as tabelas e relacoes.
+## 6) Estrategia de migracao recomendada
 
-## Ordem recomendada
+1. Preparar schema e permissoes no 2008 R2.
+2. Implementar camada de dados SQL compativel em paralelo a atual.
+3. Migrar dados SQLite para SQL Server em homologacao.
+4. Rodar checklist funcional completo (mobile + desktop).
+5. Executar virada controlada com rollback documentado.
 
-1. Criar o schema `fx_obras`.
-2. Criar o usuario do app, se necessario.
-3. Aplicar as permissoes.
-4. Conectar o projeto ao SQL Server.
-5. Rodar as migrations do Prisma.
+Importante:
+1. nao fazer big bang em producao sem ensaio completo;
+2. manter fallback pronto para retorno rapido se houver regressao.
+
+## 7) Criterios para aprovar a virada
+
+A migracao so deve ser aprovada quando:
+1. contagens de dados baterem entre origem e destino;
+2. fluxos de captura/edicao/detalhe funcionarem sem erro;
+3. filtros e dashboard estiverem equivalentes;
+4. performance aceitavel nas consultas principais;
+5. rollback validado em teste.
+
+## 8) Referencia complementar deste repositorio
+
+Para passo a passo didatico de migracao focado no 2008 R2, consulte:
+1. docs/tutorial-migracao-sqlserver-2008r2.md
+
+Para estrategia de API v2 e convivencia de camadas:
+1. docs/plano-api-v2-sequelize-migracao.md

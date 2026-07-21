@@ -50,3 +50,12 @@ export const mergeUserRankings = <T extends { userId: string | null; count: numb
 
   return [...merged.values()].sort((a, b) => b.count - a.count);
 };
+
+export const resolvePhotoPath = (
+  photo?: { relativePath?: string | null; thumbnailRelativePath?: string | null },
+  preferThumbnail = true,
+) => {
+  if (!photo) return "";
+  if (preferThumbnail && photo.thumbnailRelativePath) return photo.thumbnailRelativePath;
+  return photo.relativePath ?? "";
+};

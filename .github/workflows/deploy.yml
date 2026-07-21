@@ -109,6 +109,38 @@ jobs:
 
           docker compose config --quiet
 
+      - name: Backup cloud (SQLite e uploads)
+        run: |
+          set -e
+
+          BACKUP_ROOT="$HOME/fx-obras-backups"
+          TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+          BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
+
+          mkdir -p "$BACKUP_DIR"
+
+          if docker volume inspect fx-obras-data >/dev/null 2>&1; then
+            docker run --rm \
+              -v fx-obras-data:/from:ro \
+              -v "$BACKUP_DIR":/to \
+              alpine sh -c "cd /from && tar -czf /to/fx-obras-data.tar.gz ."
+            echo "Backup criado: $BACKUP_DIR/fx-obras-data.tar.gz"
+          else
+            echo "Volume fx-obras-data não encontrado. Backup do banco ignorado."
+          fi
+
+          if docker volume inspect fx-obras-uploads >/dev/null 2>&1; then
+            docker run --rm \
+              -v fx-obras-uploads:/from:ro \
+              -v "$BACKUP_DIR":/to \
+              alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ."
+            echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
+          else
+            echo "Volume fx-obras-uploads não encontrado. Backup de uploads ignorado."
+          fi
+
+          ls -lah "$BACKUP_DIR"
+
       - name: Construir imagens
         run: |
           docker compose build
@@ -116,6 +148,11 @@ jobs:
       - name: Atualizar containers
         run: |
           docker compose up -d --remove-orphans
+
+      - name: Backfill miniaturas no backend
+        run: |
+          docker compose exec -T backend node dist/scripts/backfill-photo-thumbnails.js --dry-run
+          docker compose exec -T backend node dist/scripts/backfill-photo-thumbnails.js
 
       - name: Recarregar proxy central
         run: |

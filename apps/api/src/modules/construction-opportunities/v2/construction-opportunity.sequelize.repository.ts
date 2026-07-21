@@ -16,6 +16,7 @@ type OpportunityPhotoRow = {
   originalName: string;
   storedName?: string;
   relativePath: string;
+  thumbnailRelativePath?: string;
   mimeType: string;
   size?: number;
   isPrimary: boolean;
@@ -36,6 +37,7 @@ const mapPhotoRow = (row: SqlRow) => ({
   id: String(row.id),
   originalName: String(row.originalName),
   relativePath: String(row.relativePath),
+  thumbnailRelativePath: row.thumbnailRelativePath ? String(row.thumbnailRelativePath) : undefined,
   mimeType: String(row.mimeType),
   isPrimary: Boolean(row.isPrimary),
 });

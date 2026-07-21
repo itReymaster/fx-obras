@@ -100,6 +100,9 @@ export class ConstructionOpportunitiesV2Service {
         if (!photo)
             throw new AppError("Photo not found", 404);
         await this.fileStorage.delete(photo.relativePath);
+        if (photo.thumbnailRelativePath) {
+            await this.fileStorage.delete(photo.thumbnailRelativePath);
+        }
         await this.repository.deletePhoto(id, photoId);
         if (photo.isPrimary) {
             const remaining = await this.repository.findPhotosByOpportunityId(id);

@@ -11,6 +11,7 @@ export interface OpportunityPhoto {
   id: string;
   originalName: string;
   relativePath: string;
+  thumbnailRelativePath?: string | null;
   mimeType: string;
   isPrimary: boolean;
   createdAt: string;

@@ -45,7 +45,14 @@ export interface ConstructionOpportunityModel {
   isDeleted: boolean;
   deletedAt?: Date;
   isTest: boolean;
-  photos: Array<{ id: string; originalName: string; relativePath: string; mimeType: string; isPrimary: boolean }>;
+  photos: Array<{
+    id: string;
+    originalName: string;
+    relativePath: string;
+    thumbnailRelativePath?: string;
+    mimeType: string;
+    isPrimary: boolean;
+  }>;
   history?: Array<{ id: string; action: string; description?: string; createdAt: Date }>;
 }
 

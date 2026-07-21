@@ -11,6 +11,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
+    "photos:backfill-thumbs": "tsx src/scripts/backfill-photo-thumbnails.ts",
     "test": "vitest run"
   },
   "private": true,
@@ -28,6 +29,7 @@
     "nodemailer": "^9.0.3",
     "resend": "^6.17.2",
     "sequelize": "^6.37.8",
+    "sharp": "^0.35.3",
     "swagger-ui-express": "^5.0.1",
     "tedious": "^20.0.0",
     "uuid": "^13.0.0",

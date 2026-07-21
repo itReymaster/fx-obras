@@ -4,6 +4,7 @@ const mapPhotoRow = (row) => ({
     id: String(row.id),
     originalName: String(row.originalName),
     relativePath: String(row.relativePath),
+    thumbnailRelativePath: row.thumbnailRelativePath ? String(row.thumbnailRelativePath) : undefined,
     mimeType: String(row.mimeType),
     isPrimary: Boolean(row.isPrimary),
 });

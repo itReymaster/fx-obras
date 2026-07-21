@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { AUTHORIZED_USER_OPTIONS } from "../../../config/users";
-import { addressLabel, formatDate, formatUserDisplay } from "../../../utils/format";
+import { addressLabel, formatDate, formatUserDisplay, resolvePhotoPath } from "../../../utils/format";
 import {
   commercialPotentialOptions,
   constructionStageOptions,
@@ -350,7 +350,7 @@ export function OpportunityListPage() {
                       background: "var(--color-primary-soft)",
                       height: 136,
                       backgroundImage: photo
-                        ? `url(${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath})`
+                        ? `url(${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(photo)})`
                         : "none",
                       backgroundSize: "cover",
                       backgroundPosition: "center",

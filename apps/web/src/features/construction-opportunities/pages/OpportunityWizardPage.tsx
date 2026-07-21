@@ -10,6 +10,7 @@ import {
   constructionTypeOptions,
   statusOptions,
 } from "../../../utils/labels";
+import { resolvePhotoPath } from "../../../utils/format";
 import { APP_CONFIG } from "../../../config/app";
 import { getAuthenticatedUser } from "../../../config/users";
 import { opportunityFormSchema, type OpportunityFormValues } from "../schemas/opportunity-form.schema";
@@ -1170,7 +1171,7 @@ export function OpportunityWizardPage() {
                         title={photo.isPrimary ? "Foto principal da obra" : "Definir foto como principal"}
                       >
                         <img
-                          src={`${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath}`}
+                          src={`${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(photo)}`}
                           alt={photo.originalName}
                           className="photo-thumb h-110"
                         />

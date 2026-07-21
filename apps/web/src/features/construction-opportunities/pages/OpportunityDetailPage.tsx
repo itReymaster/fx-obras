@@ -2,7 +2,7 @@ import { Copy, FileText, MapPinned, MessageCircle, Pencil, Trash2, Briefcase, Ha
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
-import { addressLabel, formatDate, formatUserDisplay } from "../../../utils/format";
+import { addressLabel, formatDate, formatUserDisplay, resolvePhotoPath } from "../../../utils/format";
 import { labels, statusOptions } from "../../../utils/labels";
 import { buildOpportunityPdf } from "../services/opportunity-pdf";
 import { opportunitiesApi } from "../services/opportunities-api";
@@ -436,7 +436,7 @@ export function OpportunityDetailPage() {
                 aria-label="Ampliar foto da obra"
               >
                 <img
-                  src={`${APP_CONFIG.uploadsBaseUrl}/${mainPhoto.relativePath}`}
+                  src={`${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(mainPhoto)}`}
                   alt={mainPhoto.originalName}
                   className="photo-preview-image"
                 />
@@ -462,7 +462,7 @@ export function OpportunityDetailPage() {
                   title="Exibir foto"
                 >
                   <img
-                    src={`${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath}`}
+                    src={`${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(photo)}`}
                     alt={photo.originalName}
                     className="photo-thumbnail-image"
                   />

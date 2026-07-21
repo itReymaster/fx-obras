@@ -69,6 +69,7 @@ model ConstructionOpportunityPhoto {
   originalName              String
   storedName                String
   relativePath              String
+  thumbnailRelativePath     String?
   mimeType                  String
   size                      Int
   isPrimary                 Boolean                 @default(false)
