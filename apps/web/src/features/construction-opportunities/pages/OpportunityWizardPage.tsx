@@ -1345,7 +1345,7 @@ export function OpportunityWizardPage() {
             <label>Telefone do contato<input className="input" {...register("contactPhone")} /></label>
             <label>E-mail do contato<input className="input" {...register("contactEmail")} /></label>
             {errors.contactEmail && <span className="error-text">E-mail inválido.</span>}
-            {!showQualificationFlow && <label>Observações<textarea className="textarea" {...register("notes")} /></label>}
+            <label>Observações<textarea className="textarea" {...register("notes")} /></label>
 
             <button
               type="button"
