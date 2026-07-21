@@ -149,6 +149,10 @@ jobs:
         run: |
           docker compose up -d --remove-orphans
 
+      - name: Aplicar migrations no backend
+        run: |
+          docker compose exec -T backend npx prisma migrate deploy
+
       - name: Backfill miniaturas no backend
         run: |
           docker compose exec -T backend node dist/scripts/backfill-photo-thumbnails.js --dry-run
