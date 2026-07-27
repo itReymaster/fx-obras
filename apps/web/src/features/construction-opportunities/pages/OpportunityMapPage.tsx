@@ -737,7 +737,7 @@ export function OpportunityMapPage() {
         </article>
 
         <article className="card section-card--compact surface-card map-insight-card">
-          <h3 className="section-title mb-10">Top cidades</h3>
+          <h3 className="section-title mb-10">Top cidades e bairros</h3>
           <div className="stack-sm map-stat-list">
             {cityAggregates.length === 0 ? (
               <span className="muted">Nenhuma obra com dados suficientes de localização.</span>
@@ -750,6 +750,29 @@ export function OpportunityMapPage() {
                   <span className="map-stat-row__label">{row.city}/{row.state}</span>
                   <div className="map-stat-row__bar-track">
                     <div className="map-stat-row__bar-fill" style={{ width: `${Math.max(10, (row.count / cityAggregateMax) * 100)}%` }} />
+                  </div>
+                  <strong className="map-stat-row__value">{row.count}</strong>
+                </div>
+              ))
+            )}
+          </div>
+
+          <h4 className="map-subtitle">Obras por bairro</h4>
+          <div className="stack-sm map-stat-list">
+            {districtAggregates.length === 0 ? (
+              <span className="muted">Nenhuma obra com bairro disponível para exibir.</span>
+            ) : (
+              districtAggregates.map((row) => (
+                <div
+                  key={`${row.district}-${row.city}-${row.state}`}
+                  className="map-stat-row"
+                >
+                  <span className="map-neighborhood-row__label">
+                    <strong className="map-neighborhood-row__district">{row.district}</strong>
+                    <span className="map-neighborhood-row__city">{row.city}/{row.state}</span>
+                  </span>
+                  <div className="map-stat-row__bar-track">
+                    <div className="map-neighborhood-row__bar-fill" style={{ width: `${Math.max(10, (row.count / districtAggregateMax) * 100)}%` }} />
                   </div>
                   <strong className="map-stat-row__value">{row.count}</strong>
                 </div>
@@ -777,30 +800,6 @@ export function OpportunityMapPage() {
           </div>
         </article>
 
-        <article className="card section-card--compact surface-card map-insight-card">
-          <h3 className="section-title mb-10">Obras por bairro</h3>
-          <div className="stack-sm map-stat-list">
-            {districtAggregates.length === 0 ? (
-              <span className="muted">Nenhuma obra com bairro disponível para exibir.</span>
-            ) : (
-              districtAggregates.map((row) => (
-                <div
-                  key={`${row.district}-${row.city}-${row.state}`}
-                  className="map-stat-row"
-                >
-                  <span className="map-neighborhood-row__label">
-                    <strong className="map-neighborhood-row__district">{row.district}</strong>
-                    <span className="map-neighborhood-row__city">{row.city}/{row.state}</span>
-                  </span>
-                  <div className="map-stat-row__bar-track">
-                    <div className="map-neighborhood-row__bar-fill" style={{ width: `${Math.max(10, (row.count / districtAggregateMax) * 100)}%` }} />
-                  </div>
-                  <strong className="map-stat-row__value">{row.count}</strong>
-                </div>
-              ))
-            )}
-          </div>
-        </article>
       </section>
     </div>
   );
