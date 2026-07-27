@@ -2155,6 +2155,36 @@ textarea:focus-visible {
   background: linear-gradient(90deg, #6c8eb6 0%, #4974a7 100%);
 }
 
+.map-neighborhood-row__label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.map-neighborhood-row__district {
+  font-size: 12px;
+  line-height: 1.2;
+  color: #1f2d3d;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-neighborhood-row__city {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-neighborhood-row__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d9983c 0%, #bb6d24 100%);
+}
+
 .map-stat-row__value {
   min-width: 24px;
   text-align: right;

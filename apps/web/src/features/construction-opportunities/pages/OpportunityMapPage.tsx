@@ -28,6 +28,13 @@ type CityAggregate = {
   count: number;
 };
 
+type DistrictAggregate = {
+  district: string;
+  city: string;
+  state: string;
+  count: number;
+};
+
 type FocusTarget = {
   id: string;
   lat: number;
@@ -146,6 +153,10 @@ const estimateFromCityState = (city?: string | null, state?: string | null) => {
 
 const cityStateLookupKey = (city?: string | null, state?: string | null) =>
   `${(city ?? "").trim().toLowerCase()}::${normalizeState(state)}`;
+
+const districtLookupKey = (district?: string | null, city?: string | null, state?: string | null) => {
+  return `${(district ?? "").trim().toLowerCase()}::${(city ?? "").trim().toLowerCase()}::${normalizeState(state)}`;
+};
 
 const addressLookupKey = (item: Opportunity) => {
   return [
@@ -489,6 +500,31 @@ export function OpportunityMapPage() {
     return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 8);
   }, [visibleMapOpportunities]);
 
+  const districtAggregates = useMemo<DistrictAggregate[]>(() => {
+    const map = new Map<string, DistrictAggregate>();
+    for (const item of visibleMapOpportunities) {
+      const district = item.district?.trim() ? item.district.trim() : "Sem bairro informado";
+      const city = item.city?.trim() ? item.city.trim() : "Sem cidade";
+      const state = item.state?.trim() ? item.state.trim() : "-";
+      const key = districtLookupKey(district, city, state);
+      const current = map.get(key);
+      if (current) {
+        current.count += 1;
+        continue;
+      }
+      map.set(key, {
+        district,
+        city,
+        state,
+        count: 1,
+      });
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [visibleMapOpportunities]);
+
   const statusTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const key of statusOrder) totals[key] = 0;
@@ -540,6 +576,7 @@ export function OpportunityMapPage() {
   }, [visibleMapOpportunities]);
 
   const cityAggregateMax = Math.max(1, ...cityAggregates.map((row) => row.count));
+  const districtAggregateMax = Math.max(1, ...districtAggregates.map((row) => row.count));
   const statusAggregateMax = Math.max(1, ...statusOrder.map((status) => statusTotals[status] ?? 0));
 
   return (
@@ -737,6 +774,31 @@ export function OpportunityMapPage() {
                 <strong className="map-status-row__value">{statusTotals[status] ?? 0}</strong>
               </div>
             ))}
+          </div>
+        </article>
+
+        <article className="card section-card--compact surface-card map-insight-card">
+          <h3 className="section-title mb-10">Obras por bairro</h3>
+          <div className="stack-sm map-stat-list">
+            {districtAggregates.length === 0 ? (
+              <span className="muted">Nenhuma obra com bairro disponível para exibir.</span>
+            ) : (
+              districtAggregates.map((row) => (
+                <div
+                  key={`${row.district}-${row.city}-${row.state}`}
+                  className="map-stat-row"
+                >
+                  <span className="map-neighborhood-row__label">
+                    <strong className="map-neighborhood-row__district">{row.district}</strong>
+                    <span className="map-neighborhood-row__city">{row.city}/{row.state}</span>
+                  </span>
+                  <div className="map-stat-row__bar-track">
+                    <div className="map-neighborhood-row__bar-fill" style={{ width: `${Math.max(10, (row.count / districtAggregateMax) * 100)}%` }} />
+                  </div>
+                  <strong className="map-stat-row__value">{row.count}</strong>
+                </div>
+              ))
+            )}
           </div>
         </article>
       </section>
