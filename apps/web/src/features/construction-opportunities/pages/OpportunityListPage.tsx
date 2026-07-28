@@ -1,9 +1,9 @@
-import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
-import { AUTHORIZED_USERS } from "../../../config/users";
-import { addressLabel, formatDate } from "../../../utils/format";
+import { AUTHORIZED_USER_OPTIONS } from "../../../config/users";
+import { addressLabel, formatDate, formatUserDisplay, resolvePhotoPath } from "../../../utils/format";
 import {
   commercialPotentialOptions,
   constructionStageOptions,
@@ -11,9 +11,11 @@ import {
   statusOptions,
 } from "../../../utils/labels";
 import { opportunitiesApi } from "../services/opportunities-api";
-import type { Opportunity } from "../types/opportunity.types";
+import type { Opportunity, OpportunityListResponse } from "../types/opportunity.types";
 
 export function OpportunityListPage() {
+  type TestFilterMode = "real_only" | "test_only" | "all";
+
   const [items, setItems] = useState<Opportunity[]>([]);
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
@@ -23,7 +25,14 @@ export function OpportunityListPage() {
   const [createdByUserId, setCreatedByUserId] = useState("");
   const [sortBy, setSortBy] = useState("most_recent");
   const [view, setView] = useState<"cards" | "table">("cards");
-  const [showTestRecords, setShowTestRecords] = useState(false);
+  const [testFilterMode, setTestFilterMode] = useState<TestFilterMode>("real_only");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [desktopFiltersOpen, setDesktopFiltersOpen] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [pagination, setPagination] = useState<OpportunityListResponse["pagination"] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const load = (overrides?: {
     search?: string;
@@ -33,7 +42,9 @@ export function OpportunityListPage() {
     commercialPotential?: string;
     createdByUserId?: string;
     sortBy?: string;
-    showTestRecords?: boolean;
+    testFilterMode?: TestFilterMode;
+    page?: number;
+    pageSize?: number;
   }) => {
     const applied = {
       search,
@@ -43,14 +54,23 @@ export function OpportunityListPage() {
       commercialPotential,
       createdByUserId,
       sortBy,
-      showTestRecords,
+      testFilterMode,
+      page,
+      pageSize,
       ...overrides,
     };
 
+    const isTestParam =
+      applied.testFilterMode === "all"
+        ? undefined
+        : applied.testFilterMode === "test_only";
+
+    setIsLoading(true);
+
     void opportunitiesApi
       .list({
-        page: 1,
-        pageSize: 50,
+        page: applied.page ?? 1,
+        pageSize: applied.pageSize ?? 50,
         search: applied.search,
         city: applied.city,
         status: applied.status,
@@ -58,14 +78,45 @@ export function OpportunityListPage() {
         commercialPotential: applied.commercialPotential,
         createdByUserId: applied.createdByUserId,
         sortBy: applied.sortBy,
-        isTest: applied.showTestRecords ? undefined : false,
+        isTest: isTestParam,
       })
-      .then((response) => setItems(response.data));
+      .then((response) => {
+        setItems(response.data);
+        setPagination(response.pagination);
+        setPage(response.pagination.page);
+        setPageSize(response.pagination.pageSize);
+      })
+      .finally(() => setIsLoading(false));
   };
 
   const hasActiveFilters = Boolean(
-    search || city || status || constructionStage || commercialPotential || createdByUserId || showTestRecords,
+    search || city || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only",
   );
+
+  const activeFiltersCount = [
+    search,
+    city,
+    status,
+    constructionStage,
+    commercialPotential,
+    createdByUserId,
+    testFilterMode !== "real_only" ? "testMode" : "",
+  ].filter(Boolean).length;
+
+  const paginationSummary = pagination
+    ? {
+        start: pagination.totalItems === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1,
+        end: Math.min(pagination.page * pagination.pageSize, pagination.totalItems),
+      }
+    : null;
+
+  const handleDelete = async (id: string) => {
+    const confirmDelete = window.confirm("Excluir esta obra? Esta ação remove o registro da listagem.");
+    if (!confirmDelete) return;
+
+    await opportunitiesApi.remove(id);
+    load();
+  };
 
   const clearFilters = () => {
     const defaults = {
@@ -76,7 +127,7 @@ export function OpportunityListPage() {
       commercialPotential: "",
       createdByUserId: "",
       sortBy: "most_recent",
-      showTestRecords: false,
+      testFilterMode: "real_only" as TestFilterMode,
     };
 
     setSearch(defaults.search);
@@ -86,7 +137,7 @@ export function OpportunityListPage() {
     setCommercialPotential(defaults.commercialPotential);
     setCreatedByUserId(defaults.createdByUserId);
     setSortBy(defaults.sortBy);
-    setShowTestRecords(defaults.showTestRecords);
+    setTestFilterMode(defaults.testFilterMode);
 
     load(defaults);
   };
@@ -95,7 +146,13 @@ export function OpportunityListPage() {
     load();
   }, []);
 
-  const isDesktop = useMemo(() => window.innerWidth >= 900, []);
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 900);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const filtersOpen = isDesktop ? desktopFiltersOpen : mobileFiltersOpen;
 
   return (
     <div className="page grid">
@@ -126,108 +183,182 @@ export function OpportunityListPage() {
               />
             </div>
           </label>
-          <label className="filter-field filter-field--city">
-            Cidade
-            <input className="input" value={city} onChange={(event) => setCity(event.target.value)} />
-          </label>
-        </div>
 
-        <div className="status-chip-row" aria-label="Filtros rápidos do funil">
           <button
             type="button"
-            className={`status-chip ${status === "" ? "is-active" : ""}`}
-            onClick={() => {
-              setStatus("");
-              load({ status: "" });
-            }}
+            className="btn btn-ghost filters-mobile-toggle"
+            onClick={() => setMobileFiltersOpen((value) => !value)}
+            aria-expanded={mobileFiltersOpen}
           >
-            Todos
+            <SlidersHorizontal size={16} />
+            {mobileFiltersOpen ? "Fechar opções" : "Abrir opções"}
+            {activeFiltersCount > 0 && <span className="filters-mobile-count">({activeFiltersCount})</span>}
           </button>
-          {statusOptions.map((option) => (
+
+          <button
+            type="button"
+            className="btn btn-ghost filters-desktop-toggle"
+            onClick={() => setDesktopFiltersOpen((value) => !value)}
+            aria-expanded={desktopFiltersOpen}
+          >
+            <SlidersHorizontal size={16} />
+            {desktopFiltersOpen ? "Recolher filtros" : "Expandir filtros"}
+            {activeFiltersCount > 0 && <span className="filters-mobile-count">({activeFiltersCount})</span>}
+          </button>
+        </div>
+
+        <div className={`filters-collapsible ${filtersOpen ? "is-open" : "is-closed"}`}>
+          <div className="status-chip-row" aria-label="Filtros rápidos do funil">
             <button
-              key={option.value}
               type="button"
-              className={`status-chip ${status === option.value ? "is-active" : ""}`}
+              className={`status-chip ${status === "" ? "is-active" : ""}`}
               onClick={() => {
-                setStatus(option.value);
-                load({ status: option.value });
+                setStatus("");
+                load({ status: "" });
               }}
             >
-              {option.label}
+              Todos
             </button>
-          ))}
-        </div>
-
-        <div className="filters-grid filters-grid--opportunities">
-          <label className="filter-field">
-            Status
-            <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="">Todos</option>
-              {statusOptions.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Estágio da obra
-            <select className="select" value={constructionStage} onChange={(event) => setConstructionStage(event.target.value)}>
-              <option value="">Todos</option>
-              {constructionStageOptions.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Potencial
-            <select className="select" value={commercialPotential} onChange={(event) => setCommercialPotential(event.target.value)}>
-              <option value="">Todos</option>
-              {commercialPotentialOptions.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Usuário
-            <select className="select" value={createdByUserId} onChange={(event) => setCreatedByUserId(event.target.value)}>
-              <option value="">Todos</option>
-              {AUTHORIZED_USERS.map((user) => (
-                <option key={user} value={user}>
-                  {user}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field">
-            Ordenação
-            <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-              <option value="most_recent">Mais recentes</option>
-              <option value="oldest">Mais antigos</option>
-              <option value="title">Título</option>
-              <option value="city">Cidade</option>
-              <option value="commercialPotential">Potencial comercial</option>
-              <option value="nextActionDate">Data da próxima ação</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="filters-footer">
-          <label className="checkbox-label filters-test-toggle">
-            <input type="checkbox" checked={showTestRecords} onChange={(event) => setShowTestRecords(event.target.checked)} />
-            Incluir registros de teste
-          </label>
-          <div className="filters-actions filters-actions--desktop-end">
-            <button className="btn btn-primary btn-lg" onClick={() => load()}>
-              Aplicar filtros
-            </button>
-            <button className="btn btn-ghost btn-lg" onClick={clearFilters} disabled={!hasActiveFilters}>
-              Limpar
-            </button>
+            {statusOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`status-chip ${status === option.value ? "is-active" : ""}`}
+                onClick={() => {
+                  setStatus(option.value);
+                  load({ status: option.value });
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-          <div className="filters-summary">
-            {items.length} obra(s) encontrada(s)
+
+          <div className="filters-grid filters-grid--opportunities">
+            <label className="filter-field">
+              Cidade
+              <input className="input" value={city} onChange={(event) => setCity(event.target.value)} />
+            </label>
+            <label className="filter-field">
+              Status
+              <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="">Todos</option>
+                {statusOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Estágio da obra
+              <select className="select" value={constructionStage} onChange={(event) => setConstructionStage(event.target.value)}>
+                <option value="">Todos</option>
+                {constructionStageOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Potencial
+              <select className="select" value={commercialPotential} onChange={(event) => setCommercialPotential(event.target.value)}>
+                <option value="">Todos</option>
+                {commercialPotentialOptions.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Usuário
+              <select className="select" value={createdByUserId} onChange={(event) => setCreatedByUserId(event.target.value)}>
+                <option value="">Todos</option>
+                  {AUTHORIZED_USER_OPTIONS.map((user) => (
+                    <option key={user.value} value={user.value}>
+                      {user.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Ordenação
+              <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <option value="most_recent">Mais recentes</option>
+                <option value="oldest">Mais antigos</option>
+                <option value="title">Título</option>
+                <option value="city">Cidade</option>
+                <option value="commercialPotential">Potencial comercial</option>
+                <option value="nextActionDate">Data da próxima ação</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="filters-footer">
+            <label className="filter-field filters-test-toggle">
+              Registros de teste
+              <select
+                className="select"
+                value={testFilterMode}
+                onChange={(event) => setTestFilterMode(event.target.value as TestFilterMode)}
+              >
+                <option value="real_only">Somente reais</option>
+                <option value="test_only">Somente teste</option>
+                <option value="all">Todos</option>
+              </select>
+            </label>
+            <div className="filters-actions filters-actions--desktop-end">
+              <button className="btn btn-primary btn-lg" onClick={() => load()}>
+                Aplicar filtros
+              </button>
+              <button className="btn btn-ghost btn-lg" onClick={clearFilters} disabled={!hasActiveFilters}>
+                Limpar
+              </button>
+            </div>
+            <div className="filters-summary">
+              {pagination ? `${pagination.totalItems} obra(s) encontrada(s)` : `${items.length} obra(s) encontrada(s)`}
+            </div>
           </div>
         </div>
       </section>
+      {pagination && pagination.totalPages > 1 && (
+        <section className="card surface-card" style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div className="muted">
+            {paginationSummary ? `Exibindo ${paginationSummary.start}-${paginationSummary.end} de ${pagination.totalItems} obras` : `${items.length} obras carregadas`}
+          </div>
+          <div className="cluster" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: 1, pageSize })}
+              disabled={page === 1 || isLoading}
+            >
+              Primeira
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: Math.max(1, page - 1), pageSize })}
+              disabled={page === 1 || isLoading}
+            >
+              Anterior
+            </button>
+            <span className="muted">Página {page} de {pagination.totalPages}</span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: Math.min(pagination.totalPages, page + 1), pageSize })}
+              disabled={page >= pagination.totalPages || isLoading}
+            >
+              Próxima
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: pagination.totalPages, pageSize })}
+              disabled={page >= pagination.totalPages || isLoading}
+            >
+              Última
+            </button>
+          </div>
+        </section>
+      )}
       {view === "table" && isDesktop ? (
         <section className="card surface-card table-shell">
           <table className="table-full table-opportunities">
@@ -241,6 +372,7 @@ export function OpportunityListPage() {
                 <th>Próxima ação</th>
                 <th>Captura</th>
                 <th>Usuário</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -253,7 +385,18 @@ export function OpportunityListPage() {
                   <td className="table-cell-potential"><span className="badge badge-secondary">{labels.commercialPotential(item.commercialPotential)}</span></td>
                   <td className="table-cell-action" title={item.nextAction ?? undefined}>{item.nextAction ? `${item.nextAction.slice(0, 20)}...` : "-"}</td>
                   <td className="table-cell-date">{formatDate(item.capturedAt)}</td>
-                  <td className="table-cell-user">{item.createdByUserId ?? "-"}</td>
+                  <td className="table-cell-user">{formatUserDisplay(item.createdByUserId)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        void handleDelete(item.id);
+                      }}
+                    >
+                      <Trash2 size={14} /> Excluir
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -264,20 +407,24 @@ export function OpportunityListPage() {
           {items.map((item) => {
             const photo = item.photos.find((value) => value.isPrimary) ?? item.photos[0];
             return (
-              <Link className="card pad-12 stack-sm" key={item.id} to={`/opportunities/${item.id}`}>
-                <div
-                  style={{
-                    borderRadius: 10,
-                    background: "var(--color-primary-soft)",
-                    height: 136,
-                    backgroundImage: photo
-                      ? `url(${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath})`
-                      : "none",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                />
-                <strong>{item.title}</strong>
+              <article className="card pad-12 stack-sm" key={item.id}>
+                <Link to={`/opportunities/${item.id}`} aria-label={`Abrir obra ${item.title}`}>
+                  <div
+                    style={{
+                      borderRadius: 10,
+                      background: "var(--color-primary-soft)",
+                      height: 136,
+                      backgroundImage: photo
+                        ? `url(${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(photo)})`
+                        : "none",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                </Link>
+                <strong>
+                  <Link to={`/opportunities/${item.id}`}>{item.title}</Link>
+                </strong>
                 <div className="muted" style={{ fontSize: 13 }}>
                   {addressLabel(item)}
                 </div>
@@ -288,9 +435,23 @@ export function OpportunityListPage() {
                   {item.isTest && <span className="badge-test">✨ Teste</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
-                  {item.photos.length} foto(s) - {formatDate(item.capturedAt)} - {item.createdByUserId ?? "Sem usuário"}
+                  {item.photos.length} foto(s) - {formatDate(item.capturedAt)} - {formatUserDisplay(item.createdByUserId)}
                 </div>
-              </Link>
+                <div className="cluster">
+                  <Link className="btn btn-ghost btn-sm" to={`/opportunities/${item.id}`}>
+                    Abrir
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      void handleDelete(item.id);
+                    }}
+                  >
+                    <Trash2 size={14} /> Excluir
+                  </button>
+                </div>
+              </article>
             );
           })}
         </section>

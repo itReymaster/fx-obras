@@ -1,21 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, CheckCircle2, Crosshair, ImagePlus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, type FocusEvent } from "react";
+import { Camera, CheckCircle2, ImagePlus, MapPin, Mic, Square, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
 import type { FieldErrors } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   commercialPotentialOptions,
   constructionStageOptions,
   constructionTypeOptions,
-  labels,
   statusOptions,
 } from "../../../utils/labels";
+import { resolvePhotoPath } from "../../../utils/format";
 import { APP_CONFIG } from "../../../config/app";
 import { getAuthenticatedUser } from "../../../config/users";
 import { opportunityFormSchema, type OpportunityFormValues } from "../schemas/opportunity-form.schema";
 import { opportunitiesApi } from "../services/opportunities-api";
-import type { Opportunity } from "../types/opportunity.types";
+import type { Opportunity, OpportunityAudio } from "../types/opportunity.types";
 
 type ReverseGeocodePayload = {
   address?: {
@@ -180,6 +180,23 @@ const formDefaultValues: OpportunityFormValues = {
   isTest: false,
 };
 
+type PendingAudio = {
+  id: string;
+  file: File;
+  url: string;
+  createdAt: string;
+};
+
+const AUDIO_WAVE_BAR_COUNT = 24;
+const AUDIO_WAVE_NOISE_FLOOR = 0.03;
+
+const createIdleWaveform = () =>
+  Array.from({ length: AUDIO_WAVE_BAR_COUNT }, (_, index) => {
+    const base = 0.22;
+    const variation = ((index % 5) + 1) * 0.015;
+    return Math.min(0.34, base + variation);
+  });
+
 const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormValues => {
   const source = opportunity as Opportunity & {
     complement?: string | null;
@@ -219,8 +236,13 @@ const mapOpportunityToFormValues = (opportunity: Opportunity): OpportunityFormVa
 export function OpportunityWizardPage() {
   const navigate = useNavigate();
   const { id: opportunityId = "" } = useParams();
+  const [searchParams] = useSearchParams();
   const isEditing = Boolean(opportunityId);
+  const requestedFocus = searchParams.get("focus");
   const [step, setStep] = useState(1);
+  const [showQualificationFlow, setShowQualificationFlow] = useState(false);
+  const [showAdvancedContact, setShowAdvancedContact] = useState(false);
+  const [showAdvancedWork, setShowAdvancedWork] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [primaryIndex, setPrimaryIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -234,6 +256,297 @@ export function OpportunityWizardPage() {
   const [savedOpportunity, setSavedOpportunity] = useState<{ id: string; code: string } | null>(null);
   const [loadingOpportunity, setLoadingOpportunity] = useState(isEditing);
   const [loadedOpportunity, setLoadedOpportunity] = useState<Opportunity | null>(null);
+  const [existingAudios, setExistingAudios] = useState<OpportunityAudio[]>([]);
+  const [pendingAudios, setPendingAudios] = useState<PendingAudio[]>([]);
+  const [audioActionError, setAudioActionError] = useState<string | null>(null);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordingWaveform, setRecordingWaveform] = useState<number[]>(() => createIdleWaveform());
+  const [isHighSensitivityEnabled, setIsHighSensitivityEnabled] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaChunksRef = useRef<BlobPart[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserNodeRef = useRef<AnalyserNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const waveformFrameRef = useRef<number | null>(null);
+  const previousWaveformRef = useRef<number[]>(createIdleWaveform());
+  const pendingAudiosRef = useRef<PendingAudio[]>([]);
+
+  const isSecureContextForMic =
+    typeof window !== "undefined" &&
+    (window.isSecureContext || window.location.hostname === "localhost");
+
+  const formatAudioSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatRecordingTime = (seconds: number): string => {
+    const safeSeconds = Math.max(0, Math.min(60, seconds));
+    const minutesPart = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
+    const secondsPart = String(safeSeconds % 60).padStart(2, "0");
+    return `${minutesPart}:${secondsPart}`;
+  };
+
+  const recordingProgress = Math.min(100, Math.round((recordingSeconds / 60) * 100));
+
+  const goToPhotos = () => {
+    setShowQualificationFlow(false);
+    setStep(2);
+  };
+
+  const goToQualification = () => {
+    setShowQualificationFlow(true);
+    setStep(5);
+  };
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    if (requestedFocus === "photos") {
+      setShowQualificationFlow(false);
+      setStep(2);
+      return;
+    }
+
+    if (requestedFocus === "qualification") {
+      setShowQualificationFlow(true);
+      setStep(5);
+    }
+  }, [isEditing, requestedFocus]);
+
+  const clearRecordingTimer = () => {
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const stopWaveformMonitor = () => {
+    if (waveformFrameRef.current) {
+      window.cancelAnimationFrame(waveformFrameRef.current);
+      waveformFrameRef.current = null;
+    }
+
+    sourceNodeRef.current?.disconnect();
+    sourceNodeRef.current = null;
+
+    analyserNodeRef.current?.disconnect();
+    analyserNodeRef.current = null;
+
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
+
+    const idleWaveform = createIdleWaveform();
+    previousWaveformRef.current = idleWaveform;
+    setRecordingWaveform(idleWaveform);
+  };
+
+  const startWaveformMonitor = (stream: MediaStream, highSensitivityEnabled: boolean) => {
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const sourceNode = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.7;
+
+    sourceNode.connect(analyser);
+
+    audioContextRef.current = audioContext;
+    sourceNodeRef.current = sourceNode;
+    analyserNodeRef.current = analyser;
+
+    const sampleBuffer = new Uint8Array(analyser.frequencyBinCount);
+
+    const renderWaveform = () => {
+      const currentAnalyser = analyserNodeRef.current;
+      if (!currentAnalyser) return;
+
+      currentAnalyser.getByteFrequencyData(sampleBuffer);
+
+      const averageLevel = sampleBuffer.reduce((sum, value) => sum + value, 0) / (sampleBuffer.length * 255);
+      const baseGain = averageLevel < 0.12 ? 1.75 : averageLevel < 0.2 ? 1.45 : 1.2;
+      const sensitivityMultiplier = highSensitivityEnabled ? 1.35 : 1;
+      const adaptiveGain = baseGain * sensitivityMultiplier;
+      const noiseFloor = highSensitivityEnabled ? 0.015 : AUDIO_WAVE_NOISE_FLOOR;
+
+      const nextWaveform = Array.from({ length: AUDIO_WAVE_BAR_COUNT }, (_, barIndex) => {
+        const start = Math.floor((barIndex * sampleBuffer.length) / AUDIO_WAVE_BAR_COUNT);
+        const end = Math.max(start + 1, Math.floor(((barIndex + 1) * sampleBuffer.length) / AUDIO_WAVE_BAR_COUNT));
+        let peak = 0;
+
+        for (let index = start; index < end; index += 1) {
+          peak = Math.max(peak, sampleBuffer[index] ?? 0);
+        }
+
+        const normalized = peak / 255;
+        const gated = normalized <= noiseFloor ? 0 : (normalized - noiseFloor) / (1 - noiseFloor);
+        const boosted = Math.min(1, Math.pow(gated, 0.78) * adaptiveGain);
+        const previous = previousWaveformRef.current[barIndex] ?? 0.2;
+        const smoothed = previous * 0.5 + boosted * 0.5;
+        return Math.min(1, 0.18 + smoothed * 0.82);
+      });
+
+      previousWaveformRef.current = nextWaveform;
+      setRecordingWaveform(nextWaveform);
+      waveformFrameRef.current = window.requestAnimationFrame(renderWaveform);
+    };
+
+    waveformFrameRef.current = window.requestAnimationFrame(renderWaveform);
+  };
+
+  const stopRecordingResources = () => {
+    clearRecordingTimer();
+    stopWaveformMonitor();
+    mediaRecorderRef.current = null;
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    mediaChunksRef.current = [];
+    setIsRecordingAudio(false);
+    setRecordingSeconds(0);
+  };
+
+  const makeAudioFileName = (mimeType: string) => {
+    const extension =
+      mimeType.includes("mpeg") ? "mp3" :
+      mimeType.includes("wav") ? "wav" :
+      mimeType.includes("ogg") ? "ogg" :
+      mimeType.includes("mp4") ? "mp4" :
+      "webm";
+    return `audio-${Date.now()}.${extension}`;
+  };
+
+  const addPendingAudioFile = (file: File) => {
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const url = URL.createObjectURL(file);
+    setPendingAudios((current) => [
+      {
+        id,
+        file,
+        url,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ]);
+  };
+
+  const onSelectAudioFiles = (selected: FileList | null) => {
+    if (!selected) return;
+    setAudioActionError(null);
+    const filesList = Array.from(selected)
+      .filter((file) => file.type.startsWith("audio/"))
+      .slice(0, 5);
+
+    if (filesList.length === 0) {
+      setAudioActionError("Selecione arquivos de audio validos.");
+      return;
+    }
+
+    filesList.forEach((file) => addPendingAudioFile(file));
+  };
+
+  const handleRemovePendingAudio = (audioId: string) => {
+    setPendingAudios((current) => {
+      const target = current.find((audio) => audio.id === audioId);
+      if (target) URL.revokeObjectURL(target.url);
+      return current.filter((audio) => audio.id !== audioId);
+    });
+  };
+
+  const handleDeleteExistingAudio = async (audioId: string) => {
+    if (!isEditing) return;
+    const confirmed = window.confirm("Remover este audio anexado?");
+    if (!confirmed) return;
+
+    try {
+      await opportunitiesApi.deleteAudio(opportunityId, audioId);
+      const data = await opportunitiesApi.listAudios(opportunityId);
+      setExistingAudios(data);
+      setAudioActionError(null);
+    } catch (error: any) {
+      setAudioActionError(error?.response?.data?.message ?? "Nao foi possivel remover o audio.");
+    }
+  };
+
+  const handleStartAudioRecording = async () => {
+    if (!isSecureContextForMic) {
+      setAudioActionError("Gravacao de audio requer HTTPS ou localhost.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setAudioActionError("Seu navegador nao suporta gravacao de audio.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const preferredTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg",
+      ];
+      const selectedType = preferredTypes.find((value) => MediaRecorder.isTypeSupported(value));
+      const recorder = selectedType ? new MediaRecorder(stream, { mimeType: selectedType }) : new MediaRecorder(stream);
+
+      mediaChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          mediaChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const mimeType = recorder.mimeType || "audio/webm";
+        const blob = new Blob(mediaChunksRef.current, { type: mimeType });
+        stopRecordingResources();
+        if (blob.size > 0) {
+          const file = new File([blob], makeAudioFileName(mimeType), { type: mimeType });
+          addPendingAudioFile(file);
+        }
+      };
+
+      recorder.start(200);
+      mediaRecorderRef.current = recorder;
+      startWaveformMonitor(stream, isHighSensitivityEnabled);
+      setAudioActionError(null);
+      setIsRecordingAudio(true);
+      setRecordingSeconds(0);
+
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingSeconds((previous) => {
+          const next = previous + 1;
+          if (next >= 60 && mediaRecorderRef.current?.state === "recording") {
+            mediaRecorderRef.current.stop();
+          }
+          return Math.min(next, 60);
+        });
+      }, 1000);
+    } catch {
+      stopRecordingResources();
+      setAudioActionError("Nao foi possivel acessar o microfone.");
+    }
+  };
+
+  const handleStopAudioRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
   const mapGeolocationError = (error?: GeolocationPositionError) => {
     if (!error) return "Nao foi possivel capturar o GPS. Use endereco manual.";
@@ -318,13 +631,14 @@ export function OpportunityWizardPage() {
     setLoadingOpportunity(true);
     setSaveError(null);
 
-    void opportunitiesApi
-      .getById(opportunityId)
-      .then((opportunity) => {
+    void Promise.all([opportunitiesApi.getById(opportunityId), opportunitiesApi.listAudios(opportunityId)])
+      .then(([opportunity, audios]) => {
         if (cancelled) return;
 
         setLoadedOpportunity(opportunity);
+        setExistingAudios(audios);
         setPhotoActionError(null);
+        setAudioActionError(null);
         reset({
           ...formDefaultValues,
           ...mapOpportunityToFormValues(opportunity),
@@ -346,9 +660,27 @@ export function OpportunityWizardPage() {
     };
   }, [isEditing, opportunityId, reset]);
 
+  useEffect(() => {
+    pendingAudiosRef.current = pendingAudios;
+  }, [pendingAudios]);
+
+  useEffect(() => {
+    if (!isRecordingAudio || !mediaStreamRef.current) return;
+    stopWaveformMonitor();
+    startWaveformMonitor(mediaStreamRef.current, isHighSensitivityEnabled);
+  }, [isHighSensitivityEnabled, isRecordingAudio]);
+
+  useEffect(() => {
+    return () => {
+      stopRecordingResources();
+      pendingAudiosRef.current.forEach((audio) => URL.revokeObjectURL(audio.url));
+    };
+  }, []);
+
   const values = watch();
 
-  const progress = useMemo(() => Math.round((step / 4) * 100), [step]);
+  const maxStep = showQualificationFlow || step >= 4 ? 5 : 3;
+  const progress = useMemo(() => Math.round((Math.min(step, maxStep) / maxStep) * 100), [step, maxStep]);
 
   const addFiles = (selected: FileList | null) => {
     if (!selected) return;
@@ -619,7 +951,7 @@ export function OpportunityWizardPage() {
     setSaveError(null);
 
     // Timeout por foto: cadastro (15s) + até 30s por anexo
-    const safetyTimeoutMs = 15000 + files.length * 30000;
+    const safetyTimeoutMs = 15000 + files.length * 30000 + pendingAudios.length * 30000;
     const timeoutId = setTimeout(() => {
       setSaving(false);
       setUploadProgress(null);
@@ -643,11 +975,21 @@ export function OpportunityWizardPage() {
         }
       }
 
+      if (pendingAudios.length > 0) {
+        setIsUploadingAudio(true);
+        for (const audio of pendingAudios) {
+          await opportunitiesApi.uploadAudio(saved.id, audio.file);
+        }
+        pendingAudios.forEach((audio) => URL.revokeObjectURL(audio.url));
+        setPendingAudios([]);
+        setIsUploadingAudio(false);
+      }
+
       clearTimeout(timeoutId);
       setSaving(false);
       setUploadProgress(null);
       setSavedOpportunity({ id: saved.id, code: saved.code });
-      setStep(5);
+      setStep(6);
     } catch (error: any) {
       clearTimeout(timeoutId);
       setUploadProgress(null);
@@ -665,6 +1007,7 @@ export function OpportunityWizardPage() {
         error?.message ??
         `Nao foi possivel ${isEditing ? "atualizar" : "salvar"} a obra. Verifique conexao com a API e tente novamente.`;
       setSaveError(message);
+      setIsUploadingAudio(false);
       setSaving(false);
     }
   };
@@ -673,7 +1016,7 @@ export function OpportunityWizardPage() {
     return <div className="page">Carregando obra para edição...</div>;
   }
 
-  if (step === 5 && savedOpportunity) {
+  if (step === 6 && savedOpportunity) {
     return (
       <div className="page grid">
         <section className="card section-card surface-card text-center">
@@ -692,7 +1035,7 @@ export function OpportunityWizardPage() {
 
   return (
     <form
-      className="page grid"
+      className="page grid opportunity-wizard-form"
       onSubmit={handleSubmit(
         (formData) => save(formData as OpportunityFormValues, false),
         handleInvalidSubmit,
@@ -703,6 +1046,16 @@ export function OpportunityWizardPage() {
           <strong>Fluxo de captura</strong>
           <span>{progress}%</span>
         </div>
+        {isEditing && (
+          <div className="cluster wizard-shortcuts">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={goToPhotos}>
+              <ImagePlus size={16} /> Ir para fotos
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={goToQualification}>
+              <CheckCircle2 size={16} /> Ir para qualificação
+            </button>
+          </div>
+        )}
         <div className="progress-track">
           <div className="progress-bar" style={{ width: `${progress}%` }} />
         </div>
@@ -710,10 +1063,10 @@ export function OpportunityWizardPage() {
 
       {step === 1 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">Etapa 1 - Localização e endereço</h3>
+          <h3 className="section-title">Etapa 1 - Captura Endereço</h3>
           <div className="grid">
-            <button type="button" className="btn btn-secondary" onClick={captureLocation} disabled={capturingLocation}>
-              <Crosshair size={18} /> {capturingLocation ? "Capturando localização..." : "Capturar minha localização"}
+            <button type="button" className="btn wizard-location-button" onClick={captureLocation} disabled={capturingLocation}>
+              <MapPin size={18} /> {capturingLocation ? "Capturando localização..." : "Capturar minha localização"}
             </button>
             {locationHint && <span className="success-text">{locationHint}</span>}
             <div className="grid-2">
@@ -752,18 +1105,18 @@ export function OpportunityWizardPage() {
 
       {step === 2 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">{isEditing ? "Etapa 2 - Fotografias e anexos" : "Etapa 2 - Fotografias"}</h3>
+          <h3 className="section-title">Etapa 2 - Fotos</h3>
           <div className="grid">
             {isEditing && loadedOpportunity && (
               <div className="success-text">
                 Esta obra já possui {loadedOpportunity.photos.length} foto{loadedOpportunity.photos.length === 1 ? "" : "s"} cadastrada{loadedOpportunity.photos.length === 1 ? "" : "s"}.
               </div>
             )}
-            <label className="btn btn-secondary btn-link">
+            <label className="btn btn-link wizard-capture-button">
               <Camera size={18} /> Tirar foto
               <input type="file" accept="image/*" capture="environment" hidden onChange={(event) => addFiles(event.target.files)} />
             </label>
-            <label className="btn btn-ghost btn-link">
+            <label className="btn btn-link wizard-capture-button wizard-capture-button--secondary">
               <ImagePlus size={18} /> Selecionar imagens
               <input type="file" accept="image/*" multiple hidden onChange={(event) => addFiles(event.target.files)} />
             </label>
@@ -771,10 +1124,25 @@ export function OpportunityWizardPage() {
             <div className="grid-auto-100">
               {files.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="card section-card--compact surface-card photo-card">
-                  <img src={URL.createObjectURL(file)} alt={file.name} className="photo-thumb h-90" />
+                  <button
+                    type="button"
+                    className={`photo-thumb-button${primaryIndex === index ? " is-primary" : ""}`}
+                    onClick={() => setPrimaryIndex(index)}
+                    aria-label={primaryIndex === index ? "Foto principal selecionada" : "Definir esta foto como principal"}
+                    title={primaryIndex === index ? "Foto principal selecionada" : "Definir esta foto como principal"}
+                  >
+                    <img src={URL.createObjectURL(file)} alt={file.name} className="photo-thumb h-90" />
+                    <span className={`photo-primary-badge${primaryIndex === index ? " is-active" : ""}`}>
+                      {primaryIndex === index ? "Principal" : "Definir principal"}
+                    </span>
+                  </button>
                   <div className="justify-between mt-6">
-                    <button type="button" className="btn btn-ghost" onClick={() => setPrimaryIndex(index)}>
-                      {primaryIndex === index ? "Principal" : "Definir"}
+                    <button
+                      type="button"
+                      className={`btn btn-ghost photo-primary-action${primaryIndex === index ? " is-active" : ""}`}
+                      onClick={() => setPrimaryIndex(index)}
+                    >
+                      {primaryIndex === index ? "Foto principal" : "Definir principal"}
                     </button>
                     <button type="button" className="btn btn-ghost" onClick={() => removeFile(index)}>
                       <Trash2 size={14} />
@@ -790,18 +1158,34 @@ export function OpportunityWizardPage() {
                 <div className="grid-auto-160">
                   {existingPhotos.map((photo) => (
                     <div key={photo.id} className="card section-card--compact surface-card photo-card">
-                      <img
-                        src={`${APP_CONFIG.uploadsBaseUrl}/${photo.relativePath}`}
-                        alt={photo.originalName}
-                        className="photo-thumb h-110"
-                      />
+                      <button
+                        type="button"
+                        className={`photo-thumb-button${photo.isPrimary ? " is-primary" : ""}`}
+                        onClick={() => {
+                          if (!photo.isPrimary && photoBusyId !== photo.id) {
+                            void handleSetPrimaryExistingPhoto(photo.id);
+                          }
+                        }}
+                        disabled={photoBusyId === photo.id}
+                        aria-label={photo.isPrimary ? "Foto principal da obra" : "Definir foto como principal"}
+                        title={photo.isPrimary ? "Foto principal da obra" : "Definir foto como principal"}
+                      >
+                        <img
+                          src={`${APP_CONFIG.uploadsBaseUrl}/${resolvePhotoPath(photo)}`}
+                          alt={photo.originalName}
+                          className="photo-thumb h-110"
+                        />
+                        <span className={`photo-primary-badge${photo.isPrimary ? " is-active" : ""}`}>
+                          {photo.isPrimary ? "Principal" : "Definir principal"}
+                        </span>
+                      </button>
                       <div className="summary-box-sm mt-6">
                         {photo.isPrimary ? "Foto principal" : "Foto da obra"}
                       </div>
                       <div className="button-stack">
                         <button
                           type="button"
-                          className="btn btn-ghost"
+                          className={`btn btn-ghost photo-primary-action${photo.isPrimary ? " is-active" : ""}`}
                           onClick={() => handleSetPrimaryExistingPhoto(photo.id)}
                           disabled={photoBusyId === photo.id || photo.isPrimary}
                         >
@@ -823,60 +1207,209 @@ export function OpportunityWizardPage() {
             )}
 
             {photoActionError && <span className="error-text">{photoActionError}</span>}
+
+            <div className="stack-sm mt-6">
+              <strong>Audio</strong>
+              <div className="audio-recorder-player">
+                <div className="audio-recorder-player-main">
+                  <button
+                    type="button"
+                    className={`btn audio-record-button audio-record-button--touch${isRecordingAudio ? " is-recording" : ""}`}
+                    onClick={isRecordingAudio ? handleStopAudioRecording : handleStartAudioRecording}
+                    disabled={saving || isUploadingAudio}
+                    aria-label={isRecordingAudio ? "Parar gravacao" : "Iniciar gravacao"}
+                  >
+                    {isRecordingAudio ? <Square size={16} /> : <Mic size={16} />}
+                  </button>
+
+                  <div className="audio-recorder-info">
+                    <div className="audio-recorder-status-row">
+                      <span className={`audio-recorder-status${isRecordingAudio ? " is-recording" : ""}`}>
+                        {isRecordingAudio ? "Gravando" : "Pronto para gravar"}
+                      </span>
+                      <span className="audio-recorder-time">{formatRecordingTime(recordingSeconds)} / 01:00</span>
+                    </div>
+
+                    <div className="audio-recorder-controls">
+                      <button
+                        type="button"
+                        className={`audio-sensitivity-toggle${isHighSensitivityEnabled ? " is-active" : ""}`}
+                        aria-pressed={isHighSensitivityEnabled}
+                        onClick={() => setIsHighSensitivityEnabled((value) => !value)}
+                      >
+                        {isHighSensitivityEnabled ? "Sensibilidade alta" : "Sensibilidade normal"}
+                      </button>
+                    </div>
+
+                    <div className={`audio-recorder-wave${isRecordingAudio ? " is-live" : ""}`} aria-hidden="true">
+                      {recordingWaveform.map((level, index) => (
+                        <span key={`wave-${index}`} style={{ height: `${Math.round(level * 100)}%` }} />
+                      ))}
+                    </div>
+
+                    <div className="audio-recorder-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={recordingProgress}>
+                      <div className="audio-recorder-progress-fill" style={{ width: `${recordingProgress}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                <span className="muted audio-recorder-hint">
+                  {isRecordingAudio ? "Toque para parar e anexar automaticamente." : "Toque para gravar (maximo de 60 segundos)."}
+                </span>
+              </div>
+
+              <div className="grid-2 wizard-audio-actions">
+                <label className="btn btn-link wizard-capture-button wizard-capture-button--secondary">
+                  <ImagePlus size={18} /> Selecionar audio
+                  <input type="file" accept="audio/*" multiple hidden onChange={(event) => onSelectAudioFiles(event.target.files)} />
+                </label>
+              </div>
+
+              {!isSecureContextForMic && (
+                <span className="muted" style={{ fontSize: 12 }}>
+                  Gravacao de audio exige HTTPS ou localhost.
+                </span>
+              )}
+
+              {pendingAudios.length > 0 && (
+                <div className="stack-sm">
+                  <span className="success-text">{pendingAudios.length} audio(s) pronto(s) para anexar no salvar.</span>
+                  {pendingAudios.map((audio) => (
+                    <div key={audio.id} className="card section-card--compact surface-card">
+                      <div className="justify-between-wrap mb-8">
+                        <span className="muted wizard-audio-meta" style={{ fontSize: 12 }}>
+                          {audio.file.name} - {formatAudioSize(audio.file.size)}
+                        </span>
+                        <button type="button" className="btn btn-ghost" onClick={() => handleRemovePendingAudio(audio.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <audio className="opportunity-audio-player" controls preload="metadata" src={audio.url} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isEditing && existingAudios.length > 0 && (
+                <div className="stack-sm">
+                  <span className="muted" style={{ fontSize: 12 }}>Audios já anexados</span>
+                  {existingAudios.map((audio) => (
+                    <div key={audio.id} className="card section-card--compact surface-card">
+                      <div className="justify-between-wrap mb-8">
+                        <span className="muted wizard-audio-meta" style={{ fontSize: 12 }}>
+                          {audio.originalName} - {formatAudioSize(audio.size)}
+                        </span>
+                        <button type="button" className="btn btn-ghost" onClick={() => handleDeleteExistingAudio(audio.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <audio
+                        className="opportunity-audio-player"
+                        controls
+                        preload="metadata"
+                        src={`${APP_CONFIG.uploadsBaseUrl}/${audio.relativePath}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {audioActionError && <span className="error-text">{audioActionError}</span>}
+            </div>
           </div>
         </section>
       )}
 
       {step === 3 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">Etapa 3 - Informações gerais</h3>
+          <h3 className="section-title">Etapa 3 - Salvar</h3>
           <div className="grid">
-            <label>Título da obra<input className="input" {...register("title")} /></label>
-            <label>Tipo da obra<select className="select" {...register("constructionType")}>{constructionTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Estágio<select className="select" {...register("constructionStage")}>{constructionStageOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Potencial comercial<select className="select" {...register("commercialPotential")}>{commercialPotentialOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Status no funil<select className="select" {...register("status")}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-            <label>Observações<textarea className="textarea" {...register("notes")} /></label>
-            <label>Contato<input className="input" {...register("contactName")} /></label>
-            <label>Telefone<input className="input" {...register("contactPhone")} /></label>
-            <label>E-mail<input className="input" {...register("contactEmail")} /></label>
-            {errors.contactEmail && <span className="error-text">E-mail inválido.</span>}
-            <label>Próxima ação<input className="input" {...register("nextAction")} /></label>
-            <label>Data da próxima ação<input className="input" type="date" {...register("nextActionDate")} /></label>
-            <label>Tags (separadas por virgula)<input className="input" {...register("tagsText")} /></label>
-            <label className="checkbox-label"><input type="checkbox" {...register("isTest")} /> Marcar como teste (não exibe na listagem padrão)</label>
+            <div className="summary-box-sm">
+              Você já pode salvar agora com endereço e fotos. Se quiser, use <strong>Preencher qualificação</strong> para incluir mais dados antes de salvar.
+            </div>
+            <div><strong>Endereco:</strong> {values.street || "-"} {values.number || ""}, {values.district || "-"} - {values.city || "-"}</div>
+            <div><strong>Coordenadas:</strong> {values.latitude ?? "-"}, {values.longitude ?? "-"}</div>
+            <div><strong>Qtd. fotos:</strong> {existingPhotos.length + files.length}</div>
+            <div><strong>Qtd. audios:</strong> {existingAudios.length + pendingAudios.length}</div>
+            <div className="muted" style={{ fontSize: 13 }}>
+              Depois você pode complementar qualquer informação na edição da obra.
+            </div>
           </div>
         </section>
       )}
 
       {step === 4 && (
         <section className="card section-card surface-card">
-          <h3 className="section-title">Etapa 4 - Revisão e confirmação</h3>
+          <h3 className="section-title">Etapa 4 - Contato e observações</h3>
           <div className="grid">
-            <div><strong>Título:</strong> {values.title || "(será gerado automaticamente)"}</div>
-            <div><strong>Endereco:</strong> {values.street || "-"} {values.number || ""}, {values.district || "-"} - {values.city || "-"}</div>
-            <div><strong>Coordenadas:</strong> {values.latitude ?? "-"}, {values.longitude ?? "-"}</div>
-            <div><strong>Tipo/Estagio:</strong> {labels.constructionType(values.constructionType)} / {labels.constructionStage(values.constructionStage)}</div>
-            <div><strong>Potencial:</strong> {labels.commercialPotential(values.commercialPotential)}</div>
-            <div><strong>Observações:</strong> {values.notes || "-"}</div>
-            <div><strong>Qtd. fotos:</strong> {existingPhotos.length + files.length}</div>
-            <div><strong>Contato:</strong> {values.contactName || "-"}</div>
-            <div><strong>Próxima ação:</strong> {values.nextAction || "-"}</div>
-            <div><strong>Status no funil:</strong> {labels.status(values.status)}</div>
-            <div><strong>Tipo de registro:</strong> {values.isTest ? "⚠️ Teste (não exibe por padrão)" : "✓ Registro real"}</div>
+            <label>Nome do contato<input className="input" {...register("contactName")} /></label>
+            <label>Telefone do contato<input className="input" {...register("contactPhone")} /></label>
+            <label>E-mail do contato<input className="input" {...register("contactEmail")} /></label>
+            {errors.contactEmail && <span className="error-text">E-mail inválido.</span>}
+            <label>Observações<textarea className="textarea" {...register("notes")} /></label>
+
+            <button
+              type="button"
+              className="btn btn-ghost wizard-advanced-toggle"
+              onClick={() => setShowAdvancedContact((value) => !value)}
+            >
+              {showAdvancedContact ? "Ocultar campos extras" : "Mostrar campos extras"}
+            </button>
+
+            {showAdvancedContact && (
+              <>
+                <label>Próxima ação<input className="input" {...register("nextAction")} /></label>
+                <label>Data da próxima ação<input className="input" type="date" {...register("nextActionDate")} /></label>
+                <label>Tags (separadas por virgula)<input className="input" {...register("tagsText")} /></label>
+              </>
+            )}
           </div>
         </section>
       )}
 
-      <section className="grid-2 wizard-actions">
-        <button type="button" className="btn btn-ghost" disabled={step === 1 || saving} onClick={() => setStep((value) => Math.max(1, value - 1))}>
-          Voltar
-        </button>
-        {step < 4 ? (
-          <button type="button" className="btn btn-primary" onClick={() => setStep((value) => Math.min(4, value + 1))}>
-            Avancar
+      {step === 5 && (
+        <section className="card section-card surface-card">
+          <h3 className="section-title">Etapa 5 - Obra e potencial</h3>
+          <div className="grid">
+            <label>Título da obra<input className="input" {...register("title")} /></label>
+            <label>Tipo da obra<select className="select" {...register("constructionType")}>{constructionTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label>Estágio<select className="select" {...register("constructionStage")}>{constructionStageOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label>Potencial comercial<select className="select" {...register("commercialPotential")}>{commercialPotentialOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+
+            <button
+              type="button"
+              className="btn btn-ghost wizard-advanced-toggle"
+              onClick={() => setShowAdvancedWork((value) => !value)}
+            >
+              {showAdvancedWork ? "Ocultar campos extras" : "Mostrar campos extras"}
+            </button>
+
+            {showAdvancedWork && (
+              <>
+                <label>Status no funil<select className="select" {...register("status")}>{statusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+                <label className="checkbox-label"><input type="checkbox" {...register("isTest")} /> Marcar como teste (não exibe na listagem padrão)</label>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {step <= 2 && (
+        <section className="grid-2 wizard-actions">
+          <button type="button" className="btn btn-ghost" disabled={step === 1 || saving} onClick={() => setStep((value) => Math.max(1, value - 1))}>
+            Voltar
           </button>
-        ) : saveError ? (
+          <button type="button" className="btn btn-primary" onClick={() => setStep((value) => Math.min(3, value + 1))}>
+            Próximo
+          </button>
+        </section>
+      )}
+
+      {step === 3 && (
+        <section className="grid-2 wizard-actions wizard-actions--stack">
+          <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setStep(2)}>
+            Voltar para fotos
+          </button>
           <button
             type="button"
             className="btn btn-primary"
@@ -889,37 +1422,67 @@ export function OpportunityWizardPage() {
             {saving
               ? uploadProgress
                 ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
-                : "Tentando novamente..."
-              : "Tentar novamente"}
+                : isUploadingAudio
+                  ? "Enviando audios..."
+                : isEditing
+                  ? "Atualizando..."
+                  : "Salvando..."
+              : "Salvar rápido"}
           </button>
-        ) : (
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          <button
+            type="button"
+            className="btn btn-ghost wizard-draft-button"
+            disabled={saving}
+            onClick={() => {
+              setShowQualificationFlow(true);
+              setStep(4);
+            }}
+          >
+            Preencher qualificação
+          </button>
+        </section>
+      )}
+
+      {step === 4 && (
+        <section className="grid-2 wizard-actions">
+          <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setStep(3)}>
+            Voltar
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => setStep(5)}>
+            Próximo
+          </button>
+        </section>
+      )}
+
+      {step === 5 && (
+        <section className="grid-2 wizard-actions">
+          <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setStep(4)}>
+            Voltar
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving}
+            onClick={handleSubmit(
+              (formData) => save(formData as OpportunityFormValues, false),
+              handleInvalidSubmit,
+            )}
+          >
             {saving
               ? uploadProgress
                 ? `Enviando foto ${uploadProgress.uploaded}/${uploadProgress.total}...`
+                : isUploadingAudio
+                  ? "Enviando audios..."
                 : isEditing
                   ? "Atualizando..."
                   : "Salvando..."
               : isEditing
                 ? "Atualizar obra"
-                : "Salvar obra"}
+                : "Salvar completo"}
           </button>
-        )}
-      </section>
-      {saveError && <div className="error-text">{saveError}</div>}
-      {step === 4 && !isEditing && (
-        <button
-          type="button"
-          className="btn btn-secondary wizard-draft-button"
-          disabled={saving}
-          onClick={handleSubmit(
-            (formData) => save(formData as OpportunityFormValues, true),
-            handleInvalidSubmit,
-          )}
-        >
-          Salvar como rascunho
-        </button>
+        </section>
       )}
+      {saveError && <div className="error-text">{saveError}</div>}
     </form>
   );
 }

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Fragment } from "react/jsx-runtime";
 import "leaflet/dist/leaflet.css";
-import { Circle, CircleMarker, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import { DivIcon } from "leaflet";
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { DivIcon, LatLngBounds } from "leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
+import { AUTHORIZED_USER_OPTIONS } from "../../../config/users";
+import { formatDate, formatUserDisplay } from "../../../utils/format";
 import { labels } from "../../../utils/labels";
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { Opportunity } from "../types/opportunity.types";
@@ -26,6 +28,13 @@ type CityAggregate = {
   count: number;
 };
 
+type DistrictAggregate = {
+  district: string;
+  city: string;
+  state: string;
+  count: number;
+};
+
 type FocusTarget = {
   id: string;
   lat: number;
@@ -42,6 +51,9 @@ type AddressCenter = {
   lat: number;
   lng: number;
 };
+
+type LocationQualityFilter = "ALL" | "REAL" | "ADDRESS" | "CITY";
+type MapStyleMode = "GOOGLE" | "STREET" | "SATELLITE";
 
 const statusPalette: Record<string, string> = {
   DRAFT: "var(--color-status-draft)",
@@ -68,6 +80,9 @@ const statusOrder = [
 ] as const;
 
 const defaultCenter: [number, number] = [-14.235, -51.9253];
+const markerIconCache = new Map<string, DivIcon>();
+const clusterIconCache = new Map<number, DivIcon>();
+const MAP_CLUSTER_PREF_KEY = "fx-obras.map.clusterEnabled";
 
 const stateCenters: Record<string, [number, number]> = {
   AC: [-9.97, -67.81],
@@ -138,6 +153,10 @@ const estimateFromCityState = (city?: string | null, state?: string | null) => {
 
 const cityStateLookupKey = (city?: string | null, state?: string | null) =>
   `${(city ?? "").trim().toLowerCase()}::${normalizeState(state)}`;
+
+const districtLookupKey = (district?: string | null, city?: string | null, state?: string | null) => {
+  return `${(district ?? "").trim().toLowerCase()}::${(city ?? "").trim().toLowerCase()}::${normalizeState(state)}`;
+};
 
 const addressLookupKey = (item: Opportunity) => {
   return [
@@ -222,23 +241,62 @@ function cityKey(item: Opportunity) {
 }
 
 const leafletMarkerIcon = (color: string) =>
-  new DivIcon({
-    className: "opportunity-map-marker",
-    html: `<span style="display:block;width:14px;height:14px;border-radius:999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+  markerIconCache.get(color) ??
+  (() => {
+    const icon = new DivIcon({
+      className: "opportunity-map-marker",
+      html: `<span style="display:block;width:14px;height:14px;border-radius:999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+    markerIconCache.set(color, icon);
+    return icon;
+  })();
+
+const leafletClusterIcon = (cluster: any) => {
+  const count = Number(cluster.getChildCount?.() ?? 0);
+  if (clusterIconCache.has(count)) {
+    return clusterIconCache.get(count) as DivIcon;
+  }
+
+  const size = count >= 100 ? 48 : count >= 30 ? 42 : 36;
+  const background = count >= 100 ? "#1f4e8a" : count >= 30 ? "#2b6cb0" : "#4d87c6";
+
+  const icon = new DivIcon({
+    className: "opportunity-map-cluster",
+    html: `<span style="display:grid;place-items:center;width:${size}px;height:${size}px;border-radius:999px;background:${background};color:#fff;font-weight:700;font-size:12px;border:2px solid rgba(255,255,255,0.95);box-shadow:0 4px 12px rgba(15,23,42,0.25)">${count}</span>`,
+    iconSize: [size, size],
+    iconAnchor: [Math.round(size / 2), Math.round(size / 2)],
   });
+
+  clusterIconCache.set(count, icon);
+  return icon;
+};
 
 export function OpportunityMapPage() {
   const [items, setItems] = useState<Opportunity[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedCreator, setSelectedCreator] = useState<string>("");
+  const [searchText, setSearchText] = useState("");
+  const [qualityFilter, setQualityFilter] = useState<LocationQualityFilter>("ALL");
+  const [mapStyle, setMapStyle] = useState<MapStyleMode>("GOOGLE");
+  const [clusterEnabled, setClusterEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const raw = window.localStorage.getItem(MAP_CLUSTER_PREF_KEY);
+    if (raw === "false") return false;
+    if (raw === "true") return true;
+    return true;
+  });
   const [loadError, setLoadError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
+  const [fitRequestId, setFitRequestId] = useState(0);
   const [cityCenters, setCityCenters] = useState<Record<string, CityCenter>>({});
   const [addressCenters, setAddressCenters] = useState<Record<string, AddressCenter>>({});
 
   useEffect(() => {
     const loadAll = async () => {
+      setIsLoading(true);
       try {
         const pageSize = 100;
         const first = await opportunitiesApi.list({ page: 1, pageSize, sortBy: "most_recent" });
@@ -254,6 +312,8 @@ export function OpportunityMapPage() {
       } catch {
         setItems([]);
         setLoadError("Nao foi possivel carregar as obras para o mapa.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -323,9 +383,50 @@ export function OpportunityMapPage() {
     void loadCenters();
   }, [items, cityCenters, addressCenters]);
 
+  const creatorOptions = useMemo(() => {
+    const unique = new Map<string, { value: string; label: string }>();
+    for (const item of items) {
+      const creator = item.createdByUserId?.trim();
+      if (!creator) continue;
+
+      const normalized = creator.toLowerCase().replace(/[\s-]+/g, "");
+      const canonical = AUTHORIZED_USER_OPTIONS.find((option) => {
+        const optionKey = option.value.toLowerCase().replace(/[\s-]+/g, "");
+        return optionKey === normalized || option.aliases.some((alias) => alias.toLowerCase().replace(/[\s-]+/g, "") === normalized);
+      });
+
+      unique.set(normalized, {
+        value: canonical?.value ?? creator,
+        label: canonical?.label ?? formatUserDisplay(creator),
+      });
+    }
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [items]);
+
   const filteredItems = useMemo(() => {
-    return items.filter((item) => (selectedStatus ? item.status === selectedStatus : true));
-  }, [items, selectedStatus]);
+    const normalizedSearch = searchText.trim().toLowerCase();
+    return items.filter((item) => {
+      if (selectedStatus && item.status !== selectedStatus) return false;
+      if (selectedCreator) {
+        const creator = (item.createdByUserId ?? "").trim().toLowerCase().replace(/[\s-]+/g, "");
+        const selected = selectedCreator.trim().toLowerCase().replace(/[\s-]+/g, "");
+        if (creator !== selected) return false;
+      }
+      if (!normalizedSearch) return true;
+      const searchable = [
+        item.title,
+        item.code,
+        item.city,
+        item.state,
+        item.street,
+        item.district,
+        item.createdByUserId,
+      ]
+        .map((value) => (value ?? "").toLowerCase())
+        .join(" ");
+      return searchable.includes(normalizedSearch);
+    });
+  }, [items, selectedStatus, selectedCreator, searchText]);
 
   const mapOpportunities = useMemo<MappedOpportunity[]>(() => {
     return filteredItems
@@ -365,26 +466,25 @@ export function OpportunityMapPage() {
   const exactCount = useMemo(() => mapOpportunities.filter((item) => !item.isApproximate).length, [mapOpportunities]);
   const approximateCount = useMemo(() => mapOpportunities.filter((item) => item.isApproximate).length, [mapOpportunities]);
 
-  const listedMapOpportunities = useMemo(() => {
-    return [...mapOpportunities].sort((a, b) => {
-      const cityCompare = (a.city ?? "").localeCompare(b.city ?? "");
-      if (cityCompare !== 0) return cityCompare;
-      return a.title.localeCompare(b.title);
-    });
-  }, [mapOpportunities]);
+  const visibleMapOpportunities = useMemo(() => {
+    if (qualityFilter === "ALL") return mapOpportunities;
+    if (qualityFilter === "REAL") return mapOpportunities.filter((item) => !item.isApproximate);
+    if (qualityFilter === "ADDRESS") return mapOpportunities.filter((item) => item.approximateLevel === "ADDRESS");
+    return mapOpportunities.filter((item) => item.approximateLevel === "CITY");
+  }, [mapOpportunities, qualityFilter]);
 
   const center = useMemo<[number, number]>(() => {
-    if (mapOpportunities.length === 0) {
+    if (visibleMapOpportunities.length === 0) {
       return defaultCenter;
     }
-    const lat = mapOpportunities.reduce((sum, value) => sum + value.plotLat, 0) / mapOpportunities.length;
-    const lng = mapOpportunities.reduce((sum, value) => sum + value.plotLng, 0) / mapOpportunities.length;
+    const lat = visibleMapOpportunities.reduce((sum, value) => sum + value.plotLat, 0) / visibleMapOpportunities.length;
+    const lng = visibleMapOpportunities.reduce((sum, value) => sum + value.plotLng, 0) / visibleMapOpportunities.length;
     return [lat, lng];
-  }, [mapOpportunities]);
+  }, [visibleMapOpportunities]);
 
   const cityAggregates = useMemo<CityAggregate[]>(() => {
     const map = new Map<string, CityAggregate>();
-    for (const item of mapOpportunities) {
+    for (const item of visibleMapOpportunities) {
       const key = cityKey(item);
       const current = map.get(key);
       if (current) {
@@ -398,20 +498,45 @@ export function OpportunityMapPage() {
       });
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 8);
-  }, [mapOpportunities]);
+  }, [visibleMapOpportunities]);
+
+  const districtAggregates = useMemo<DistrictAggregate[]>(() => {
+    const map = new Map<string, DistrictAggregate>();
+    for (const item of visibleMapOpportunities) {
+      const district = item.district?.trim() ? item.district.trim() : "Sem bairro informado";
+      const city = item.city?.trim() ? item.city.trim() : "Sem cidade";
+      const state = item.state?.trim() ? item.state.trim() : "-";
+      const key = districtLookupKey(district, city, state);
+      const current = map.get(key);
+      if (current) {
+        current.count += 1;
+        continue;
+      }
+      map.set(key, {
+        district,
+        city,
+        state,
+        count: 1,
+      });
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [visibleMapOpportunities]);
 
   const statusTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const key of statusOrder) totals[key] = 0;
-    for (const item of items) {
+    for (const item of filteredItems) {
       totals[item.status] = (totals[item.status] ?? 0) + 1;
     }
     return totals;
-  }, [items]);
+  }, [filteredItems]);
 
   const cityHeatPoints = useMemo(() => {
     const grouped = new Map<string, { latitude: number; longitude: number; count: number }>();
-    for (const item of mapOpportunities) {
+    for (const item of visibleMapOpportunities) {
       const key = cityKey(item);
       const current = grouped.get(key);
       if (current) {
@@ -421,7 +546,38 @@ export function OpportunityMapPage() {
       grouped.set(key, { latitude: item.plotLat, longitude: item.plotLng, count: 1 });
     }
     return Array.from(grouped.values());
-  }, [mapOpportunities]);
+  }, [visibleMapOpportunities]);
+
+  useEffect(() => {
+    if (!focusTarget) return;
+    const exists = visibleMapOpportunities.some((item) => item.id === focusTarget.id);
+    if (!exists) setFocusTarget(null);
+  }, [focusTarget, visibleMapOpportunities]);
+
+  const handleResetViewport = () => {
+    setFocusTarget(null);
+    setFitRequestId((value) => value + 1);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(MAP_CLUSTER_PREF_KEY, String(clusterEnabled));
+  }, [clusterEnabled]);
+
+  const recentMapOpportunities = useMemo(() => {
+    return [...visibleMapOpportunities]
+      .sort((a, b) => {
+        const tsA = new Date(a.capturedAt).valueOf();
+        const tsB = new Date(b.capturedAt).valueOf();
+        if (Number.isNaN(tsA) || Number.isNaN(tsB)) return 0;
+        return tsB - tsA;
+      })
+      .slice(0, 12);
+  }, [visibleMapOpportunities]);
+
+  const cityAggregateMax = Math.max(1, ...cityAggregates.map((row) => row.count));
+  const districtAggregateMax = Math.max(1, ...districtAggregates.map((row) => row.count));
+  const statusAggregateMax = Math.max(1, ...statusOrder.map((status) => statusTotals[status] ?? 0));
 
   return (
     <div className="page grid">
@@ -435,28 +591,60 @@ export function OpportunityMapPage() {
             <h3 className="section-title">Visualização geográfica e densidade</h3>
             <p className="section-note">Distribuição das obras para apoiar cobertura comercial e priorização regional.</p>
           </div>
-          <label className="map-filter-label" style={{ minWidth: 210 }}>
-            <span className="map-filter-label__text">Status</span>
-            <select className="select" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
-              <option value="">Todos</option>
-              {statusOrder.map((status) => (
-                <option key={status} value={status}>
-                  {labels.status(status)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="map-filters-grid">
+            <label className="map-filter-label">
+              <span className="map-filter-label__text">Status</span>
+              <select className="select" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
+                <option value="">Todos</option>
+                {statusOrder.map((status) => (
+                  <option key={status} value={status}>
+                    {labels.status(status)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="map-filter-label">
+              <span className="map-filter-label__text">Qualidade</span>
+              <select className="select" value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value as LocationQualityFilter)}>
+                <option value="ALL">Todos</option>
+                <option value="REAL">Somente coordenada real</option>
+                <option value="ADDRESS">Aproximada por endereco</option>
+                <option value="CITY">Aproximada por cidade/UF</option>
+              </select>
+            </label>
+            <label className="map-filter-label">
+              <span className="map-filter-label__text">Criador</span>
+              <select className="select" value={selectedCreator} onChange={(event) => setSelectedCreator(event.target.value)}>
+                <option value="">Todos</option>
+                    {creatorOptions.map((creator) => (
+                      <option key={creator.value} value={creator.value}>
+                        {creator.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="map-filter-label map-filter-label--search">
+              <span className="map-filter-label__text">Busca</span>
+              <input
+                className="input"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="Titulo, codigo, cidade, bairro..."
+              />
+            </label>
+          </div>
         </div>
 
+        {isLoading && <span className="muted" style={{ fontSize: 13 }}>Carregando registros do mapa...</span>}
         {loadError && <span className="error-text">{loadError}</span>}
-        {!loadError && items.length > 0 && mapOpportunities.length === 0 && (
+        {!loadError && !isLoading && items.length > 0 && visibleMapOpportunities.length === 0 && (
           <span className="muted" style={{ fontSize: 13 }}>
-            Existem obras cadastradas, mas faltam cidade/UF ou coordenadas para posicionar no mapa.
+            Nenhuma obra corresponde aos filtros atuais ou faltam dados de localização para posicionamento.
           </span>
         )}
 
         <div className="map-wrapper" style={{ height: 430 }}>
-          {!loadError && mapOpportunities.length > 0 && (
+          {!loadError && visibleMapOpportunities.length > 0 && (
             <div className="map-legend" aria-label="Legenda do mapa">
               <span className="map-legend__item">
                 <span className="map-legend__dot map-legend__dot--exact" />
@@ -470,9 +658,15 @@ export function OpportunityMapPage() {
           )}
           <OpenStreetMapFallbackPanel
             center={center}
-            mapOpportunities={mapOpportunities}
+            mapOpportunities={visibleMapOpportunities}
             cityHeatPoints={cityHeatPoints}
             focusTarget={focusTarget}
+            fitRequestId={fitRequestId}
+            onResetViewport={handleResetViewport}
+            mapStyle={mapStyle}
+            onMapStyleChange={setMapStyle}
+            clusterEnabled={clusterEnabled}
+            onClusterEnabledChange={setClusterEnabled}
           />
         </div>
       </section>
@@ -480,11 +674,11 @@ export function OpportunityMapPage() {
       <section className="metric-grid map-kpis grid-auto-190">
         <article className="card metric-card">
           <div className="metric-label">Total de obras</div>
-          <div className="metric-value" style={{ fontSize: 28 }}>{items.length}</div>
+          <div className="metric-value" style={{ fontSize: 28 }}>{filteredItems.length}</div>
         </article>
         <article className="card metric-card">
           <div className="metric-label">Posicionadas no mapa</div>
-          <div className="metric-value" style={{ fontSize: 28 }}>{mapOpportunities.length}</div>
+          <div className="metric-value" style={{ fontSize: 28 }}>{visibleMapOpportunities.length}</div>
         </article>
         <article className="card metric-card">
           <div className="metric-label">Aproximadas (cidade/UF)</div>
@@ -495,23 +689,27 @@ export function OpportunityMapPage() {
           <div className="metric-value" style={{ fontSize: 28 }}>{exactCount}</div>
         </article>
         <article className="card metric-card">
+          <div className="metric-label">Sem coordenada real</div>
+          <div className="metric-value" style={{ fontSize: 28 }}>{Math.max(0, filteredItems.length - exactCount)}</div>
+        </article>
+        <article className="card metric-card">
           <div className="metric-label">Cidades mapeadas</div>
           <div className="metric-value" style={{ fontSize: 28 }}>{cityAggregates.length}</div>
         </article>
       </section>
 
       <section className="grid-auto-240">
-        <article className="card section-card--compact surface-card">
-          <h3 className="section-title mb-10">Obras no mapa</h3>
-          <div className="stack-sm" style={{ maxHeight: 320, overflow: "auto" }}>
-            {listedMapOpportunities.length === 0 ? (
+        <article className="card section-card--compact surface-card map-insight-card">
+          <h3 className="section-title mb-10">Obras recentes no mapa</h3>
+          <div className="stack-sm map-recent-list">
+            {recentMapOpportunities.length === 0 ? (
               <span className="muted">Nenhuma obra posicionada para listar.</span>
             ) : (
-              listedMapOpportunities.map((item) => (
+              recentMapOpportunities.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className="btn btn-ghost"
+                  className="btn btn-ghost map-recent-item"
                   onClick={() =>
                     setFocusTarget({
                       id: item.id,
@@ -522,17 +720,12 @@ export function OpportunityMapPage() {
                         : 17,
                     })
                   }
-                  style={{
-                    textAlign: "left",
-                    minHeight: 0,
-                    padding: "8px 10px",
-                    borderColor: focusTarget?.id === item.id ? "var(--color-primary-strong)" : "var(--border)",
-                    background: focusTarget?.id === item.id ? "var(--color-primary-soft)" : "transparent",
-                  }}
+                  data-selected={focusTarget?.id === item.id ? "true" : "false"}
                 >
-                  <div style={{ fontWeight: 600 }}>{item.title}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-soft)" }}>{item.city ?? "-"}/{item.state ?? "-"}</div>
-                  <div style={{ fontSize: 12, color: item.isApproximate ? approximateColor : "var(--color-primary-strong)" }}>
+                  <div className="map-recent-item__title">{item.title}</div>
+                  <div className="map-recent-item__meta">{item.city ?? "-"}/{item.state ?? "-"} • {formatDate(item.capturedAt)}</div>
+                  <div className="map-recent-item__meta">Capturada por: {formatUserDisplay(item.createdByUserId)}</div>
+                  <div className="map-recent-item__quality" style={{ color: item.isApproximate ? approximateColor : "var(--color-primary-strong)" }}>
                     {item.isApproximate
                       ? (item.approximateLevel === "ADDRESS" ? "Aproximada por endereço" : "Aproximada por cidade/UF")
                       : "Coordenada real"}
@@ -543,48 +736,70 @@ export function OpportunityMapPage() {
           </div>
         </article>
 
-        <article className="card section-card--compact surface-card">
-          <h3 className="section-title mb-10">Top cidades</h3>
-          <div className="stack-sm">
+        <article className="card section-card--compact surface-card map-insight-card">
+          <h3 className="section-title mb-10">Top cidades e bairros</h3>
+          <div className="stack-sm map-stat-list">
             {cityAggregates.length === 0 ? (
               <span className="muted">Nenhuma obra com dados suficientes de localização.</span>
             ) : (
               cityAggregates.map((row) => (
                 <div
                   key={`${row.city}-${row.state}`}
-                  style={{ display: "flex", justifyContent: "space-between", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px" }}
+                  className="map-stat-row"
                 >
-                  <span>{row.city}/{row.state}</span>
-                  <strong>{row.count}</strong>
+                  <span className="map-stat-row__label">{row.city}/{row.state}</span>
+                  <div className="map-stat-row__bar-track">
+                    <div className="map-stat-row__bar-fill" style={{ width: `${Math.max(10, (row.count / cityAggregateMax) * 100)}%` }} />
+                  </div>
+                  <strong className="map-stat-row__value">{row.count}</strong>
+                </div>
+              ))
+            )}
+          </div>
+
+          <h4 className="map-subtitle">Obras por bairro</h4>
+          <div className="stack-sm map-stat-list">
+            {districtAggregates.length === 0 ? (
+              <span className="muted">Nenhuma obra com bairro disponível para exibir.</span>
+            ) : (
+              districtAggregates.map((row) => (
+                <div
+                  key={`${row.district}-${row.city}-${row.state}`}
+                  className="map-stat-row"
+                >
+                  <span className="map-neighborhood-row__label">
+                    <strong className="map-neighborhood-row__district">{row.district}</strong>
+                    <span className="map-neighborhood-row__city">{row.city}/{row.state}</span>
+                  </span>
+                  <div className="map-stat-row__bar-track">
+                    <div className="map-neighborhood-row__bar-fill" style={{ width: `${Math.max(10, (row.count / districtAggregateMax) * 100)}%` }} />
+                  </div>
+                  <strong className="map-stat-row__value">{row.count}</strong>
                 </div>
               ))
             )}
           </div>
         </article>
 
-        <article className="card section-card--compact surface-card">
+        <article className="card section-card--compact surface-card map-insight-card">
           <h3 className="section-title mb-10">Quantidade por status</h3>
-          <div className="stack-sm">
+          <div className="stack-sm map-stat-list">
             {statusOrder.map((status) => (
               <div
                 key={status}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "14px 1fr auto",
-                  alignItems: "center",
-                  gap: 8,
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                }}
+                className="map-status-row"
               >
-                <span style={{ width: 12, height: 12, borderRadius: 999, background: statusPalette[status] }} />
-                <span>{labels.status(status)}</span>
-                <strong>{statusTotals[status] ?? 0}</strong>
+                <span className="map-status-row__dot" style={{ background: statusPalette[status] }} />
+                <span className="map-status-row__label">{labels.status(status)}</span>
+                <div className="map-status-row__bar-track">
+                  <div className="map-status-row__bar-fill" style={{ width: `${Math.max(10, ((statusTotals[status] ?? 0) / statusAggregateMax) * 100)}%` }} />
+                </div>
+                <strong className="map-status-row__value">{statusTotals[status] ?? 0}</strong>
               </div>
             ))}
           </div>
         </article>
+
       </section>
     </div>
   );
@@ -604,18 +819,84 @@ function OpenStreetMapFocusController({ target }: { target: FocusTarget | null }
   return null;
 }
 
+function OpenStreetMapAutoFitBounds({
+  points,
+  fallbackCenter,
+  target,
+  fitRequestId,
+}: {
+  points: MappedOpportunity[];
+  fallbackCenter: [number, number];
+  target: FocusTarget | null;
+  fitRequestId: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (target) return;
+    if (points.length === 0) {
+      map.setView(fallbackCenter, 4);
+      return;
+    }
+
+    const bounds = new LatLngBounds(points.map((item) => [item.plotLat, item.plotLng] as [number, number]));
+    map.fitBounds(bounds, {
+      padding: [24, 24],
+      maxZoom: 13,
+      animate: true,
+      duration: 0.8,
+    });
+  }, [map, points, fallbackCenter, target, fitRequestId]);
+
+  return null;
+}
+
 function OpenStreetMapFallbackPanel({
   center,
   mapOpportunities,
   cityHeatPoints,
   focusTarget,
+  fitRequestId,
+  onResetViewport,
+  mapStyle,
+  onMapStyleChange,
+  clusterEnabled,
+  onClusterEnabledChange,
 }: {
   center: [number, number];
   mapOpportunities: MappedOpportunity[];
   cityHeatPoints: Array<{ latitude: number; longitude: number; count: number }>;
   focusTarget: FocusTarget | null;
+  fitRequestId: number;
+  onResetViewport: () => void;
+  mapStyle: MapStyleMode;
+  onMapStyleChange: (next: MapStyleMode) => void;
+  clusterEnabled: boolean;
+  onClusterEnabledChange: (enabled: boolean) => void;
 }) {
-  const [satellite, setSatellite] = useState(false);
+  const markerElements = mapOpportunities.map((item) => {
+    const statusColor = statusPalette[item.status] ?? "var(--color-primary-strong)";
+    const color = item.isApproximate ? approximateColor : statusColor;
+    return (
+      <Marker key={item.id} position={[item.plotLat, item.plotLng]} icon={leafletMarkerIcon(color)}>
+        <Popup>
+          <div style={{ display: "grid", gap: 6, minWidth: 170 }}>
+            <strong>{item.title}</strong>
+            <span style={{ fontSize: 12 }}>{item.city ?? "-"}/{item.state ?? "-"}</span>
+            <span style={{ fontSize: 12 }}>Status: {labels.status(item.status)}</span>
+            <span style={{ fontSize: 12 }}>
+              Posicao: {item.isApproximate
+                ? (item.approximateLevel === "ADDRESS" ? "Aproximada por endereco" : "Aproximada por cidade/UF")
+                : "Coordenada real"}
+            </span>
+            <Link to={`/opportunities/${item.id}`} style={{ color: "var(--color-primary-strong)", fontWeight: 600 }}>
+              Ver obra
+            </Link>
+          </div>
+        </Popup>
+      </Marker>
+    );
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, height: "100%", minHeight: 0 }}>
@@ -625,11 +906,22 @@ function OpenStreetMapFallbackPanel({
           zoom={mapOpportunities.length > 0 ? 8 : 4}
           style={{ height: "100%", width: "100%" }}
         >
+          <OpenStreetMapAutoFitBounds
+            points={mapOpportunities}
+            fallbackCenter={defaultCenter}
+            target={focusTarget}
+            fitRequestId={fitRequestId}
+          />
           <OpenStreetMapFocusController target={focusTarget} />
-          {satellite ? (
+          {mapStyle === "SATELLITE" ? (
             <TileLayer
               attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, USGS, AeroGRID, IGN'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          ) : mapStyle === "GOOGLE" ? (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
           ) : (
             <TileLayer
@@ -651,57 +943,35 @@ function OpenStreetMapFallbackPanel({
           );
         })}
 
-        {mapOpportunities.map((item) => {
-          const statusColor = statusPalette[item.status] ?? "var(--color-primary-strong)";
-          const color = item.isApproximate ? approximateColor : statusColor;
-          return (
-            <Fragment key={item.id}>
-              <CircleMarker
-                center={[item.plotLat, item.plotLng]}
-                radius={9}
-                pathOptions={{ color, fillColor: color, fillOpacity: 0.16, weight: 2 }}
-              />
-              <Marker position={[item.plotLat, item.plotLng]} icon={leafletMarkerIcon(color)}>
-                <Popup>
-                  <div style={{ display: "grid", gap: 6, minWidth: 170 }}>
-                    <strong>{item.title}</strong>
-                    <span style={{ fontSize: 12 }}>{item.city ?? "-"}/{item.state ?? "-"}</span>
-                    <span style={{ fontSize: 12 }}>Status: {labels.status(item.status)}</span>
-                    <span style={{ fontSize: 12 }}>
-                      Posicao: {item.isApproximate
-                        ? (item.approximateLevel === "ADDRESS" ? "Aproximada por endereco" : "Aproximada por cidade/UF")
-                        : "Coordenada real"}
-                    </span>
-                    <Link to={`/opportunities/${item.id}`} style={{ color: "var(--color-primary-strong)", fontWeight: 600 }}>
-                      Ver obra
-                    </Link>
-                  </div>
-                </Popup>
-              </Marker>
-            </Fragment>
-          );
-        })}
+          {clusterEnabled ? (
+            <MarkerClusterGroup
+              chunkedLoading
+              maxClusterRadius={48}
+              showCoverageOnHover={false}
+              spiderfyOnMaxZoom
+              iconCreateFunction={leafletClusterIcon}
+            >
+              {markerElements}
+            </MarkerClusterGroup>
+          ) : (
+            markerElements
+          )}
       </MapContainer>
-        <button
-          onClick={() => setSatellite((s) => !s)}
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            zIndex: 1000,
-            padding: "6px 12px",
-            fontSize: 13,
-            fontWeight: 600,
-            borderRadius: 6,
-            border: "1px solid rgba(0,0,0,0.2)",
-            background: satellite ? "#1a1a2e" : "#fff",
-            color: satellite ? "#fff" : "#333",
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
-          }}
-        >
-          {satellite ? "🗺 Mapa" : "🛰 Satélite"}
-        </button>
+        <div className="map-controls" aria-label="Controles do mapa">
+          <button
+            type="button"
+            className={`map-control-btn ${clusterEnabled ? "is-active" : ""}`}
+            onClick={() => onClusterEnabledChange(!clusterEnabled)}
+          >
+            Cluster {clusterEnabled ? "ON" : "OFF"}
+          </button>
+          <button type="button" className={`map-control-btn ${mapStyle === "GOOGLE" ? "is-active" : ""}`} onClick={() => onMapStyleChange("GOOGLE")}>Google-like</button>
+          <button type="button" className={`map-control-btn ${mapStyle === "STREET" ? "is-active" : ""}`} onClick={() => onMapStyleChange("STREET")}>Ruas</button>
+          <button type="button" className={`map-control-btn ${mapStyle === "SATELLITE" ? "is-active" : ""}`} onClick={() => onMapStyleChange("SATELLITE")}>Satelite</button>
+          <button type="button" className="map-control-btn" onClick={onResetViewport}>
+            Reenquadrar
+          </button>
+        </div>
       </div>
     </div>
   );

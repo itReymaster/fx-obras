@@ -1,23 +1,13 @@
-import { ArrowRight, Building2, Clock3, MapPin, Plus, Rows3, Sparkles, TrendingUp } from "lucide-react";
+import { Building2, Clock3, Plus, Rows3, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { APP_CONFIG } from "../../../config/app";
-import { formatDate } from "../../../utils/format";
+import { formatDate, mergeUserRankings } from "../../../utils/format";
 import { opportunitiesApi } from "../services/opportunities-api";
-
-interface HomeDashboardData {
-  total: number;
-  last30: number;
-  highPotential: number;
-  overdueNextAction: number;
-  statusCounts?: Record<string, number>;
-  funnelTotal?: number;
-  latest: Array<{ id: string; title: string; code: string; capturedAt: string }>;
-}
+import type { OpportunityDashboardData } from "../types/opportunity.types";
 
 export function HomePage() {
   const [count, setCount] = useState(0);
-  const [dashboard, setDashboard] = useState<HomeDashboardData | null>(null);
+  const [dashboard, setDashboard] = useState<OpportunityDashboardData | null>(null);
   const [includeTests, setIncludeTests] = useState(false);
 
   useEffect(() => {
@@ -28,14 +18,8 @@ export function HomePage() {
   const cards = [
     { label: "Total cadastrado", value: dashboard?.total ?? count, icon: Building2 },
     { label: "Últimos 30 dias", value: dashboard?.last30 ?? 0, icon: TrendingUp },
-    { label: "Alto potencial", value: dashboard?.highPotential ?? 0, icon: ArrowRight },
+    { label: "Alto potencial", value: dashboard?.highPotential ?? 0, icon: Rows3 },
     { label: "Ação vencida", value: dashboard?.overdueNextAction ?? 0, icon: Clock3 },
-  ];
-
-  const signals = [
-    { label: "Capta rapido", icon: Sparkles },
-    { label: "Mapa ativo", icon: MapPin },
-    { label: "Fluxo mobile-first", icon: Rows3 },
   ];
 
   const funnelStages = [
@@ -56,108 +40,93 @@ export function HomePage() {
     dashboard?.funnelTotal ??
     funnelItems.reduce((sum, stage) => sum + stage.count, 0);
 
+  const captureByUser = mergeUserRankings(dashboard?.capturedByUser ?? []);
+  const captureByUserMax = Math.max(1, ...captureByUser.map((item) => item.count));
+
   return (
     <div className="page grid home-page">
       <section className="card home-hero">
-        <div className="home-hero-grid">
-          <div className="home-hero-copy">
-            <div className="badge hero-badge">
-              <Building2 size={16} /> Plataforma comercial
-            </div>
-            <h1 className="hero-title">{APP_CONFIG.name}</h1>
-            <p className="hero-lead">
-              Gestão de oportunidades de obras com captura em campo, leitura comercial em tempo real e trilha de acompanhamento para acelerar decisão e conversão.
-            </p>
-
-            <div className="home-signal hero-signals">
-              {signals.map((signal) => {
-                const Icon = signal.icon;
-                return (
-                  <span key={signal.label} className="home-signal-pill">
-                    <Icon size={14} /> {signal.label}
-                  </span>
-                );
-              })}
-            </div>
-
-            <div className="home-actions">
-              <Link className="btn btn-primary btn-link" to="/new">
-                <Plus size={18} /> Registrar oportunidade
-              </Link>
-              <Link className="btn btn-secondary btn-link" to="/opportunities">
-                <Rows3 size={18} /> Ver registros
-              </Link>
-              <Link className="btn btn-ghost btn-link" to="/map">
-                <ArrowRight size={18} /> Abrir mapa
-              </Link>
-            </div>
-          </div>
-
-          <aside className="home-hero-panel surface-card">
-            <div className="justify-between">
-              <div>
-                <div className="eyebrow">Resumo executivo</div>
-                <div className="hero-summary-title">Operação comercial ativa</div>
-              </div>
-              <span className="app-status-pill">{dashboard?.total ?? count} registros</span>
-            </div>
-
-            <div className="home-mini-stats">
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Últimos 30 dias</div>
-                <div className="home-mini-stat-value">{dashboard?.last30 ?? 0}</div>
-              </div>
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Alto potencial</div>
-                <div className="home-mini-stat-value">{dashboard?.highPotential ?? 0}</div>
-              </div>
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Ação vencida</div>
-                <div className="home-mini-stat-value">{dashboard?.overdueNextAction ?? 0}</div>
-              </div>
-              <div className="home-mini-stat">
-                <div className="home-mini-stat-label">Total cadastrado</div>
-                <div className="home-mini-stat-value">{dashboard?.total ?? count}</div>
-              </div>
-            </div>
-          </aside>
+        <div className="home-actions home-actions--focus">
+          <Link className="btn btn-primary btn-link home-cta-new" to="/new">
+            <Plus size={18} /> Registrar nova oportunidade
+          </Link>
+          <Link className="btn btn-secondary btn-link" to="/opportunities">
+            <Rows3 size={18} /> Ver registros
+          </Link>
         </div>
       </section>
 
-      <section className="card section-card surface-card funnel-card">
-        <div className="cluster cluster--spread mb-10">
-          <div>
-            <h3 className="section-title">Funil de Obras</h3>
-            <div className="section-note">
-              Visao por etapa comercial com quantidade de obras no funil ativo.
+      <div className="home-charts-grid">
+        <section className="card section-card surface-card funnel-card home-chart-card">
+          <div className="cluster cluster--spread mb-10 home-chart-head">
+            <div>
+              <h3 className="section-title">Funil de Obras</h3>
+              <div className="section-note home-chart-note">
+                Visao por etapa comercial com quantidade de obras no funil ativo.
+              </div>
             </div>
+            <span className="funnel-total-pill">{funnelTotal} obras no funil</span>
           </div>
-          <span className="funnel-total-pill">{funnelTotal} obras no funil</span>
-        </div>
 
-        <div className="funnel-list">
-          {funnelItems.map((stage, index) => (
-            <div key={stage.key} className="funnel-row">
-              <div className="funnel-row-head">
-                <div className="funnel-stage">
-                  <span className="funnel-stage-index">{index + 1}</span>
-                  <span className="funnel-stage-label">{stage.label}</span>
+          <div className="funnel-list">
+            {funnelItems.map((stage, index) => (
+              <div key={stage.key} className="funnel-row">
+                <div className="funnel-row-head">
+                  <div className="funnel-stage">
+                    <span className="funnel-stage-index">{index + 1}</span>
+                    <span className="funnel-stage-label">{stage.label}</span>
+                  </div>
+                  <span className="funnel-stage-count">{stage.count}</span>
                 </div>
-                <span className="funnel-stage-count">{stage.count}</span>
+                <div className="funnel-bar-track">
+                  <div
+                    className="funnel-bar-fill"
+                    style={{ width: `${Math.max(10, (stage.count / funnelMax) * 100)}%` }}
+                  />
+                </div>
               </div>
-              <div className="funnel-bar-track">
-                <div
-                  className="funnel-bar-fill"
-                  style={{ width: `${Math.max(10, (stage.count / funnelMax) * 100)}%` }}
-                />
+            ))}
+          </div>
+        </section>
+
+        <section className="card section-card surface-card capture-user-card home-chart-card">
+          <div className="cluster cluster--spread mb-10 home-chart-head">
+            <div>
+              <h3 className="section-title">Captura por usuário</h3>
+              <div className="section-note home-chart-note">
+                Engajamento do time por volume de obras capturadas.
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+
+          {captureByUser.length === 0 ? (
+            <div className="muted hero-note">Sem dados de captura por usuário para o filtro atual.</div>
+          ) : (
+            <div className="capture-user-list">
+              {captureByUser.map((item, index) => (
+                <div key={`${item.userId ?? "unknown"}-${index}`} className="capture-user-row">
+                  <div className="capture-user-row-head">
+                    <div className="capture-user-label-wrap">
+                      <span className="capture-user-rank">{index + 1}</span>
+                      <span className="capture-user-label">{item.userLabel}</span>
+                    </div>
+                    <span className="capture-user-count">{item.count}</span>
+                  </div>
+                  <div className="capture-user-track">
+                    <div
+                      className="capture-user-fill"
+                      style={{ width: `${Math.max(10, (item.count / captureByUserMax) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       <section className="home-kpis metric-grid">
-        <div className="cluster cluster--spread" style={{ gridColumn: "1 / -1", marginBottom: "4px" }}>
+        <div className="cluster cluster--spread home-kpi-filter-row">
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -171,9 +140,11 @@ export function HomePage() {
           const Icon = card.icon;
           return (
             <article key={card.label} className="card home-kpi-card metric-card">
-              <div className="metric-label">
-                <span>{card.label}</span>
-                <Icon size={16} />
+              <div className="home-kpi-head">
+                <span className="home-kpi-label">{card.label}</span>
+                <span className="home-kpi-icon" aria-hidden="true">
+                  <Icon size={15} />
+                </span>
               </div>
               <strong className="home-kpi-value metric-value">{card.value}</strong>
             </article>
@@ -181,7 +152,7 @@ export function HomePage() {
         })}
       </section>
 
-      <section className="card section-card surface-card">
+      <section className="card section-card surface-card home-recent-card">
         <div className="cluster cluster--spread mb-10">
           <div>
             <h3 className="section-title">Últimos registros</h3>

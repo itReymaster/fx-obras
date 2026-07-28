@@ -1,0 +1,95 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ConstructionOpportunity {
+  id                      String                 @id @default(uuid())
+  code                    String                 @unique
+  title                   String
+  description             String?
+  constructionType        String                 @default("UNKNOWN")
+  constructionStage       String                 @default("UNKNOWN")
+  commercialPotential     String                 @default("NOT_EVALUATED")
+  status                  String                 @default("CAPTURED")
+  addressSource           String                 @default("MANUAL")
+  postalCode              String?
+  street                  String?
+  number                  String?
+  withoutNumber           Boolean                @default(false)
+  complement              String?
+  district                String?
+  city                    String?
+  state                   String?
+  latitude                Float?
+  longitude               Float?
+  locationAccuracy        Float?
+  locationCapturedAt      DateTime?
+  constructionCompany     String?
+  estimatedCompletionDate DateTime?
+  contactName             String?
+  contactCompany          String?
+  contactRole             String?
+  contactPhone            String?
+  contactEmail            String?
+  nextAction              String?
+  nextActionDate          DateTime?
+  notes                   String?
+  tags                    String?
+  crmIntegrationStatus    String                 @default("NOT_SENT")
+  crmExternalId           String?
+  crmLastAttemptAt        DateTime?
+  crmIntegrationMessage   String?
+  capturedAt              DateTime               @default(now())
+  createdByUserId         String?
+  updatedByUserId         String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  deletedAt               DateTime?
+  isDeleted               Boolean                @default(false)
+  isTest                  Boolean                @default(false)
+
+  photos                  ConstructionOpportunityPhoto[]
+  history                 ConstructionOpportunityHistory[]
+
+  @@index([city, district])
+  @@index([status])
+  @@index([constructionType])
+  @@index([capturedAt])
+}
+
+model ConstructionOpportunityPhoto {
+  id                        String                  @id @default(uuid())
+  constructionOpportunityId String
+  originalName              String
+  storedName                String
+  relativePath              String
+  thumbnailRelativePath     String?
+  mimeType                  String
+  size                      Int
+  isPrimary                 Boolean                 @default(false)
+  createdAt                 DateTime                @default(now())
+
+  constructionOpportunity   ConstructionOpportunity @relation(fields: [constructionOpportunityId], references: [id], onDelete: Cascade)
+
+  @@index([constructionOpportunityId])
+}
+
+model ConstructionOpportunityHistory {
+  id                        String                  @id @default(uuid())
+  constructionOpportunityId String
+  action                    String
+  previousValue             String?
+  newValue                  String?
+  description               String?
+  createdAt                 DateTime                @default(now())
+
+  constructionOpportunity   ConstructionOpportunity @relation(fields: [constructionOpportunityId], references: [id], onDelete: Cascade)
+
+  @@index([constructionOpportunityId, createdAt])
+}

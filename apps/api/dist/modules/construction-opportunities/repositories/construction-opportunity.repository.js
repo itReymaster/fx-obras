@@ -47,6 +47,7 @@ function mapPrismaToModel(prismaRecord) {
             id: p.id,
             originalName: p.originalName,
             relativePath: p.relativePath,
+            thumbnailRelativePath: p.thumbnailRelativePath ?? undefined,
             mimeType: p.mimeType,
             isPrimary: p.isPrimary,
         })),
@@ -60,6 +61,20 @@ function mapPrismaToModel(prismaRecord) {
             : undefined,
     };
 }
+const normalizeUserKey = (value) => value.trim().toLowerCase().replace(/[\s-]+/g, "");
+const USER_ALIAS_GROUPS = {
+    adm: ["adm"],
+    jeffersonmartins: ["Jefferson-Martins"],
+    alissoncotrim: ["ALISSON-COTRIM", "Alisson-Cotrim", "Alisson Cotrim", "alisson"],
+    barbaracristina: ["Barbara-Cristina", "Barbara Cristina"],
+    silva: ["SILVA", "Marcelo-Silva", "Marcelo Silva", "Marcelo-Silva", "marcelo"],
+    elainecolaco: ["Elaine-Colaco", "Elaine Colaco"],
+    marciobarreto: ["Marcio-Barreto", "Marcio Barreto"],
+};
+const resolveUserAliases = (userId) => {
+    const normalized = normalizeUserKey(userId);
+    return USER_ALIAS_GROUPS[normalized] ?? [userId];
+};
 export class ConstructionOpportunityRepository {
     prisma;
     constructor(prisma) {
@@ -176,6 +191,7 @@ export class ConstructionOpportunityRepository {
                 notes: input.notes,
                 tags: input.tags !== undefined ? JSON.stringify(input.tags) : undefined,
                 capturedAt: input.capturedAt,
+                isTest: input.isTest,
                 updatedByUserId: input.updatedByUserId,
             },
             include: { photos: true, history: true },
@@ -205,7 +221,6 @@ export class ConstructionOpportunityRepository {
         const end = new Date(`${year + 1}-01-01T00:00:00.000Z`);
         return this.prisma.constructionOpportunity.count({
             where: {
-                isDeleted: false,
                 createdAt: { gte: start, lt: end },
             },
         });
@@ -257,7 +272,8 @@ export class ConstructionOpportunityRepository {
             andFilters.push({ isTest: query.isTest });
         }
         if (query.createdByUserId) {
-            andFilters.push({ createdByUserId: query.createdByUserId });
+            const aliases = resolveUserAliases(query.createdByUserId);
+            andFilters.push({ OR: aliases.map((alias) => ({ createdByUserId: alias })) });
         }
         return { AND: andFilters };
     }

@@ -14,6 +14,25 @@ concurrency:
 jobs:
   deploy:
     name: Deploy no servidor local
+    env:
+      DB_HOST: ${{ secrets.FX_OBRAS_DB_HOST }}
+      DB_PORT: ${{ secrets.FX_OBRAS_DB_PORT }}
+      DB_DATABASE: ${{ secrets.FX_OBRAS_DB_DATABASE }}
+      DB_USER: ${{ secrets.FX_OBRAS_DB_USER }}
+      DB_PASSWORD: ${{ secrets.FX_OBRAS_DB_PASSWORD }}
+      DB_PASSWORD_B64: ${{ secrets.FX_OBRAS_DB_PASSWORD_B64 }}
+      LEGACY_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      LEGACY_DB_PASSWORD_B64: ${{ secrets.DB_PASSWORD_B64 }}
+      ERP_FLEX_SECRET_PASSWORD: ${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD }}
+      ERP_FLEX_SECRET_PASSWORD_B64: ${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD_B64 }}
+      SQLSERVER_SECRET_PASSWORD: ${{ secrets.SQLSERVER_PASSWORD }}
+      VAR_DB_PASSWORD: ${{ vars.DB_PASSWORD }}
+      VAR_DB_PASSWORD_B64: ${{ vars.DB_PASSWORD_B64 }}
+      VAR_ERP_FLEX_PASSWORD: ${{ vars.ERP_FLEX_SQLSERVER_PASSWORD }}
+      VAR_ERP_FLEX_PASSWORD_B64: ${{ vars.ERP_FLEX_SQLSERVER_PASSWORD_B64 }}
+      DB_ENCRYPT: ${{ secrets.FX_OBRAS_DB_ENCRYPT }}
+      DB_TRUST_SERVER_CERTIFICATE: ${{ secrets.FX_OBRAS_DB_TRUST_SERVER_CERTIFICATE }}
+      DB_LOGIN_PROCEDURE: ${{ secrets.FX_OBRAS_DB_LOGIN_PROCEDURE }}
 
     runs-on:
       - self-hosted
@@ -31,9 +50,109 @@ jobs:
           echo "Branch: $GITHUB_REF_NAME"
           echo "Commit: $GITHUB_SHA"
 
+      - name: Normalizar secrets de senha
+        run: |
+          EFFECTIVE_DB_PASSWORD="${DB_PASSWORD}"
+          EFFECTIVE_DB_PASSWORD_B64="${DB_PASSWORD_B64}"
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${LEGACY_DB_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${LEGACY_DB_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${LEGACY_DB_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${LEGACY_DB_PASSWORD_B64}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${ERP_FLEX_SECRET_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${ERP_FLEX_SECRET_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${ERP_FLEX_SECRET_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${ERP_FLEX_SECRET_PASSWORD_B64}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${SQLSERVER_SECRET_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${SQLSERVER_SECRET_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${VAR_DB_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${VAR_DB_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${VAR_DB_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${VAR_DB_PASSWORD_B64}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD}" ] && [ -n "${VAR_ERP_FLEX_PASSWORD}" ]; then
+            EFFECTIVE_DB_PASSWORD="${VAR_ERP_FLEX_PASSWORD}"
+          fi
+
+          if [ -z "${EFFECTIVE_DB_PASSWORD_B64}" ] && [ -n "${VAR_ERP_FLEX_PASSWORD_B64}" ]; then
+            EFFECTIVE_DB_PASSWORD_B64="${VAR_ERP_FLEX_PASSWORD_B64}"
+          fi
+
+          echo "DB_PASSWORD=${EFFECTIVE_DB_PASSWORD}" >> "$GITHUB_ENV"
+          echo "DB_PASSWORD_B64=${EFFECTIVE_DB_PASSWORD_B64}" >> "$GITHUB_ENV"
+
       - name: Validar Docker Compose
         run: |
+          echo "diag: DB_PASSWORD_len=${#DB_PASSWORD} DB_PASSWORD_B64_len=${#DB_PASSWORD_B64}"
+          echo "diag: FX_OBRAS_DB_PASSWORD_set=$([ -n \"${{ secrets.FX_OBRAS_DB_PASSWORD }}\" ] && echo yes || echo no) FX_OBRAS_DB_PASSWORD_B64_set=$([ -n \"${{ secrets.FX_OBRAS_DB_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+          echo "diag: DB_PASSWORD_secret_set=$([ -n \"${{ secrets.DB_PASSWORD }}\" ] && echo yes || echo no) DB_PASSWORD_B64_secret_set=$([ -n \"${{ secrets.DB_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+          echo "diag: ERP_FLEX_SQLSERVER_PASSWORD_set=$([ -n \"${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD }}\" ] && echo yes || echo no) ERP_FLEX_SQLSERVER_PASSWORD_B64_set=$([ -n \"${{ secrets.ERP_FLEX_SQLSERVER_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+          echo "diag: VAR_DB_PASSWORD_set=$([ -n \"${{ vars.DB_PASSWORD }}\" ] && echo yes || echo no) VAR_DB_PASSWORD_B64_set=$([ -n \"${{ vars.DB_PASSWORD_B64 }}\" ] && echo yes || echo no)"
+
+          if [ -z "${DB_PASSWORD}" ] && [ -z "${DB_PASSWORD_B64}" ]; then
+            echo "Erro: nenhuma senha encontrada em Secrets/Variables (FX_OBRAS_DB_PASSWORD, FX_OBRAS_DB_PASSWORD_B64, DB_PASSWORD, DB_PASSWORD_B64, ERP_FLEX_SQLSERVER_PASSWORD, ERP_FLEX_SQLSERVER_PASSWORD_B64)."
+            exit 1
+          fi
+
           docker compose config --quiet
+
+      - name: Backup cloud (SQLite e uploads)
+        run: |
+          set -e
+
+          BACKUP_ROOT="$HOME/fx-obras-backups"
+          TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+          BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
+
+          mkdir -p "$BACKUP_DIR"
+
+          if docker compose ps --services --filter status=running | grep -q '^backend$'; then
+            docker compose exec -T backend sh -c "tar -czf - -C /app/data ." > "$BACKUP_DIR/app-data.tar.gz"
+            echo "Backup criado: $BACKUP_DIR/app-data.tar.gz"
+
+            docker compose exec -T backend sh -c "tar -czf - -C /app/uploads ." > "$BACKUP_DIR/app-uploads.tar.gz"
+            echo "Backup criado: $BACKUP_DIR/app-uploads.tar.gz"
+          else
+            echo "Container backend não está em execução. Tentando backup por volume."
+
+            DATA_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(fx-obras-data|fx_obras_data)' | head -n1 || true)"
+            UPLOADS_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(fx-obras-uploads|fx_obras_uploads)' | head -n1 || true)"
+
+            if [ -n "$DATA_VOLUME" ]; then
+              docker run --rm \
+                -v "$DATA_VOLUME":/from:ro \
+                -v "$BACKUP_DIR":/to \
+                alpine sh -c "cd /from && tar -czf /to/fx-obras-data.tar.gz ."
+              echo "Backup criado: $BACKUP_DIR/fx-obras-data.tar.gz"
+            else
+              echo "Volume de dados não encontrado. Backup do banco ignorado."
+            fi
+
+            if [ -n "$UPLOADS_VOLUME" ]; then
+              docker run --rm \
+                -v "$UPLOADS_VOLUME":/from:ro \
+                -v "$BACKUP_DIR":/to \
+                alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ."
+              echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
+            else
+              echo "Volume de uploads não encontrado. Backup de uploads ignorado."
+            fi
+          fi
+
+          ls -lah "$BACKUP_DIR"
 
       - name: Construir imagens
         run: |
@@ -42,6 +161,71 @@ jobs:
       - name: Atualizar containers
         run: |
           docker compose up -d --remove-orphans
+
+      - name: Aplicar migrations no backend
+        run: |
+          docker compose exec -T backend npx prisma migrate deploy
+
+      - name: Backfill miniaturas no backend
+        run: |
+          docker compose exec -T backend node dist/scripts/backfill-photo-thumbnails.js --dry-run
+          docker compose exec -T backend node dist/scripts/backfill-photo-thumbnails.js
+
+      - name: Recarregar proxy central
+        run: |
+          set -e
+
+          PROXY_CONTAINERS="$(docker ps --format '{{.Names}}' | grep -Ei '(nginx|proxy|gateway)' || true)"
+
+          if [ -n "$PROXY_CONTAINERS" ]; then
+            printf '%s\n' "$PROXY_CONTAINERS" | while IFS= read -r container_name; do
+              if [ -n "$container_name" ]; then
+                echo "Recarregando proxy em $container_name"
+                docker exec "$container_name" nginx -s reload || true
+              fi
+            done
+          else
+            echo "Nenhum proxy central identificado para reload via Docker."
+          fi
+
+          if command -v systemctl >/dev/null 2>&1; then
+            systemctl reload nginx || true
+          fi
+
+      - name: Diagnóstico ERP no container
+        run: |
+          docker compose exec -T backend node -e "const out={hasDbPassword:Boolean(process.env.DB_PASSWORD),dbPasswordLen:(process.env.DB_PASSWORD||'').length,hasDbPasswordB64:Boolean(process.env.DB_PASSWORD_B64),dbPasswordB64Len:(process.env.DB_PASSWORD_B64||'').length,dbHost:process.env.DB_HOST||null,dbUser:process.env.DB_USER||null,dbDatabase:process.env.DB_DATABASE||null}; console.log(JSON.stringify(out));"
+
+      - name: Validar status ERP público
+        run: |
+          STATUS_URL="https://projetos.reymaster.com.br:17443/inovacao/fx-obras/api/v2/auth/erp-flex/status"
+          ATTEMPTS=20
+          INTERVAL_SECONDS=3
+          OK=0
+
+          for i in $(seq 1 $ATTEMPTS); do
+            echo "Tentativa ${i}/${ATTEMPTS}"
+
+            STATUS_JSON=$(curl -sS "${STATUS_URL}?ts=$(date +%s)" || true)
+
+            if [ -n "$STATUS_JSON" ]; then
+              echo "$STATUS_JSON"
+            else
+              echo "Sem resposta JSON (possível 502 transitório)."
+            fi
+
+            if echo "$STATUS_JSON" | grep -q '"configured":true'; then
+              OK=1
+              break
+            fi
+
+            sleep $INTERVAL_SECONDS
+          done
+
+          if [ "$OK" -ne 1 ]; then
+            echo "Erro: endpoint ERP não ficou configured=true dentro do tempo esperado."
+            exit 1
+          fi
 
       - name: Verificar containers
         run: |

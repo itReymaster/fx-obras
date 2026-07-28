@@ -1,0 +1,108 @@
+name: Normalizar usuário de captura
+
+on:
+  workflow_dispatch:
+    inputs:
+      oldUser:
+        description: "Usuário antigo"
+        required: true
+        default: "Marcelo-Silva"
+      newUser:
+        description: "Usuário novo"
+        required: true
+        default: "SILVA"
+
+jobs:
+  normalize:
+    name: Atualizar autoria de oportunidades
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Validar containers
+        run: |
+          docker compose ps
+
+      - name: Normalizar usuário no banco
+        env:
+          OLD_USER: ${{ inputs.oldUser }}
+          NEW_USER: ${{ inputs.newUser }}
+        run: |
+          docker compose exec -T -e OLD_USER -e NEW_USER backend node -e '
+            const { PrismaClient } = require("@prisma/client");
+
+            const oldUser = process.env.OLD_USER;
+            const newUser = process.env.NEW_USER;
+
+            if (!oldUser || !newUser) {
+              throw new Error("OLD_USER e NEW_USER são obrigatórios.");
+            }
+
+            const prisma = new PrismaClient();
+
+            (async () => {
+              const beforeTotal = await prisma.constructionOpportunity.count({
+                where: {
+                  OR: [
+                    { createdByUserId: oldUser },
+                    { updatedByUserId: oldUser },
+                  ],
+                },
+              });
+              console.log(`[normalize-user] Encontrados ${beforeTotal} registros para ${oldUser}`);
+
+              if (beforeTotal === 0) {
+                console.log("[normalize-user] Nenhuma alteração necessária.");
+                await prisma.$disconnect();
+                return;
+              }
+
+              const updatedCreated = await prisma.constructionOpportunity.updateMany({
+                where: { createdByUserId: oldUser },
+                data: { createdByUserId: newUser, updatedAt: new Date() },
+              });
+
+              const updatedUpdated = await prisma.constructionOpportunity.updateMany({
+                where: { updatedByUserId: oldUser },
+                data: { updatedByUserId: newUser, updatedAt: new Date() },
+              });
+
+              const afterTotal = await prisma.constructionOpportunity.count({
+                where: {
+                  OR: [
+                    { createdByUserId: oldUser },
+                    { updatedByUserId: oldUser },
+                  ],
+                },
+              });
+
+              const newTotal = await prisma.constructionOpportunity.count({
+                where: {
+                  OR: [
+                    { createdByUserId: newUser },
+                    { updatedByUserId: newUser },
+                  ],
+                },
+              });
+
+              console.log(`[normalize-user] Atualizados createdByUserId: ${updatedCreated.count}`);
+              console.log(`[normalize-user] Atualizados updatedByUserId: ${updatedUpdated.count}`);
+              console.log(`[normalize-user] Restantes com ${oldUser}: ${afterTotal}`);
+              console.log(`[normalize-user] Registros com ${newUser}: ${newTotal}`);
+
+              await prisma.$disconnect();
+            })().catch(async (err) => {
+              console.error(err);
+              try {
+                await prisma.$disconnect();
+              } catch {
+                // noop
+              }
+              process.exit(1);
+            });
+          '
