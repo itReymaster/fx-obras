@@ -11,7 +11,7 @@ import {
   statusOptions,
 } from "../../../utils/labels";
 import { opportunitiesApi } from "../services/opportunities-api";
-import type { Opportunity } from "../types/opportunity.types";
+import type { Opportunity, OpportunityListResponse } from "../types/opportunity.types";
 
 export function OpportunityListPage() {
   type TestFilterMode = "real_only" | "test_only" | "all";
@@ -29,6 +29,10 @@ export function OpportunityListPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [desktopFiltersOpen, setDesktopFiltersOpen] = useState(true);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [pagination, setPagination] = useState<OpportunityListResponse["pagination"] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const load = (overrides?: {
     search?: string;
@@ -39,6 +43,8 @@ export function OpportunityListPage() {
     createdByUserId?: string;
     sortBy?: string;
     testFilterMode?: TestFilterMode;
+    page?: number;
+    pageSize?: number;
   }) => {
     const applied = {
       search,
@@ -49,6 +55,8 @@ export function OpportunityListPage() {
       createdByUserId,
       sortBy,
       testFilterMode,
+      page,
+      pageSize,
       ...overrides,
     };
 
@@ -57,10 +65,12 @@ export function OpportunityListPage() {
         ? undefined
         : applied.testFilterMode === "test_only";
 
+    setIsLoading(true);
+
     void opportunitiesApi
       .list({
-        page: 1,
-        pageSize: 50,
+        page: applied.page ?? 1,
+        pageSize: applied.pageSize ?? 50,
         search: applied.search,
         city: applied.city,
         status: applied.status,
@@ -70,7 +80,13 @@ export function OpportunityListPage() {
         sortBy: applied.sortBy,
         isTest: isTestParam,
       })
-      .then((response) => setItems(response.data));
+      .then((response) => {
+        setItems(response.data);
+        setPagination(response.pagination);
+        setPage(response.pagination.page);
+        setPageSize(response.pagination.pageSize);
+      })
+      .finally(() => setIsLoading(false));
   };
 
   const hasActiveFilters = Boolean(
@@ -86,6 +102,13 @@ export function OpportunityListPage() {
     createdByUserId,
     testFilterMode !== "real_only" ? "testMode" : "",
   ].filter(Boolean).length;
+
+  const paginationSummary = pagination
+    ? {
+        start: pagination.totalItems === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1,
+        end: Math.min(pagination.page * pagination.pageSize, pagination.totalItems),
+      }
+    : null;
 
   const handleDelete = async (id: string) => {
     const confirmDelete = window.confirm("Excluir esta obra? Esta ação remove o registro da listagem.");
@@ -289,11 +312,53 @@ export function OpportunityListPage() {
               </button>
             </div>
             <div className="filters-summary">
-              {items.length} obra(s) encontrada(s)
+              {pagination ? `${pagination.totalItems} obra(s) encontrada(s)` : `${items.length} obra(s) encontrada(s)`}
             </div>
           </div>
         </div>
       </section>
+      {pagination && pagination.totalPages > 1 && (
+        <section className="card surface-card" style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div className="muted">
+            {paginationSummary ? `Exibindo ${paginationSummary.start}-${paginationSummary.end} de ${pagination.totalItems} obras` : `${items.length} obras carregadas`}
+          </div>
+          <div className="cluster" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: 1, pageSize })}
+              disabled={page === 1 || isLoading}
+            >
+              Primeira
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: Math.max(1, page - 1), pageSize })}
+              disabled={page === 1 || isLoading}
+            >
+              Anterior
+            </button>
+            <span className="muted">Página {page} de {pagination.totalPages}</span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: Math.min(pagination.totalPages, page + 1), pageSize })}
+              disabled={page >= pagination.totalPages || isLoading}
+            >
+              Próxima
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => load({ page: pagination.totalPages, pageSize })}
+              disabled={page >= pagination.totalPages || isLoading}
+            >
+              Última
+            </button>
+          </div>
+        </section>
+      )}
       {view === "table" && isDesktop ? (
         <section className="card surface-card table-shell">
           <table className="table-full table-opportunities">
