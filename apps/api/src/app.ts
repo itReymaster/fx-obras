@@ -8,10 +8,12 @@ import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import { absoluteUploadDir, env } from "./config/env.js";
+import { getSqlDialectCircuitStatus } from "./shared/database/sql-dialect-circuit-breaker.js";
 import { erpFlexAuthRouter } from "./modules/auth/erp-flex-auth.routes.js";
 import { constructionOpportunitiesRouter } from "./modules/construction-opportunities/routes/construction-opportunities.routes.js";
 import { constructionOpportunitiesV2Router } from "./modules/construction-opportunities/routes/construction-opportunities.v2.routes.js";
 import { serviceProvidersRouter } from "./modules/service-providers/routes/service-providers.routes.js";
+import { dbCircuitBreakerRouter } from "./modules/ops/db-circuit-breaker.routes.js";
 import { errorHandler } from "./shared/http/error-handler.js";
 import { requireAuthenticatedUser } from "./shared/middlewares/auth.js";
 
@@ -34,11 +36,19 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", app: env.appName });
+  const circuit = getSqlDialectCircuitStatus();
+  res.json({
+    status: "ok",
+    app: env.appName,
+    sqlDialect: circuit.active,
+    sqlDialectEnvDefault: circuit.envDefault,
+    sqlDialectOverride: circuit.fileOverride ?? circuit.memoryOverride,
+  });
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 app.use("/api/v2/auth", erpFlexAuthRouter);
+app.use("/api/v2/ops", dbCircuitBreakerRouter);
 app.use("/api/v1/construction-opportunities", requireAuthenticatedUser, constructionOpportunitiesRouter);
 app.use("/api/v2/construction-opportunities", requireAuthenticatedUser, constructionOpportunitiesV2Router);
 app.use("/api/v2/service-providers", requireAuthenticatedUser, serviceProvidersRouter);

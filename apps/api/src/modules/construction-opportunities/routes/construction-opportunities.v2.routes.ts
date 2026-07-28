@@ -4,13 +4,9 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import multer from "multer";
 import { env } from "../../../config/env.js";
-import { prisma } from "../../../shared/database/prisma.js";
-import { getSequelize } from "../../../shared/database/sequelize.js";
 import { AppError } from "../../../shared/errors/app-error.js";
 import { ConstructionOpportunitiesController } from "../controllers/construction-opportunities.controller.js";
-import { ConstructionOpportunitiesService } from "../services/construction-opportunities.service.js";
-import { SequelizeConstructionOpportunityRepository } from "../v2/construction-opportunity.sequelize.repository.js";
-import { ConstructionOpportunitiesV2Service } from "../v2/construction-opportunities.v2.service.js";
+import { DialectAwareOpportunitiesService } from "../v2/dialect-aware-opportunities.service.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -52,11 +48,7 @@ const audioUpload = multer({
   },
 });
 
-const service = env.sqlDialect === "mssql"
-  ? new ConstructionOpportunitiesV2Service(
-      new SequelizeConstructionOpportunityRepository(getSequelize()),
-    )
-  : new ConstructionOpportunitiesService(prisma);
+const service = new DialectAwareOpportunitiesService();
 const controller = new ConstructionOpportunitiesController(service);
 
 type OpportunityAudioItem = {

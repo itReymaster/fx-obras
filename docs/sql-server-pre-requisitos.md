@@ -17,7 +17,7 @@ Motivos praticos:
 3. migracao precisa priorizar SQL compativel e testes de regressao.
 
 Recomendacao para avaliacao:
-1. Caminho A (manter 2008 R2): usar camada de persistencia SQL nativa (mssql/Sequelize), com scripts manuais de schema;
+1. Caminho A (manter 2008 R2): usar a API v2 com Sequelize + tedious ja existente, schema manual `fx_obras` e `SQL_DIALECT=mssql` (runbook em tutorial-migracao-sqlserver-2008r2.md);
 2. Caminho B (upgrade de SQL Server): manter/retomar fluxo moderno com Prisma e migrations.
 
 ## 2) Escopo minimo da migracao
@@ -166,8 +166,11 @@ A migracao so deve ser aprovada quando:
 
 ## 8) Referencia complementar deste repositorio
 
-Para passo a passo didatico de migracao focado no 2008 R2, consulte:
-1. docs/tutorial-migracao-sqlserver-2008r2.md
+Para o runbook operacional de cutover (schema `fx_obras`, env `SQL_DIALECT`, ETL, arquivos e rollback), consulte:
+1. [tutorial-migracao-sqlserver-2008r2.md](./tutorial-migracao-sqlserver-2008r2.md)
 
-Para estrategia de API v2 e convivencia de camadas:
-1. docs/plano-api-v2-sequelize-migracao.md
+Para estrategia de API v2 e convivencia de camadas (nota: a v2 ja vive em `apps/api`, nao em `apps/api-v2`):
+1. [plano-api-v2-sequelize-migracao.md](./plano-api-v2-sequelize-migracao.md)
+
+Backup pre-migracao do SQL Server:
+1. [sqlserver-backup-pre-migration.sql](./sqlserver-backup-pre-migration.sql)

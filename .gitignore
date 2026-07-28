@@ -57,3 +57,8 @@ prisma/dev.db
 
 # Uploads
 uploads/
+uploads-from-server/
+
+# Circuit breaker runtime override
+data/
+apps/api/data/
