@@ -35,7 +35,7 @@ app.use(morgan("dev"));
 app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
-app.get("/health", (_req, res) => {
+const healthHandler = (_req: express.Request, res: express.Response) => {
   const circuit = getSqlDialectCircuitStatus();
   res.json({
     status: "ok",
@@ -44,7 +44,11 @@ app.get("/health", (_req, res) => {
     sqlDialectEnvDefault: circuit.envDefault,
     sqlDialectOverride: circuit.fileOverride ?? circuit.memoryOverride,
   });
-});
+};
+
+app.get("/health", healthHandler);
+// Mesmo payload sob o prefixo da API (produção via nginx /inovacao/fx-obras/api/v2)
+app.get("/api/v2/health", healthHandler);
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 app.use("/api/v2/auth", erpFlexAuthRouter);

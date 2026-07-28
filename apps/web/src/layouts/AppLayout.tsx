@@ -65,7 +65,8 @@ export function AppLayout() {
 
     const loadDbStatus = async () => {
       try {
-        const response = await fetch("/health", { cache: "no-store" });
+        const healthUrl = `${APP_CONFIG.apiBaseUrl.replace(/\/$/, "")}/health`;
+        const response = await fetch(healthUrl, { cache: "no-store" });
         if (!response.ok) return;
         const payload = (await response.json()) as { sqlDialect?: string };
         if (cancelled) return;
