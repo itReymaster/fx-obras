@@ -7,7 +7,7 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 COPY prisma ./prisma
 COPY src ./src
@@ -28,7 +28,7 @@ RUN apt-get update -y \
 
 COPY package.json ./
 COPY prisma ./prisma
-RUN npm install --omit=dev && npm install prisma@5.22.0
+RUN npm install --omit=dev --legacy-peer-deps && npm install prisma@5.22.0 --legacy-peer-deps
 RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
