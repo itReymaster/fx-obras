@@ -33,6 +33,12 @@ jobs:
       DB_ENCRYPT: ${{ secrets.FX_OBRAS_DB_ENCRYPT }}
       DB_TRUST_SERVER_CERTIFICATE: ${{ secrets.FX_OBRAS_DB_TRUST_SERVER_CERTIFICATE }}
       DB_LOGIN_PROCEDURE: ${{ secrets.FX_OBRAS_DB_LOGIN_PROCEDURE }}
+      SQL_DIALECT: sqlite
+      FX_OBRAS_SCHEMA: fx_obras
+      CIRCUIT_BREAKER_TOKEN: fx-obras-cb-7f3a9c2e1b84d056
+      SQL_DIALECT_BREAKER_FILE: /app/data/sql-dialect.breaker
+      SQLSERVER_ENCRYPT: "false"
+      SQLSERVER_TRUST_SERVER_CERTIFICATE: "true"
 
     runs-on:
       - self-hosted

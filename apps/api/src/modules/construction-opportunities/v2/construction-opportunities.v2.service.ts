@@ -112,6 +112,7 @@ export class ConstructionOpportunitiesV2Service {
         originalName: file.originalname,
         storedName: stored.storedName,
         relativePath: stored.relativePath,
+        thumbnailRelativePath: stored.thumbnailRelativePath,
         mimeType: file.mimetype,
         size: file.size,
         isPrimary: currentPhotos.length === 0 && createdPhotos.length === 0,

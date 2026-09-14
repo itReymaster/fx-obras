@@ -38,6 +38,12 @@ export default defineConfig(({ mode }) => {
           secure: false,
           rejectUnauthorized: false,
         },
+        "/health": {
+          target: isHttps ? "https://127.0.0.1:3333" : "http://127.0.0.1:3333",
+          changeOrigin: true,
+          secure: false,
+          rejectUnauthorized: false,
+        },
         "/uploads": {
           target: isHttps ? "https://127.0.0.1:3333" : "http://127.0.0.1:3333",
           changeOrigin: true,

@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "photos:backfill-thumbs": "tsx src/scripts/backfill-photo-thumbnails.ts",
+    "db:migrate-sqlite-to-mssql": "tsx src/scripts/migrate-sqlite-to-mssql.ts",
     "test": "vitest run"
   },
   "private": true,

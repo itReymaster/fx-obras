@@ -88,6 +88,8 @@ export const env = {
   sqlServerPassword: dbPassword ?? "",
   sqlServerEncrypt: (process.env.SQLSERVER_ENCRYPT ?? "false") === "true",
   sqlServerTrustServerCertificate: (process.env.SQLSERVER_TRUST_SERVER_CERTIFICATE ?? "true") === "true",
+  /** Schema das tabelas do app (nao alterar DEFAULT_SCHEMA do UserService do Flex). */
+  sqlServerSchema: process.env.FX_OBRAS_SCHEMA ?? "fx_obras",
   erpFlexSqlHost: dbHost ?? "200.195.141.5",
   erpFlexSqlPort: toNumber(dbPort, 1433),
   erpFlexSqlDatabase: dbDatabase ?? "Flex",

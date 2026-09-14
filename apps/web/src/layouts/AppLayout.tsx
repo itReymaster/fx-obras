@@ -55,9 +55,39 @@ export function AppLayout() {
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const [launcherSearch, setLauncherSearch] = useState("");
   const [launcherHighlightedIndex, setLauncherHighlightedIndex] = useState(0);
+  const [sqlDialect, setSqlDialect] = useState<"sqlite" | "mssql" | null>(null);
   const currentUser = formatUserDisplay(getAuthenticatedUser());
   const launcherRef = useRef<HTMLDivElement | null>(null);
   const launcherSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDbStatus = async () => {
+      try {
+        const healthUrl = `${APP_CONFIG.apiBaseUrl.replace(/\/$/, "")}/health`;
+        const response = await fetch(healthUrl, { cache: "no-store" });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { sqlDialect?: string };
+        if (cancelled) return;
+        if (payload.sqlDialect === "sqlite" || payload.sqlDialect === "mssql") {
+          setSqlDialect(payload.sqlDialect);
+        }
+      } catch {
+        // silencioso: indicador discreto, nao bloquear UI
+      }
+    };
+
+    void loadDbStatus();
+    const timer = window.setInterval(() => {
+      void loadDbStatus();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isLauncherOpen) return;
@@ -196,7 +226,19 @@ export function AppLayout() {
           </div>
           <div className="app-topbar-actions">
             <div className="app-topbar-meta">
-              <span className="app-status-pill">Operação ativa</span>
+              {sqlDialect && (
+                <span
+                  className={`app-db-pill app-db-pill--${sqlDialect}`}
+                  title={
+                    sqlDialect === "mssql"
+                      ? "Persistência ativa: SQL Server (fx_obras)"
+                      : "Persistência ativa: SQLite (banco local/anterior)"
+                  }
+                >
+                  <Database size={12} aria-hidden />
+                  <span>{sqlDialect === "mssql" ? "SQL Server" : "SQLite"}</span>
+                </span>
+              )}
               <span className="app-user-pill" title={`Usuário logado: ${currentUser}`}>
                 <span className="app-user-pill-label">Usuário:</span>
                 <span className="app-user-pill-name">{currentUser}</span>
