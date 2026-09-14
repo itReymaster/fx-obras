@@ -28,7 +28,7 @@ RUN apt-get update -y \
 
 COPY package.json ./
 COPY prisma ./prisma
-RUN npm install --omit=dev --legacy-peer-deps
+RUN npm install --omit=dev --legacy-peer-deps && npm install prisma@5.22.0 --save-dev --legacy-peer-deps
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
