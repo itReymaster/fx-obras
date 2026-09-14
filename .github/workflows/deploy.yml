@@ -154,16 +154,7 @@ jobs:
               docker run --rm \
                 -v "$UPLOADS_VOLUME":/from:ro \
                 -v "$BACKUP_DIR":/to \
-                alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ." || echo "Aviso: backup de volume uploads falhou"
-              echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
-            else
-              echo "Volume de uploads não encontrado. Backup de uploads ignorado."
-            fi
-          fi
-              docker run --rm \
-                -v "$UPLOADS_VOLUME":/from:ro \
-                -v "$BACKUP_DIR":/to \
-                alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ."
+                alpine sh -c "cd /from && tar --exclude='./audio' -czf /to/fx-obras-uploads.tar.gz ." || echo "Aviso: backup de volume uploads falhou"
               echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
             else
               echo "Volume de uploads não encontrado. Backup de uploads ignorado."
