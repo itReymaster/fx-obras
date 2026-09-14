@@ -21,6 +21,13 @@ export const opportunitiesApi = {
     return data.pagination.totalItems;
   },
 
+  async getLocations() {
+    const { data } = await api.get<Array<{ state: string | null; city: string | null; district: string | null }>>(
+      "/construction-opportunities/locations",
+    );
+    return data;
+  },
+
   async list(params: Record<string, unknown>) {
     const { data } = await api.get<OpportunityListResponse>("/construction-opportunities", {
       params,

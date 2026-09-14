@@ -466,6 +466,21 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     return result[0]?.totalItems ?? 0;
   }
 
+  async getLocations(): Promise<Array<{ state: string | null; city: string | null; district: string | null }>> {
+    const rows = await this.sequelize.query<SqlRow>(
+      `SELECT DISTINCT state, city, district
+       FROM ConstructionOpportunity
+       WHERE isDeleted = 0 AND (state IS NOT NULL OR city IS NOT NULL OR district IS NOT NULL)`,
+      { type: QueryTypes.SELECT },
+    );
+
+    return rows.map((r) => ({
+      state: r.state ? String(r.state) : null,
+      city: r.city ? String(r.city) : null,
+      district: r.district ? String(r.district) : null,
+    }));
+  }
+
   async findPhotosByOpportunityId(constructionOpportunityId: string) {
     const rows = await this.sequelize.query<SqlRow>(
       `SELECT * FROM ConstructionOpportunityPhoto WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY isPrimary DESC, createdAt ASC`,
@@ -635,6 +650,7 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     if (sortBy === "oldest") return "capturedAt ASC";
     if (sortBy === "title") return "title ASC";
     if (sortBy === "city") return "city ASC";
+    if (sortBy === "district") return "district ASC";
     if (sortBy === "commercialPotential") return "commercialPotential DESC";
     if (sortBy === "nextActionDate") return "nextActionDate ASC";
     return "capturedAt DESC";
@@ -659,20 +675,20 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     const replacements: Record<string, unknown> = {};
 
     if (filters.search) {
-      conditions.push("(title LIKE :searchLike OR notes LIKE :searchLike OR code LIKE :searchLike)");
+      conditions.push("(title LIKE :searchLike OR notes LIKE :searchLike OR code LIKE :searchLike OR district LIKE :searchLike OR city LIKE :searchLike OR street LIKE :searchLike)");
       replacements.searchLike = `%${filters.search}%`;
     }
     if (filters.city) {
-      conditions.push("city = :city");
-      replacements.city = filters.city;
+      conditions.push("city LIKE :cityLike");
+      replacements.cityLike = `%${filters.city}%`;
     }
     if (filters.state) {
       conditions.push("state = :state");
       replacements.state = filters.state.toUpperCase();
     }
     if (filters.district) {
-      conditions.push("district = :district");
-      replacements.district = filters.district;
+      conditions.push("district LIKE :districtLike");
+      replacements.districtLike = `%${filters.district}%`;
     }
     if (filters.constructionType) {
       conditions.push("constructionType = :constructionType");

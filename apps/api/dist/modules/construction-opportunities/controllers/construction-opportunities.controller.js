@@ -78,6 +78,10 @@ export class ConstructionOpportunitiesController {
         const result = await this.service.dashboard(includeTests);
         res.json(result);
     };
+    getLocations = async (_req, res) => {
+        const result = await (this.service.getLocations ? this.service.getLocations() : []);
+        res.json(result);
+    };
     integrateCrm = async (req, res) => {
         const result = await this.service.sendToCrm(asParam(req.params.id));
         res.json(result);

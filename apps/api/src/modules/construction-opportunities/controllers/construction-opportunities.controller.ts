@@ -19,6 +19,7 @@ export interface ConstructionOpportunitiesControllerService {
   history(id: string): Promise<unknown>;
   updateStatus(id: string, status: string, reason?: string): Promise<void>;
   dashboard(includeTests?: boolean): Promise<unknown>;
+  getLocations?(): Promise<unknown>;
   sendToCrm(id: string): Promise<unknown>;
 }
 
@@ -111,6 +112,11 @@ export class ConstructionOpportunitiesController {
   dashboard = async (req: Request, res: Response) => {
     const includeTests = req.query.includeTests === "true";
     const result = await this.service.dashboard(includeTests);
+    res.json(result);
+  };
+
+  getLocations = async (_req: Request, res: Response) => {
+    const result = await (this.service.getLocations ? this.service.getLocations() : []);
     res.json(result);
   };
 

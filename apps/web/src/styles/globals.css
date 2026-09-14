@@ -582,7 +582,7 @@ textarea:focus-visible {
   }
 
   .filters-grid--opportunities {
-    grid-template-columns: repeat(6, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     align-items: end;
   }
 
@@ -1988,8 +1988,8 @@ textarea:focus-visible {
 .map-filters-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
-  width: min(100%, 940px);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  width: min(100%, 1050px);
 }
 
 .map-filter-label--search {
@@ -2141,6 +2141,18 @@ textarea:focus-visible {
   border-radius: 10px;
   padding: 8px 10px;
   background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.map-stat-row:hover {
+  border-color: var(--color-primary-soft, #cbd5e1);
+  background: #f8fafc;
+}
+
+.map-stat-row.is-selected {
+  border-color: var(--color-primary, #1e40af);
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px var(--color-primary, #1e40af);
 }
 
 .map-stat-row__label {

@@ -136,6 +136,7 @@ const listOpportunityAudios = async (opportunityId: string): Promise<Opportunity
 export const constructionOpportunitiesV2Router = Router();
 
 constructionOpportunitiesV2Router.get("/dashboard", controller.dashboard);
+constructionOpportunitiesV2Router.get("/locations", controller.getLocations);
 constructionOpportunitiesV2Router.post("/", controller.create);
 constructionOpportunitiesV2Router.get("/", controller.list);
 constructionOpportunitiesV2Router.get("/:id", controller.getById);

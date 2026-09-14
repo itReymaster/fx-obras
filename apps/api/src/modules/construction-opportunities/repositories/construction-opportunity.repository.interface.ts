@@ -18,4 +18,5 @@ export interface IConstructionOpportunityRepository {
   count(filters?: Partial<ConstructionOpportunityModel>): Promise<number>;
   countByYear(year: number): Promise<number>;
   aggregateByStatus(): Promise<Array<{ status: string; count: number }>>;
+  getLocations?(): Promise<Array<{ state: string | null; city: string | null; district: string | null }>>;
 }

@@ -21,6 +21,7 @@ const service = new ConstructionOpportunitiesService(prisma);
 const controller = new ConstructionOpportunitiesController(service);
 export const constructionOpportunitiesRouter = Router();
 constructionOpportunitiesRouter.get("/dashboard", controller.dashboard);
+constructionOpportunitiesRouter.get("/locations", controller.getLocations);
 constructionOpportunitiesRouter.post("/", controller.create);
 constructionOpportunitiesRouter.get("/", controller.list);
 constructionOpportunitiesRouter.get("/:id", controller.getById);

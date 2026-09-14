@@ -257,6 +257,16 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
     return result.map((r) => ({ status: r.status, count: r._count }));
   }
 
+  async getLocations(): Promise<Array<{ state: string | null; city: string | null; district: string | null }>> {
+    const records = await this.prisma.constructionOpportunity.findMany({
+      where: { isDeleted: false },
+      select: { state: true, city: true, district: true },
+      distinct: ["state", "city", "district"],
+    });
+
+    return records;
+  }
+
   private buildWhere(query: ListQueryInput): Prisma.ConstructionOpportunityWhereInput {
     const andFilters: Prisma.ConstructionOpportunityWhereInput[] = [{ isDeleted: false }];
 
@@ -266,12 +276,15 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
           { title: { contains: query.search } },
           { notes: { contains: query.search } },
           { code: { contains: query.search } },
+          { district: { contains: query.search } },
+          { city: { contains: query.search } },
+          { street: { contains: query.search } },
         ],
       });
     }
-    if (query.city) andFilters.push({ city: query.city });
+    if (query.city) andFilters.push({ city: { contains: query.city } });
     if (query.state) andFilters.push({ state: query.state.toUpperCase() });
-    if (query.district) andFilters.push({ district: query.district });
+    if (query.district) andFilters.push({ district: { contains: query.district } });
     if (query.constructionType) andFilters.push({ constructionType: query.constructionType as any });
     if (query.constructionStage) andFilters.push({ constructionStage: query.constructionStage as any });
     if (query.status) andFilters.push({ status: query.status as any });
@@ -304,6 +317,7 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
     if (sortBy === "oldest") return { capturedAt: "asc" };
     if (sortBy === "title") return { title: "asc" };
     if (sortBy === "city") return { city: "asc" };
+    if (sortBy === "district") return { district: "asc" };
     if (sortBy === "commercialPotential") return { commercialPotential: "desc" };
     if (sortBy === "nextActionDate") return { nextActionDate: "asc" };
     return { capturedAt: "desc" };

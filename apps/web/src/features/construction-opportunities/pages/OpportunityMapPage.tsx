@@ -277,6 +277,9 @@ export function OpportunityMapPage() {
   const [items, setItems] = useState<Opportunity[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedCreator, setSelectedCreator] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [searchText, setSearchText] = useState("");
   const [qualityFilter, setQualityFilter] = useState<LocationQualityFilter>("ALL");
   const [mapStyle, setMapStyle] = useState<MapStyleMode>("GOOGLE");
@@ -403,10 +406,134 @@ export function OpportunityMapPage() {
     return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [items]);
 
+  const stateOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      const state = normalizeState(item.state);
+      if (state) set.add(state);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [items]);
+
+  const cityOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      if (!item.city?.trim()) continue;
+      const state = normalizeState(item.state);
+      if (selectedState && state && state !== selectedState) continue;
+      set.add(item.city.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [items, selectedState]);
+
+  const districtOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      if (!item.district?.trim()) continue;
+      const state = normalizeState(item.state);
+      if (selectedState && state && state !== selectedState) continue;
+      if (selectedCity && item.city && item.city.trim().toLowerCase() !== selectedCity.toLowerCase()) continue;
+      set.add(item.district.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [items, selectedState, selectedCity]);
+
+  const handleStateChange = (newState: string) => {
+    setSelectedState(newState);
+    if (newState && selectedCity) {
+      const cityBelongs = items.some(
+        (item) =>
+          item.city?.trim().toLowerCase() === selectedCity.toLowerCase() &&
+          normalizeState(item.state) === newState,
+      );
+      if (!cityBelongs) {
+        setSelectedCity("");
+        setSelectedDistrict("");
+      }
+    }
+    if (newState && selectedDistrict) {
+      const districtBelongs = items.some(
+        (item) =>
+          item.district?.trim().toLowerCase() === selectedDistrict.toLowerCase() &&
+          normalizeState(item.state) === newState,
+      );
+      if (!districtBelongs) {
+        setSelectedDistrict("");
+      }
+    }
+  };
+
+  const handleCityChange = (newCity: string) => {
+    setSelectedCity(newCity);
+    if (newCity) {
+      if (!selectedState) {
+        const matchingStates = Array.from(
+          new Set(
+            items
+              .filter((item) => item.city?.trim().toLowerCase() === newCity.toLowerCase())
+              .map((item) => normalizeState(item.state))
+              .filter(Boolean),
+          ),
+        );
+        if (matchingStates.length === 1 && matchingStates[0]) {
+          setSelectedState(matchingStates[0]);
+        }
+      }
+
+      if (selectedDistrict) {
+        const districtBelongs = items.some(
+          (item) =>
+            item.district?.trim().toLowerCase() === selectedDistrict.toLowerCase() &&
+            item.city?.trim().toLowerCase() === newCity.toLowerCase(),
+        );
+        if (!districtBelongs) {
+          setSelectedDistrict("");
+        }
+      }
+    } else {
+      setSelectedDistrict("");
+    }
+  };
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setSelectedDistrict(newDistrict);
+    if (newDistrict) {
+      if (!selectedCity) {
+        const matchingCities = Array.from(
+          new Set(
+            items
+              .filter((item) => item.district?.trim().toLowerCase() === newDistrict.toLowerCase())
+              .map((item) => item.city?.trim())
+              .filter(Boolean),
+          ),
+        );
+        if (matchingCities.length === 1 && matchingCities[0]) {
+          setSelectedCity(matchingCities[0]);
+        }
+      }
+      if (!selectedState) {
+        const matchingStates = Array.from(
+          new Set(
+            items
+              .filter((item) => item.district?.trim().toLowerCase() === newDistrict.toLowerCase())
+              .map((item) => normalizeState(item.state))
+              .filter(Boolean),
+          ),
+        );
+        if (matchingStates.length === 1 && matchingStates[0]) {
+          setSelectedState(matchingStates[0]);
+        }
+      }
+    }
+  };
+
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchText.trim().toLowerCase();
     return items.filter((item) => {
       if (selectedStatus && item.status !== selectedStatus) return false;
+      if (selectedState && normalizeState(item.state) !== selectedState) return false;
+      if (selectedCity && (item.city ?? "").trim().toLowerCase() !== selectedCity.trim().toLowerCase()) return false;
+      if (selectedDistrict && (item.district ?? "").trim().toLowerCase() !== selectedDistrict.trim().toLowerCase()) return false;
       if (selectedCreator) {
         const creator = (item.createdByUserId ?? "").trim().toLowerCase().replace(/[\s-]+/g, "");
         const selected = selectedCreator.trim().toLowerCase().replace(/[\s-]+/g, "");
@@ -426,7 +553,7 @@ export function OpportunityMapPage() {
         .join(" ");
       return searchable.includes(normalizedSearch);
     });
-  }, [items, selectedStatus, selectedCreator, searchText]);
+  }, [items, selectedStatus, selectedState, selectedCity, selectedDistrict, selectedCreator, searchText]);
 
   const mapOpportunities = useMemo<MappedOpportunity[]>(() => {
     return filteredItems
@@ -604,6 +731,39 @@ export function OpportunityMapPage() {
               </select>
             </label>
             <label className="map-filter-label">
+              <span className="map-filter-label__text">UF</span>
+              <select className="select" value={selectedState} onChange={(event) => handleStateChange(event.target.value)}>
+                <option value="">Todos</option>
+                {stateOptions.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="map-filter-label">
+              <span className="map-filter-label__text">Cidade</span>
+              <select className="select" value={selectedCity} onChange={(event) => handleCityChange(event.target.value)}>
+                <option value="">{selectedState ? `Todas (${selectedState})` : "Todas"}</option>
+                {cityOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="map-filter-label">
+              <span className="map-filter-label__text">Bairro</span>
+              <select className="select" value={selectedDistrict} onChange={(event) => handleDistrictChange(event.target.value)}>
+                <option value="">{selectedCity ? `Todos (${selectedCity})` : "Todos"}</option>
+                {districtOptions.map((district) => (
+                  <option key={district} value={district}>
+                    {district}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="map-filter-label">
               <span className="map-filter-label__text">Qualidade</span>
               <select className="select" value={qualityFilter} onChange={(event) => setQualityFilter(event.target.value as LocationQualityFilter)}>
                 <option value="ALL">Todos</option>
@@ -745,7 +905,17 @@ export function OpportunityMapPage() {
               cityAggregates.map((row) => (
                 <div
                   key={`${row.city}-${row.state}`}
-                  className="map-stat-row"
+                  className={`map-stat-row ${selectedCity.toLowerCase() === row.city.toLowerCase() ? "is-selected" : ""}`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    if (selectedCity.toLowerCase() === row.city.toLowerCase()) {
+                      handleCityChange("");
+                    } else {
+                      handleCityChange(row.city);
+                      if (row.state && row.state !== "-") handleStateChange(row.state);
+                    }
+                  }}
+                  title={selectedCity.toLowerCase() === row.city.toLowerCase() ? "Remover filtro desta cidade" : "Filtrar por esta cidade"}
                 >
                   <span className="map-stat-row__label">{row.city}/{row.state}</span>
                   <div className="map-stat-row__bar-track">
@@ -765,7 +935,18 @@ export function OpportunityMapPage() {
               districtAggregates.map((row) => (
                 <div
                   key={`${row.district}-${row.city}-${row.state}`}
-                  className="map-stat-row"
+                  className={`map-stat-row ${selectedDistrict.toLowerCase() === row.district.toLowerCase() ? "is-selected" : ""}`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    if (selectedDistrict.toLowerCase() === row.district.toLowerCase()) {
+                      handleDistrictChange("");
+                    } else {
+                      handleDistrictChange(row.district);
+                      if (row.city && row.city !== "Sem cidade") handleCityChange(row.city);
+                      if (row.state && row.state !== "-") handleStateChange(row.state);
+                    }
+                  }}
+                  title={selectedDistrict.toLowerCase() === row.district.toLowerCase() ? "Remover filtro deste bairro" : "Filtrar por este bairro"}
                 >
                   <span className="map-neighborhood-row__label">
                     <strong className="map-neighborhood-row__district">{row.district}</strong>

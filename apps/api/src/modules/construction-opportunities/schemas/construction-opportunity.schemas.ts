@@ -137,6 +137,7 @@ export const listQuerySchema = z.object({
       "oldest",
       "title",
       "city",
+      "district",
       "commercialPotential",
       "nextActionDate",
     ])

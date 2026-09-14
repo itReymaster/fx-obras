@@ -267,4 +267,8 @@ export class ConstructionOpportunitiesV2Service {
       latest,
     };
   }
+
+  async getLocations() {
+    return await this.repository.getLocations();
+  }
 }

@@ -1,5 +1,5 @@
 import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "../../../config/app";
 import { AUTHORIZED_USER_OPTIONS } from "../../../config/users";
@@ -13,12 +13,21 @@ import {
 import { opportunitiesApi } from "../services/opportunities-api";
 import type { Opportunity, OpportunityListResponse } from "../types/opportunity.types";
 
+type LocationTuple = {
+  state: string | null;
+  city: string | null;
+  district: string | null;
+};
+
 export function OpportunityListPage() {
   type TestFilterMode = "real_only" | "test_only" | "all";
 
   const [items, setItems] = useState<Opportunity[]>([]);
+  const [locations, setLocations] = useState<LocationTuple[]>([]);
   const [search, setSearch] = useState("");
+  const [state, setState] = useState("");
   const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
   const [status, setStatus] = useState("");
   const [constructionStage, setConstructionStage] = useState("");
   const [commercialPotential, setCommercialPotential] = useState("");
@@ -34,9 +43,58 @@ export function OpportunityListPage() {
   const [pagination, setPagination] = useState<OpportunityListResponse["pagination"] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const allLocationData = useMemo(() => {
+    const map = new Map<string, LocationTuple>();
+    const add = (s?: string | null, c?: string | null, d?: string | null) => {
+      const stateTrimmed = s?.trim().toUpperCase() || null;
+      const cityTrimmed = c?.trim() || null;
+      const districtTrimmed = d?.trim() || null;
+      if (!stateTrimmed && !cityTrimmed && !districtTrimmed) return;
+      const key = `${stateTrimmed ?? ""}::${(cityTrimmed ?? "").toLowerCase()}::${(districtTrimmed ?? "").toLowerCase()}`;
+      if (!map.has(key)) {
+        map.set(key, { state: stateTrimmed, city: cityTrimmed, district: districtTrimmed });
+      }
+    };
+
+    locations.forEach((l) => add(l.state, l.city, l.district));
+    items.forEach((item) => add(item.state, item.city, item.district));
+    return Array.from(map.values());
+  }, [locations, items]);
+
+  const stateOptions = useMemo(() => {
+    const set = new Set<string>();
+    allLocationData.forEach((l) => {
+      if (l.state) set.add(l.state);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [allLocationData]);
+
+  const cityOptions = useMemo(() => {
+    const set = new Set<string>();
+    allLocationData.forEach((l) => {
+      if (!l.city) return;
+      if (state && l.state && l.state !== state) return;
+      set.add(l.city);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [allLocationData, state]);
+
+  const districtOptions = useMemo(() => {
+    const set = new Set<string>();
+    allLocationData.forEach((l) => {
+      if (!l.district) return;
+      if (state && l.state && l.state !== state) return;
+      if (city && l.city && l.city.toLowerCase() !== city.toLowerCase()) return;
+      set.add(l.district);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [allLocationData, state, city]);
+
   const load = (overrides?: {
     search?: string;
+    state?: string;
     city?: string;
+    district?: string;
     status?: string;
     constructionStage?: string;
     commercialPotential?: string;
@@ -48,7 +106,9 @@ export function OpportunityListPage() {
   }) => {
     const applied = {
       search,
+      state,
       city,
+      district,
       status,
       constructionStage,
       commercialPotential,
@@ -72,7 +132,9 @@ export function OpportunityListPage() {
         page: applied.page ?? 1,
         pageSize: applied.pageSize ?? 50,
         search: applied.search,
+        state: applied.state,
         city: applied.city,
+        district: applied.district,
         status: applied.status,
         constructionStage: applied.constructionStage,
         commercialPotential: applied.commercialPotential,
@@ -89,13 +151,121 @@ export function OpportunityListPage() {
       .finally(() => setIsLoading(false));
   };
 
+  const handleStateChange = (newState: string) => {
+    setState(newState);
+    let nextCity = city;
+    let nextDistrict = district;
+
+    if (newState && city) {
+      const cityBelongs = allLocationData.some(
+        (l) => l.city?.toLowerCase() === city.toLowerCase() && l.state === newState,
+      );
+      if (!cityBelongs) {
+        nextCity = "";
+        nextDistrict = "";
+        setCity("");
+        setDistrict("");
+      }
+    }
+
+    if (newState && nextDistrict) {
+      const districtBelongs = allLocationData.some(
+        (l) => l.district?.toLowerCase() === nextDistrict.toLowerCase() && l.state === newState,
+      );
+      if (!districtBelongs) {
+        nextDistrict = "";
+        setDistrict("");
+      }
+    }
+
+    load({ state: newState, city: nextCity, district: nextDistrict, page: 1 });
+  };
+
+  const handleCityChange = (newCity: string) => {
+    setCity(newCity);
+    let nextState = state;
+    let nextDistrict = district;
+
+    if (newCity) {
+      if (!nextState) {
+        const matchingStates = Array.from(
+          new Set(
+            allLocationData
+              .filter((l) => l.city?.toLowerCase() === newCity.toLowerCase() && l.state)
+              .map((l) => l.state!),
+          ),
+        );
+        if (matchingStates.length === 1) {
+          nextState = matchingStates[0];
+          setState(nextState);
+        }
+      }
+
+      if (nextDistrict) {
+        const districtBelongs = allLocationData.some(
+          (l) =>
+            l.district?.toLowerCase() === nextDistrict.toLowerCase() &&
+            l.city?.toLowerCase() === newCity.toLowerCase(),
+        );
+        if (!districtBelongs) {
+          nextDistrict = "";
+          setDistrict("");
+        }
+      }
+    } else {
+      nextDistrict = "";
+      setDistrict("");
+    }
+
+    load({ state: nextState, city: newCity, district: nextDistrict, page: 1 });
+  };
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setDistrict(newDistrict);
+    let nextCity = city;
+    let nextState = state;
+
+    if (newDistrict) {
+      if (!nextCity) {
+        const matchingCities = Array.from(
+          new Set(
+            allLocationData
+              .filter((l) => l.district?.toLowerCase() === newDistrict.toLowerCase() && l.city)
+              .map((l) => l.city!),
+          ),
+        );
+        if (matchingCities.length === 1) {
+          nextCity = matchingCities[0];
+          setCity(nextCity);
+        }
+      }
+      if (!nextState && nextCity) {
+        const matchingStates = Array.from(
+          new Set(
+            allLocationData
+              .filter((l) => l.city?.toLowerCase() === nextCity.toLowerCase() && l.state)
+              .map((l) => l.state!),
+          ),
+        );
+        if (matchingStates.length === 1) {
+          nextState = matchingStates[0];
+          setState(nextState);
+        }
+      }
+    }
+
+    load({ state: nextState, city: nextCity, district: newDistrict, page: 1 });
+  };
+
   const hasActiveFilters = Boolean(
-    search || city || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only",
+    search || state || city || district || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only",
   );
 
   const activeFiltersCount = [
     search,
+    state,
     city,
+    district,
     status,
     constructionStage,
     commercialPotential,
@@ -121,7 +291,9 @@ export function OpportunityListPage() {
   const clearFilters = () => {
     const defaults = {
       search: "",
+      state: "",
       city: "",
+      district: "",
       status: "",
       constructionStage: "",
       commercialPotential: "",
@@ -131,7 +303,9 @@ export function OpportunityListPage() {
     };
 
     setSearch(defaults.search);
+    setState(defaults.state);
     setCity(defaults.city);
+    setDistrict(defaults.district);
     setStatus(defaults.status);
     setConstructionStage(defaults.constructionStage);
     setCommercialPotential(defaults.commercialPotential);
@@ -144,6 +318,14 @@ export function OpportunityListPage() {
 
   useEffect(() => {
     load();
+    opportunitiesApi
+      .getLocations()
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setLocations(data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -236,8 +418,43 @@ export function OpportunityListPage() {
 
           <div className="filters-grid filters-grid--opportunities">
             <label className="filter-field">
+              UF
+              <select
+                className="select"
+                value={state}
+                onChange={(event) => handleStateChange(event.target.value)}
+              >
+                <option value="">Todos</option>
+                {stateOptions.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
               Cidade
-              <input className="input" value={city} onChange={(event) => setCity(event.target.value)} />
+              <select
+                className="select"
+                value={city}
+                onChange={(event) => handleCityChange(event.target.value)}
+              >
+                <option value="">{state ? `Todas (${state})` : "Todas"}</option>
+                {cityOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              Bairro
+              <select
+                className="select"
+                value={district}
+                onChange={(event) => handleDistrictChange(event.target.value)}
+              >
+                <option value="">{city ? `Todos (${city})` : "Todos"}</option>
+                {districtOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
             </label>
             <label className="filter-field">
               Status
@@ -284,6 +501,7 @@ export function OpportunityListPage() {
                 <option value="oldest">Mais antigos</option>
                 <option value="title">Título</option>
                 <option value="city">Cidade</option>
+                <option value="district">Bairro</option>
                 <option value="commercialPotential">Potencial comercial</option>
                 <option value="nextActionDate">Data da próxima ação</option>
               </select>
@@ -366,6 +584,7 @@ export function OpportunityListPage() {
               <tr>
                 <th>Título</th>
                 <th>Endereço</th>
+                <th>Bairro</th>
                 <th>Cidade</th>
                 <th>Status</th>
                 <th>Potencial</th>
@@ -380,6 +599,7 @@ export function OpportunityListPage() {
                 <tr key={item.id} className="table-row-opportunity">
                   <td className="table-cell-title"><Link to={`/opportunities/${item.id}`}>{item.title}</Link></td>
                   <td className="table-cell-address">{addressLabel(item)}</td>
+                  <td className="table-cell-district">{item.district ?? "-"}</td>
                   <td className="table-cell-city">{item.city ?? "-"}/{item.state ?? "-"}</td>
                   <td className="table-cell-status"><span className="badge">{labels.status(item.status)}</span></td>
                   <td className="table-cell-potential"><span className="badge badge-secondary">{labels.commercialPotential(item.commercialPotential)}</span></td>
@@ -426,7 +646,7 @@ export function OpportunityListPage() {
                   <Link to={`/opportunities/${item.id}`}>{item.title}</Link>
                 </strong>
                 <div className="muted" style={{ fontSize: 13 }}>
-                  {addressLabel(item)}
+                  {addressLabel(item)}{item.district && item.street ? ` • ${item.district}` : ""}
                 </div>
                 <div className="cluster">
                   <span className="badge">{labels.status(item.status)}</span>
