@@ -125,11 +125,14 @@ jobs:
 
           mkdir -p "$BACKUP_DIR"
 
+          # Limpeza de backups antigos (> 5 dias) para evitar estourar disco/memória
+          find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -mtime +5 -exec rm -rf {} + 2>/dev/null || true
+
           if docker compose ps --services --filter status=running | grep -q '^backend$'; then
-            docker compose exec -T backend sh -c "tar -czf - -C /app/data ." > "$BACKUP_DIR/app-data.tar.gz"
+            docker compose exec -T backend sh -c "tar -czf - -C /app/data ." > "$BACKUP_DIR/app-data.tar.gz" || echo "Aviso: backup de data falhou"
             echo "Backup criado: $BACKUP_DIR/app-data.tar.gz"
 
-            docker compose exec -T backend sh -c "tar -czf - -C /app/uploads ." > "$BACKUP_DIR/app-uploads.tar.gz"
+            docker compose exec -T backend sh -c "tar --exclude='./audio' -czf - -C /app/uploads ." > "$BACKUP_DIR/app-uploads.tar.gz" || echo "Aviso: backup de uploads falhou"
             echo "Backup criado: $BACKUP_DIR/app-uploads.tar.gz"
           else
             echo "Container backend não está em execução. Tentando backup por volume."
@@ -141,13 +144,22 @@ jobs:
               docker run --rm \
                 -v "$DATA_VOLUME":/from:ro \
                 -v "$BACKUP_DIR":/to \
-                alpine sh -c "cd /from && tar -czf /to/fx-obras-data.tar.gz ."
+                alpine sh -c "cd /from && tar -czf /to/fx-obras-data.tar.gz ." || echo "Aviso: backup de volume data falhou"
               echo "Backup criado: $BACKUP_DIR/fx-obras-data.tar.gz"
             else
               echo "Volume de dados não encontrado. Backup do banco ignorado."
             fi
 
             if [ -n "$UPLOADS_VOLUME" ]; then
+              docker run --rm \
+                -v "$UPLOADS_VOLUME":/from:ro \
+                -v "$BACKUP_DIR":/to \
+                alpine sh -c "cd /from && tar -czf /to/fx-obras-uploads.tar.gz ." || echo "Aviso: backup de volume uploads falhou"
+              echo "Backup criado: $BACKUP_DIR/fx-obras-uploads.tar.gz"
+            else
+              echo "Volume de uploads não encontrado. Backup de uploads ignorado."
+            fi
+          fi
               docker run --rm \
                 -v "$UPLOADS_VOLUME":/from:ro \
                 -v "$BACKUP_DIR":/to \
