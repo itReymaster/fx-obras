@@ -82,6 +82,7 @@ export class ConstructionOpportunitiesV2Service {
                 originalName: file.originalname,
                 storedName: stored.storedName,
                 relativePath: stored.relativePath,
+                thumbnailRelativePath: stored.thumbnailRelativePath,
                 mimeType: file.mimetype,
                 size: file.size,
                 isPrimary: currentPhotos.length === 0 && createdPhotos.length === 0,
@@ -136,6 +137,22 @@ export class ConstructionOpportunitiesV2Service {
             newValue: status,
             description: reason,
         });
+    }
+    async setVisited(id, visited, userId) {
+        const current = await this.getById(id);
+        const visitedAt = visited ? new Date() : null;
+        await this.repository.update(id, {
+            visited,
+            visitedAt,
+            visitedByUserId: visited ? (userId ?? null) : null,
+        });
+        await this.repository.createHistory(id, {
+            action: visited ? "VISIT_MARKED" : "VISIT_UNMARKED",
+            previousValue: String(current.visited ?? false),
+            newValue: String(visited),
+            description: visited ? "Obra marcada como visitada" : "Obra marcada como não visitada",
+        });
+        return { ...current, visited, visitedAt: visitedAt ?? undefined, visitedByUserId: visited ? userId : undefined };
     }
     async history(id) {
         await this.getById(id);

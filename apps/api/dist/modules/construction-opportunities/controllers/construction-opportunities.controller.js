@@ -1,4 +1,4 @@
-import { constructionOpportunityCreateSchema, constructionOpportunityUpdateSchema, listQuerySchema, statusUpdateSchema, } from "../schemas/construction-opportunity.schemas.js";
+import { constructionOpportunityCreateSchema, constructionOpportunityUpdateSchema, listQuerySchema, statusUpdateSchema, visitUpdateSchema, } from "../schemas/construction-opportunity.schemas.js";
 const asParam = (value) => Array.isArray(value) ? value[0] : (value ?? "");
 const mapFiles = (files = []) => {
     return files.map((file) => ({
@@ -72,6 +72,16 @@ export class ConstructionOpportunitiesController {
         const payload = statusUpdateSchema.parse(req.body);
         await this.service.updateStatus(asParam(req.params.id), payload.status, payload.reason);
         res.status(204).send();
+    };
+    setVisited = async (req, res) => {
+        const payload = visitUpdateSchema.parse(req.body);
+        const authenticatedUser = String(res.locals.authenticatedUser ?? "").trim() || undefined;
+        if (!this.service.setVisited) {
+            res.status(501).json({ message: "Operação não suportada." });
+            return;
+        }
+        const result = await this.service.setVisited(asParam(req.params.id), payload.visited, authenticatedUser);
+        res.json(result);
     };
     dashboard = async (req, res) => {
         const includeTests = req.query.includeTests === "true";

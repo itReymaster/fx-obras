@@ -77,6 +77,9 @@ const constructionOpportunityBaseSchema = z.object({
     createdByUserId: z.string().trim().max(80).optional(),
     updatedByUserId: z.string().trim().max(80).optional(),
     isTest: z.boolean().default(false),
+    visited: z.boolean().optional(),
+    visitedAt: optionalDateString,
+    visitedByUserId: z.string().trim().max(80).optional(),
 });
 export const constructionOpportunityCreateSchema = constructionOpportunityBaseSchema
     .refine((value) => {
@@ -99,6 +102,9 @@ export const statusUpdateSchema = z.object({
     ]),
     reason: z.string().trim().max(300).optional(),
 });
+export const visitUpdateSchema = z.object({
+    visited: z.boolean(),
+});
 export const listQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     pageSize: z.coerce.number().int().positive().max(100).default(20),
@@ -117,6 +123,7 @@ export const listQuerySchema = z.object({
     hasContact: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
     hasNextAction: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
     isTest: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
+    visited: z.string().optional().transform(v => v === undefined ? undefined : v === "true"),
     createdByUserId: z.string().trim().optional(),
     sortBy: z
         .enum([

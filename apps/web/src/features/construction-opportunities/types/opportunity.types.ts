@@ -58,6 +58,9 @@ export interface Opportunity {
   capturedAt: string;
   photos: OpportunityPhoto[];
   isTest: boolean;
+  visited?: boolean;
+  visitedAt?: string | null;
+  visitedByUserId?: string | null;
 }
 
 export interface OpportunityListResponse {

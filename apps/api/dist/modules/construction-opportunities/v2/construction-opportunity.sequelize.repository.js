@@ -1,7 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { QueryTypes } from "sequelize";
+import { env } from "../../../config/env.js";
+import { sanitizeSqlReplacements } from "../../../shared/database/sql-dates.js";
+/** Prefixo de schema — UserService do Flex permanece em dbo; nunca alterar DEFAULT_SCHEMA dele. */
+const S = env.sqlServerSchema;
+const Opp = `${S}.ConstructionOpportunity`;
+const Photo = `${S}.ConstructionOpportunityPhoto`;
+const Hist = `${S}.ConstructionOpportunityHistory`;
 const mapPhotoRow = (row) => ({
     id: String(row.id),
+    constructionOpportunityId: row.constructionOpportunityId
+        ? String(row.constructionOpportunityId)
+        : undefined,
     originalName: String(row.originalName),
     relativePath: String(row.relativePath),
     thumbnailRelativePath: row.thumbnailRelativePath ? String(row.thumbnailRelativePath) : undefined,
@@ -76,11 +86,15 @@ const mapOpportunityRow = (row, photos = [], history = []) => ({
     createdByUserId: row.createdByUserId ?? undefined,
     updatedByUserId: row.updatedByUserId ?? undefined,
     crmIntegrationStatus: String(row.crmIntegrationStatus ?? "NOT_SENT"),
-    crmIntegrationError: row.crmIntegrationError ?? undefined,
-    crmIntegrationTimestamp: toOptionalDate(row.crmIntegrationTimestamp),
+    // Colunas reais no SQL: crmIntegrationMessage / crmLastAttemptAt
+    crmIntegrationError: row.crmIntegrationMessage ?? row.crmIntegrationError ?? undefined,
+    crmIntegrationTimestamp: toOptionalDate(row.crmLastAttemptAt ?? row.crmIntegrationTimestamp),
     isDeleted: Boolean(row.isDeleted),
     deletedAt: toOptionalDate(row.deletedAt),
     isTest: Boolean(row.isTest),
+    visited: Boolean(row.visited),
+    visitedAt: toOptionalDate(row.visitedAt),
+    visitedByUserId: row.visitedByUserId ?? undefined,
     photos: photos.map(mapPhotoRow),
     history: history.map((item) => ({
         id: item.id,
@@ -94,8 +108,17 @@ export class SequelizeConstructionOpportunityRepository {
     constructor(sequelize) {
         this.sequelize = sequelize;
     }
+    /** Normaliza Date nos replacements (SQL Server 2008 R2 nao aceita offset -03:00). */
+    async query(sql, options = {}) {
+        const result = await this.sequelize.query(sql, {
+            ...options,
+            replacements: sanitizeSqlReplacements(options.replacements),
+            type: options.type ?? QueryTypes.SELECT,
+        });
+        return result;
+    }
     async findById(id) {
-        const record = await this.sequelize.query(`SELECT TOP 1 * FROM ConstructionOpportunity WHERE id = :id AND isDeleted = 0`, { replacements: { id }, type: QueryTypes.SELECT });
+        const record = await this.query(`SELECT TOP 1 * FROM ${Opp} WHERE id = :id AND isDeleted = 0`, { replacements: { id }, type: QueryTypes.SELECT });
         if (record.length === 0)
             return null;
         const photos = await this.findPhotosByOpportunityId(id);
@@ -103,7 +126,7 @@ export class SequelizeConstructionOpportunityRepository {
         return mapOpportunityRow(record[0], photos, history);
     }
     async findByCode(code) {
-        const record = await this.sequelize.query(`SELECT TOP 1 * FROM ConstructionOpportunity WHERE code = :code AND isDeleted = 0`, { replacements: { code }, type: QueryTypes.SELECT });
+        const record = await this.query(`SELECT TOP 1 * FROM ${Opp} WHERE code = :code AND isDeleted = 0`, { replacements: { code }, type: QueryTypes.SELECT });
         if (record.length === 0)
             return null;
         const id = String(record[0].id);
@@ -116,12 +139,12 @@ export class SequelizeConstructionOpportunityRepository {
         const orderBySql = this.buildOrderBySql(query.sortBy);
         const startRow = (query.page - 1) * query.pageSize + 1;
         const endRow = query.page * query.pageSize;
-        const totalResult = await this.sequelize.query(`SELECT COUNT(1) AS totalItems FROM ConstructionOpportunity WHERE ${whereSql}`, { replacements, type: QueryTypes.SELECT });
-        const items = await this.sequelize.query(`WITH Ordered AS (
+        const totalResult = await this.query(`SELECT COUNT(1) AS totalItems FROM ${Opp} WHERE ${whereSql}`, { replacements, type: QueryTypes.SELECT });
+        const items = await this.query(`WITH Ordered AS (
         SELECT
           *,
           ROW_NUMBER() OVER (ORDER BY ${orderBySql}) AS rn
-        FROM ConstructionOpportunity
+        FROM ${Opp}
         WHERE ${whereSql}
       )
       SELECT *
@@ -152,20 +175,22 @@ export class SequelizeConstructionOpportunityRepository {
         const id = randomUUID();
         const createdAt = input.capturedAt ?? new Date();
         const now = new Date();
-        await this.sequelize.query(`INSERT INTO ConstructionOpportunity (
+        await this.query(`INSERT INTO ${Opp} (
         id, code, title, description, constructionType, constructionStage, commercialPotential, status,
         addressSource, postalCode, street, number, withoutNumber, complement, district, city, state,
         latitude, longitude, locationAccuracy, locationCapturedAt, constructionCompany, estimatedCompletionDate,
         contactName, contactCompany, contactRole, contactPhone, contactEmail, nextAction, nextActionDate,
         notes, tags, crmIntegrationStatus, crmExternalId, crmLastAttemptAt, crmIntegrationMessage,
-        capturedAt, createdByUserId, updatedByUserId, createdAt, updatedAt, deletedAt, isDeleted, isTest
+        capturedAt, createdByUserId, updatedByUserId, createdAt, updatedAt, deletedAt, isDeleted, isTest,
+        visited, visitedAt, visitedByUserId
       ) VALUES (
         :id, :code, :title, :description, :constructionType, :constructionStage, :commercialPotential, :status,
         :addressSource, :postalCode, :street, :number, :withoutNumber, :complement, :district, :city, :state,
         :latitude, :longitude, :locationAccuracy, :locationCapturedAt, :constructionCompany, :estimatedCompletionDate,
         :contactName, :contactCompany, :contactRole, :contactPhone, :contactEmail, :nextAction, :nextActionDate,
         :notes, :tags, :crmIntegrationStatus, :crmExternalId, :crmLastAttemptAt, :crmIntegrationMessage,
-        :capturedAt, :createdByUserId, :updatedByUserId, :createdAt, :updatedAt, :deletedAt, :isDeleted, :isTest
+        :capturedAt, :createdByUserId, :updatedByUserId, :createdAt, :updatedAt, :deletedAt, :isDeleted, :isTest,
+        :visited, :visitedAt, :visitedByUserId
       )`, {
             replacements: {
                 id,
@@ -212,6 +237,9 @@ export class SequelizeConstructionOpportunityRepository {
                 deletedAt: null,
                 isDeleted: 0,
                 isTest: input.isTest ? 1 : 0,
+                visited: input.visited ? 1 : 0,
+                visitedAt: input.visitedAt ?? null,
+                visitedByUserId: input.visitedByUserId ?? null,
             },
             type: QueryTypes.INSERT,
         });
@@ -266,7 +294,29 @@ export class SequelizeConstructionOpportunityRepository {
         }
         push("capturedAt", "capturedAt");
         push("isTest", "isTest", (value) => (value ? 1 : 0));
+        push("visited", "visited", (value) => (value ? 1 : 0));
+        push("visitedAt", "visitedAt");
+        push("visitedByUserId", "visitedByUserId");
         push("updatedByUserId", "updatedByUserId");
+        // Campos CRM (usados por sendToCrm; nao entram no UpdateOpportunityInput tipado)
+        const crmInput = input;
+        if (crmInput.crmIntegrationStatus !== undefined) {
+            replacements.crmIntegrationStatus = crmInput.crmIntegrationStatus;
+            fields.push("crmIntegrationStatus = :crmIntegrationStatus");
+        }
+        if (crmInput.crmExternalId !== undefined) {
+            replacements.crmExternalId = crmInput.crmExternalId;
+            fields.push("crmExternalId = :crmExternalId");
+        }
+        if (crmInput.crmLastAttemptAt !== undefined || crmInput.crmIntegrationTimestamp !== undefined) {
+            replacements.crmLastAttemptAt = crmInput.crmLastAttemptAt ?? crmInput.crmIntegrationTimestamp ?? null;
+            fields.push("crmLastAttemptAt = :crmLastAttemptAt");
+        }
+        if (crmInput.crmIntegrationMessage !== undefined || crmInput.crmIntegrationError !== undefined) {
+            replacements.crmIntegrationMessage =
+                crmInput.crmIntegrationMessage ?? crmInput.crmIntegrationError ?? null;
+            fields.push("crmIntegrationMessage = :crmIntegrationMessage");
+        }
         fields.push("updatedAt = :updatedAt");
         if (fields.length === 1) {
             const current = await this.findById(id);
@@ -275,7 +325,7 @@ export class SequelizeConstructionOpportunityRepository {
             }
             return current;
         }
-        await this.sequelize.query(`UPDATE ConstructionOpportunity SET ${fields.join(", ")} WHERE id = :id`, { replacements, type: QueryTypes.UPDATE });
+        await this.query(`UPDATE ${Opp} SET ${fields.join(", ")} WHERE id = :id`, { replacements, type: QueryTypes.UPDATE });
         const updated = await this.findById(id);
         if (!updated) {
             throw new Error("Opportunity not found after update");
@@ -283,7 +333,7 @@ export class SequelizeConstructionOpportunityRepository {
         return updated;
     }
     async delete(id) {
-        await this.sequelize.query(`UPDATE ConstructionOpportunity SET isDeleted = 1, deletedAt = :deletedAt, updatedAt = :updatedAt WHERE id = :id`, {
+        await this.query(`UPDATE ${Opp} SET isDeleted = 1, deletedAt = :deletedAt, updatedAt = :updatedAt WHERE id = :id`, {
             replacements: { id, deletedAt: new Date(), updatedAt: new Date() },
             type: QueryTypes.UPDATE,
         });
@@ -295,28 +345,28 @@ export class SequelizeConstructionOpportunityRepository {
             isTest: filters?.isTest,
             commercialPotential: filters?.commercialPotential,
         });
-        const result = await this.sequelize.query(`SELECT COUNT(1) AS totalItems FROM ConstructionOpportunity WHERE ${whereSql}`, { replacements, type: QueryTypes.SELECT });
+        const result = await this.query(`SELECT COUNT(1) AS totalItems FROM ${Opp} WHERE ${whereSql}`, { replacements, type: QueryTypes.SELECT });
         return result[0]?.totalItems ?? 0;
     }
     async countByYear(year) {
         const start = new Date(`${year}-01-01T00:00:00.000Z`);
         const end = new Date(`${year + 1}-01-01T00:00:00.000Z`);
-        const result = await this.sequelize.query(`SELECT COUNT(1) AS totalItems FROM ConstructionOpportunity WHERE createdAt >= :start AND createdAt < :end`, { replacements: { start, end }, type: QueryTypes.SELECT });
+        const result = await this.query(`SELECT COUNT(1) AS totalItems FROM ${Opp} WHERE createdAt >= :start AND createdAt < :end`, { replacements: { start, end }, type: QueryTypes.SELECT });
         return result[0]?.totalItems ?? 0;
     }
     async aggregateByStatus(includeTests = false) {
         const { whereSql, replacements } = this.buildWhereClause({
             isTest: includeTests ? undefined : false,
         });
-        const rows = await this.sequelize.query(`SELECT status, COUNT(1) AS count FROM ConstructionOpportunity WHERE ${whereSql} GROUP BY status`, { replacements, type: QueryTypes.SELECT });
+        const rows = await this.query(`SELECT status, COUNT(1) AS count FROM ${Opp} WHERE ${whereSql} GROUP BY status`, { replacements, type: QueryTypes.SELECT });
         return rows.map((row) => ({ status: row.status, count: Number(row.count) }));
     }
     async aggregateByCreatedByUser(includeTests = false) {
         const { whereSql, replacements } = this.buildWhereClause({
             isTest: includeTests ? undefined : false,
         });
-        const rows = await this.sequelize.query(`SELECT createdByUserId AS userId, COUNT(1) AS count
-       FROM ConstructionOpportunity
+        const rows = await this.query(`SELECT createdByUserId AS userId, COUNT(1) AS count
+       FROM ${Opp}
        WHERE ${whereSql}
        GROUP BY createdByUserId`, { replacements, type: QueryTypes.SELECT });
         return rows
@@ -327,21 +377,21 @@ export class SequelizeConstructionOpportunityRepository {
         const { whereSql, replacements } = this.buildWhereClause({
             isTest: includeTests ? undefined : false,
         });
-        const result = await this.sequelize.query(`SELECT COUNT(1) AS totalItems FROM ConstructionOpportunity WHERE ${whereSql} AND capturedAt >= :since`, { replacements: { ...replacements, since }, type: QueryTypes.SELECT });
+        const result = await this.query(`SELECT COUNT(1) AS totalItems FROM ${Opp} WHERE ${whereSql} AND capturedAt >= :since`, { replacements: { ...replacements, since }, type: QueryTypes.SELECT });
         return result[0]?.totalItems ?? 0;
     }
     async countOverdueNextAction(now, includeTests = false) {
         const { whereSql, replacements } = this.buildWhereClause({
             isTest: includeTests ? undefined : false,
         });
-        const result = await this.sequelize.query(`SELECT COUNT(1) AS totalItems FROM ConstructionOpportunity WHERE ${whereSql} AND nextActionDate < :now AND status NOT IN ('CONVERTED', 'DISCARDED')`, { replacements: { ...replacements, now }, type: QueryTypes.SELECT });
+        const result = await this.query(`SELECT COUNT(1) AS totalItems FROM ${Opp} WHERE ${whereSql} AND nextActionDate < :now AND status NOT IN ('CONVERTED', 'DISCARDED')`, { replacements: { ...replacements, now }, type: QueryTypes.SELECT });
         return result[0]?.totalItems ?? 0;
     }
     async countNotSentToCrm(includeTests = false) {
         const { whereSql, replacements } = this.buildWhereClause({
             isTest: includeTests ? undefined : false,
         });
-        const result = await this.sequelize.query(`SELECT COUNT(1) AS totalItems FROM ConstructionOpportunity WHERE ${whereSql} AND crmIntegrationStatus IN ('NOT_SENT', 'ERROR')`, { replacements, type: QueryTypes.SELECT });
+        const result = await this.query(`SELECT COUNT(1) AS totalItems FROM ${Opp} WHERE ${whereSql} AND crmIntegrationStatus IN ('NOT_SENT', 'ERROR')`, { replacements, type: QueryTypes.SELECT });
         return result[0]?.totalItems ?? 0;
     }
     async getLocations() {
@@ -355,24 +405,26 @@ export class SequelizeConstructionOpportunityRepository {
         }));
     }
     async findPhotosByOpportunityId(constructionOpportunityId) {
-        const rows = await this.sequelize.query(`SELECT * FROM ConstructionOpportunityPhoto WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY isPrimary DESC, createdAt ASC`, { replacements: { constructionOpportunityId }, type: QueryTypes.SELECT });
+        const rows = await this.query(`SELECT * FROM ${Photo} WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY isPrimary DESC, createdAt ASC`, { replacements: { constructionOpportunityId }, type: QueryTypes.SELECT });
         return rows.map(mapPhotoRow);
     }
     async findPhotoById(constructionOpportunityId, photoId) {
-        const rows = await this.sequelize.query(`SELECT TOP 1 * FROM ConstructionOpportunityPhoto WHERE constructionOpportunityId = :constructionOpportunityId AND id = :photoId`, { replacements: { constructionOpportunityId, photoId }, type: QueryTypes.SELECT });
+        const rows = await this.query(`SELECT TOP 1 * FROM ${Photo} WHERE constructionOpportunityId = :constructionOpportunityId AND id = :photoId`, { replacements: { constructionOpportunityId, photoId }, type: QueryTypes.SELECT });
         return rows.length > 0 ? mapPhotoRow(rows[0]) : null;
     }
     async findPhotosByOpportunityIds(constructionOpportunityIds) {
-        const rows = await this.sequelize.query(`SELECT * FROM ConstructionOpportunityPhoto WHERE constructionOpportunityId IN (:constructionOpportunityIds) ORDER BY constructionOpportunityId, isPrimary DESC, createdAt ASC`, { replacements: { constructionOpportunityIds }, type: QueryTypes.SELECT });
+        const rows = await this.query(`SELECT * FROM ${Photo} WHERE constructionOpportunityId IN (:constructionOpportunityIds) ORDER BY constructionOpportunityId, isPrimary DESC, createdAt ASC`, { replacements: { constructionOpportunityIds }, type: QueryTypes.SELECT });
         return rows.map(mapPhotoRow);
     }
     async createPhoto(constructionOpportunityId, input) {
         const id = randomUUID();
         const createdAt = new Date();
-        await this.sequelize.query(`INSERT INTO ConstructionOpportunityPhoto (
-        id, constructionOpportunityId, originalName, storedName, relativePath, mimeType, size, isPrimary, createdAt
+        await this.query(`INSERT INTO ${Photo} (
+        id, constructionOpportunityId, originalName, storedName, relativePath, thumbnailRelativePath,
+        mimeType, size, isPrimary, createdAt
       ) VALUES (
-        :id, :constructionOpportunityId, :originalName, :storedName, :relativePath, :mimeType, :size, :isPrimary, :createdAt
+        :id, :constructionOpportunityId, :originalName, :storedName, :relativePath, :thumbnailRelativePath,
+        :mimeType, :size, :isPrimary, :createdAt
       )`, {
             replacements: {
                 id,
@@ -380,6 +432,7 @@ export class SequelizeConstructionOpportunityRepository {
                 originalName: input.originalName,
                 storedName: input.storedName,
                 relativePath: input.relativePath,
+                thumbnailRelativePath: input.thumbnailRelativePath ?? null,
                 mimeType: input.mimeType,
                 size: input.size,
                 isPrimary: input.isPrimary ? 1 : 0,
@@ -394,19 +447,19 @@ export class SequelizeConstructionOpportunityRepository {
         return photo;
     }
     async deletePhoto(constructionOpportunityId, photoId) {
-        await this.sequelize.query(`DELETE FROM ConstructionOpportunityPhoto WHERE constructionOpportunityId = :constructionOpportunityId AND id = :photoId`, {
+        await this.query(`DELETE FROM ${Photo} WHERE constructionOpportunityId = :constructionOpportunityId AND id = :photoId`, {
             replacements: { constructionOpportunityId, photoId },
             type: QueryTypes.DELETE,
         });
     }
     async setPrimaryPhoto(constructionOpportunityId, photoId) {
         await this.sequelize.transaction(async (transaction) => {
-            await this.sequelize.query(`UPDATE ConstructionOpportunityPhoto SET isPrimary = 0 WHERE constructionOpportunityId = :constructionOpportunityId`, {
+            await this.query(`UPDATE ${Photo} SET isPrimary = 0 WHERE constructionOpportunityId = :constructionOpportunityId`, {
                 replacements: { constructionOpportunityId },
                 type: QueryTypes.UPDATE,
                 transaction,
             });
-            await this.sequelize.query(`UPDATE ConstructionOpportunityPhoto SET isPrimary = 1 WHERE constructionOpportunityId = :constructionOpportunityId AND id = :photoId`, {
+            await this.query(`UPDATE ${Photo} SET isPrimary = 1 WHERE constructionOpportunityId = :constructionOpportunityId AND id = :photoId`, {
                 replacements: { constructionOpportunityId, photoId },
                 type: QueryTypes.UPDATE,
                 transaction,
@@ -416,7 +469,7 @@ export class SequelizeConstructionOpportunityRepository {
     async createHistory(constructionOpportunityId, input) {
         const id = randomUUID();
         const createdAt = new Date();
-        await this.sequelize.query(`INSERT INTO ConstructionOpportunityHistory (
+        await this.query(`INSERT INTO ${Hist} (
         id, constructionOpportunityId, action, previousValue, newValue, description, createdAt
       ) VALUES (
         :id, :constructionOpportunityId, :action, :previousValue, :newValue, :description, :createdAt
@@ -435,11 +488,11 @@ export class SequelizeConstructionOpportunityRepository {
         return { id, constructionOpportunityId, createdAt, ...input };
     }
     async findHistoryByOpportunityId(constructionOpportunityId) {
-        const rows = await this.sequelize.query(`SELECT * FROM ConstructionOpportunityHistory WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY createdAt DESC`, { replacements: { constructionOpportunityId }, type: QueryTypes.SELECT });
+        const rows = await this.query(`SELECT * FROM ${Hist} WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY createdAt DESC`, { replacements: { constructionOpportunityId }, type: QueryTypes.SELECT });
         return rows.map(mapHistoryRow);
     }
     async findLatestHistoryByOpportunityId(constructionOpportunityId) {
-        const rows = await this.sequelize.query(`SELECT TOP 1 * FROM ConstructionOpportunityHistory WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY createdAt DESC`, { replacements: { constructionOpportunityId }, type: QueryTypes.SELECT });
+        const rows = await this.query(`SELECT TOP 1 * FROM ${Hist} WHERE constructionOpportunityId = :constructionOpportunityId ORDER BY createdAt DESC`, { replacements: { constructionOpportunityId }, type: QueryTypes.SELECT });
         return rows.length > 0 ? mapHistoryRow(rows[0]) : null;
     }
     groupPhotosByOpportunityId(photos) {
@@ -520,6 +573,10 @@ export class SequelizeConstructionOpportunityRepository {
         if (filters.isTest !== undefined) {
             conditions.push("isTest = :isTest");
             replacements.isTest = filters.isTest ? 1 : 0;
+        }
+        if (filters.visited !== undefined) {
+            conditions.push("visited = :visited");
+            replacements.visited = filters.visited ? 1 : 0;
         }
         if (filters.createdByUserId) {
             conditions.push("createdByUserId = :createdByUserId");

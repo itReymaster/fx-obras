@@ -45,6 +45,9 @@ export interface ConstructionOpportunityModel {
   isDeleted: boolean;
   deletedAt?: Date;
   isTest: boolean;
+  visited: boolean;
+  visitedAt?: Date;
+  visitedByUserId?: string;
   photos: Array<{
     id: string;
     originalName: string;

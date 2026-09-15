@@ -62,6 +62,9 @@ export class CreateOpportunityUseCase {
             createdByUserId: input.createdByUserId,
             updatedByUserId: input.updatedByUserId,
             isTest: input.isTest ?? false,
+            visited: input.visited ?? false,
+            visitedAt: toDate(input.visitedAt),
+            visitedByUserId: input.visitedByUserId,
         };
         return this.repository.create(createInput);
     }

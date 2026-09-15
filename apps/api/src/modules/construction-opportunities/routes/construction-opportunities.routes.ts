@@ -49,4 +49,5 @@ constructionOpportunitiesRouter.patch("/:id/photos/:photoId/primary", controller
 
 constructionOpportunitiesRouter.get("/:id/history", controller.history);
 constructionOpportunitiesRouter.patch("/:id/status", controller.updateStatus);
+constructionOpportunitiesRouter.patch("/:id/visit", controller.setVisited);
 constructionOpportunitiesRouter.post("/:id/integrations/crm", controller.integrateCrm);

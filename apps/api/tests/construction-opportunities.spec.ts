@@ -254,6 +254,47 @@ describe("construction opportunities API", () => {
     expect(response.status).toBe(204);
   });
 
+  it("marks and unmarks an opportunity as visited", async () => {
+    const created = await request(app)
+      .post("/api/v1/construction-opportunities")
+      .set("Authorization", authHeader)
+      .send({
+        title: "Visita",
+        street: "Rua V",
+        city: "Curitiba",
+        state: "PR",
+        addressSource: "MANUAL",
+      });
+
+    expect(created.body.visited).toBe(false);
+
+    const marked = await request(app)
+      .patch(`/api/v1/construction-opportunities/${created.body.id}/visit`)
+      .set("Authorization", authHeader)
+      .send({ visited: true });
+
+    expect(marked.status).toBe(200);
+    expect(marked.body.visited).toBe(true);
+
+    const listVisited = await request(app)
+      .get("/api/v1/construction-opportunities?visited=true&page=1&pageSize=20")
+      .set("Authorization", authHeader);
+    expect(listVisited.body.data.some((o: any) => o.id === created.body.id)).toBe(true);
+
+    const listNotVisited = await request(app)
+      .get("/api/v1/construction-opportunities?visited=false&page=1&pageSize=20")
+      .set("Authorization", authHeader);
+    expect(listNotVisited.body.data.some((o: any) => o.id === created.body.id)).toBe(false);
+
+    const unmarked = await request(app)
+      .patch(`/api/v1/construction-opportunities/${created.body.id}/visit`)
+      .set("Authorization", authHeader)
+      .send({ visited: false });
+
+    expect(unmarked.status).toBe(200);
+    expect(unmarked.body.visited).toBe(false);
+  });
+
   it("soft deletes opportunity", async () => {
     const created = await request(app)
       .post("/api/v1/construction-opportunities")

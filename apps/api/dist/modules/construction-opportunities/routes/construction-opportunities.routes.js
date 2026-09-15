@@ -34,4 +34,5 @@ constructionOpportunitiesRouter.delete("/:id/photos/:photoId", controller.delete
 constructionOpportunitiesRouter.patch("/:id/photos/:photoId/primary", controller.setPrimaryPhoto);
 constructionOpportunitiesRouter.get("/:id/history", controller.history);
 constructionOpportunitiesRouter.patch("/:id/status", controller.updateStatus);
+constructionOpportunitiesRouter.patch("/:id/visit", controller.setVisited);
 constructionOpportunitiesRouter.post("/:id/integrations/crm", controller.integrateCrm);

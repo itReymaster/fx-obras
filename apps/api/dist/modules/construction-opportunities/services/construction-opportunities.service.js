@@ -187,6 +187,24 @@ export class ConstructionOpportunitiesService {
             },
         });
     }
+    async setVisited(id, visited, userId) {
+        const current = await this.getById(id);
+        const visitedAt = visited ? new Date() : null;
+        await this.prisma.constructionOpportunity.update({
+            where: { id },
+            data: { visited, visitedAt, visitedByUserId: visited ? (userId ?? null) : null },
+        });
+        await this.prisma.constructionOpportunityHistory.create({
+            data: {
+                constructionOpportunityId: id,
+                action: visited ? "VISIT_MARKED" : "VISIT_UNMARKED",
+                previousValue: String(current.visited ?? false),
+                newValue: String(visited),
+                description: visited ? "Obra marcada como visitada" : "Obra marcada como não visitada",
+            },
+        });
+        return { ...current, visited, visitedAt: visitedAt ?? undefined, visitedByUserId: visited ? userId : undefined };
+    }
     async history(id) {
         await this.getById(id);
         return this.prisma.constructionOpportunityHistory.findMany({

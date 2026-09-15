@@ -21,6 +21,7 @@ export function OpportunityDetailPage() {
   const [statusDraft, setStatusDraft] = useState<string>("CAPTURED");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+  const [updatingVisit, setUpdatingVisit] = useState(false);
   const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false);
   const [audios, setAudios] = useState<OpportunityAudio[]>([]);
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
@@ -344,6 +345,19 @@ export function OpportunityDetailPage() {
     }
   };
 
+  const handleToggleVisited = async () => {
+    if (!item) return;
+    setUpdatingVisit(true);
+    try {
+      const updated = await opportunitiesApi.setVisited(item.id, !item.visited);
+      setItem({ ...item, visited: updated.visited, visitedAt: updated.visitedAt, visitedByUserId: updated.visitedByUserId });
+    } catch {
+      // mantém estado atual em caso de falha
+    } finally {
+      setUpdatingVisit(false);
+    }
+  };
+
   const toFriendlyLabel = (value: string) =>
     value
       .toLowerCase()
@@ -385,6 +399,9 @@ export function OpportunityDetailPage() {
             <div className="cluster mt-10">
               <span className="badge">{labels.status(item.status)}</span>
               <span className="badge">{labels.commercialPotential(item.commercialPotential)}</span>
+              {item.visited
+                ? <span className="badge badge-visited">✓ Visitada</span>
+                : <span className="badge badge-not-visited">Não visitada</span>}
               {item.isTest && <span className="badge-test">✨ Teste</span>}
             </div>
           </div>
@@ -415,6 +432,19 @@ export function OpportunityDetailPage() {
                 </button>
               </div>
             </div>
+            <button
+              type="button"
+              className={`btn detail-action-primary ${item.visited ? "btn-ghost" : "btn-secondary"}`}
+              onClick={handleToggleVisited}
+              disabled={updatingVisit}
+            >
+              <CheckCircle size={16} />
+              {updatingVisit
+                ? "Salvando..."
+                : item.visited
+                  ? "Marcar como não visitada"
+                  : "Marcar como visitada"}
+            </button>
             <button className="btn btn-secondary detail-action-primary" onClick={handleGeneratePdf} disabled={exportingPdf}>
               <FileText size={16} /> {exportingPdf ? "Gerando PDF..." : "Abrir PDF"}
             </button>

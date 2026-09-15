@@ -52,6 +52,9 @@ function mapPrismaToModel(prismaRecord: any): ConstructionOpportunityModel {
     isDeleted: prismaRecord.isDeleted,
     deletedAt: prismaRecord.deletedAt,
     isTest: prismaRecord.isTest,
+    visited: prismaRecord.visited ?? false,
+    visitedAt: prismaRecord.visitedAt ?? undefined,
+    visitedByUserId: prismaRecord.visitedByUserId ?? undefined,
     photos: (prismaRecord.photos || []).map((p: any) => ({
       id: p.id,
       originalName: p.originalName,
@@ -167,6 +170,9 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
         updatedByUserId: input.updatedByUserId,
         crmIntegrationStatus: "NOT_SENT",
         isTest: input.isTest || false,
+        visited: input.visited || false,
+        visitedAt: input.visitedAt,
+        visitedByUserId: input.visitedByUserId,
       },
       include: { photos: true, history: true },
     });
@@ -210,6 +216,9 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
         tags: input.tags !== undefined ? JSON.stringify(input.tags) : undefined,
         capturedAt: input.capturedAt,
         isTest: input.isTest,
+        visited: input.visited,
+        visitedAt: input.visitedAt,
+        visitedByUserId: input.visitedByUserId,
         updatedByUserId: input.updatedByUserId,
       },
       include: { photos: true, history: true },
@@ -302,6 +311,9 @@ export class ConstructionOpportunityRepository implements IConstructionOpportuni
     }
     if (query.isTest !== undefined) {
       andFilters.push({ isTest: query.isTest });
+    }
+    if (query.visited !== undefined) {
+      andFilters.push({ visited: query.visited });
     }
     if (query.createdByUserId) {
       const aliases = resolveUserAliases(query.createdByUserId);

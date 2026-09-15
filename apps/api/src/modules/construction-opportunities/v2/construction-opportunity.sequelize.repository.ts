@@ -130,6 +130,9 @@ const mapOpportunityRow = (
   isDeleted: Boolean(row.isDeleted),
   deletedAt: toOptionalDate(row.deletedAt),
   isTest: Boolean(row.isTest),
+  visited: Boolean(row.visited),
+  visitedAt: toOptionalDate(row.visitedAt),
+  visitedByUserId: row.visitedByUserId ?? undefined,
   photos: photos.map(mapPhotoRow),
   history: history.map((item) => ({
     id: item.id,
@@ -248,14 +251,16 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
         latitude, longitude, locationAccuracy, locationCapturedAt, constructionCompany, estimatedCompletionDate,
         contactName, contactCompany, contactRole, contactPhone, contactEmail, nextAction, nextActionDate,
         notes, tags, crmIntegrationStatus, crmExternalId, crmLastAttemptAt, crmIntegrationMessage,
-        capturedAt, createdByUserId, updatedByUserId, createdAt, updatedAt, deletedAt, isDeleted, isTest
+        capturedAt, createdByUserId, updatedByUserId, createdAt, updatedAt, deletedAt, isDeleted, isTest,
+        visited, visitedAt, visitedByUserId
       ) VALUES (
         :id, :code, :title, :description, :constructionType, :constructionStage, :commercialPotential, :status,
         :addressSource, :postalCode, :street, :number, :withoutNumber, :complement, :district, :city, :state,
         :latitude, :longitude, :locationAccuracy, :locationCapturedAt, :constructionCompany, :estimatedCompletionDate,
         :contactName, :contactCompany, :contactRole, :contactPhone, :contactEmail, :nextAction, :nextActionDate,
         :notes, :tags, :crmIntegrationStatus, :crmExternalId, :crmLastAttemptAt, :crmIntegrationMessage,
-        :capturedAt, :createdByUserId, :updatedByUserId, :createdAt, :updatedAt, :deletedAt, :isDeleted, :isTest
+        :capturedAt, :createdByUserId, :updatedByUserId, :createdAt, :updatedAt, :deletedAt, :isDeleted, :isTest,
+        :visited, :visitedAt, :visitedByUserId
       )`,
       {
         replacements: {
@@ -303,6 +308,9 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
           deletedAt: null,
           isDeleted: 0,
           isTest: input.isTest ? 1 : 0,
+          visited: input.visited ? 1 : 0,
+          visitedAt: input.visitedAt ?? null,
+          visitedByUserId: input.visitedByUserId ?? null,
         },
         type: QueryTypes.INSERT,
       },
@@ -362,6 +370,9 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     }
     push("capturedAt", "capturedAt");
     push("isTest", "isTest", (value) => (value ? 1 : 0));
+    push("visited", "visited", (value) => (value ? 1 : 0));
+    push("visitedAt", "visitedAt");
+    push("visitedByUserId", "visitedByUserId");
     push("updatedByUserId", "updatedByUserId");
 
     // Campos CRM (usados por sendToCrm; nao entram no UpdateOpportunityInput tipado)
@@ -729,6 +740,7 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     hasContact?: boolean;
     hasNextAction?: boolean;
     isTest?: boolean;
+    visited?: boolean;
     createdByUserId?: string;
   }) {
     const conditions: string[] = ["isDeleted = 0"];
@@ -783,6 +795,10 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
     if (filters.isTest !== undefined) {
       conditions.push("isTest = :isTest");
       replacements.isTest = filters.isTest ? 1 : 0;
+    }
+    if (filters.visited !== undefined) {
+      conditions.push("visited = :visited");
+      replacements.visited = filters.visited ? 1 : 0;
     }
     if (filters.createdByUserId) {
       conditions.push("createdByUserId = :createdByUserId");

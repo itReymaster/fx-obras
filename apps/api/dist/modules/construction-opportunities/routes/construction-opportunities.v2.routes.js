@@ -4,13 +4,9 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import multer from "multer";
 import { env } from "../../../config/env.js";
-import { prisma } from "../../../shared/database/prisma.js";
-import { getSequelize } from "../../../shared/database/sequelize.js";
 import { AppError } from "../../../shared/errors/app-error.js";
 import { ConstructionOpportunitiesController } from "../controllers/construction-opportunities.controller.js";
-import { ConstructionOpportunitiesService } from "../services/construction-opportunities.service.js";
-import { SequelizeConstructionOpportunityRepository } from "../v2/construction-opportunity.sequelize.repository.js";
-import { ConstructionOpportunitiesV2Service } from "../v2/construction-opportunities.v2.service.js";
+import { DialectAwareOpportunitiesService } from "../v2/dialect-aware-opportunities.service.js";
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: env.maxPhotoSizeMb * 1024 * 1024 },
@@ -44,9 +40,7 @@ const audioUpload = multer({
         callback(null, true);
     },
 });
-const service = env.sqlDialect === "mssql"
-    ? new ConstructionOpportunitiesV2Service(new SequelizeConstructionOpportunityRepository(getSequelize()))
-    : new ConstructionOpportunitiesService(prisma);
+const service = new DialectAwareOpportunitiesService();
 const controller = new ConstructionOpportunitiesController(service);
 const audioBaseRelative = `${env.uploadDir}/audio`;
 const sanitizeName = (name) => name
@@ -157,4 +151,5 @@ constructionOpportunitiesV2Router.delete("/:id/audios/:audioId", async (req, res
 });
 constructionOpportunitiesV2Router.get("/:id/history", controller.history);
 constructionOpportunitiesV2Router.patch("/:id/status", controller.updateStatus);
+constructionOpportunitiesV2Router.patch("/:id/visit", controller.setVisited);
 constructionOpportunitiesV2Router.post("/:id/integrations/crm", controller.integrateCrm);

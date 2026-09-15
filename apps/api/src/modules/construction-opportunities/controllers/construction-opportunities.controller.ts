@@ -4,6 +4,7 @@ import {
   constructionOpportunityUpdateSchema,
   listQuerySchema,
   statusUpdateSchema,
+  visitUpdateSchema,
 } from "../schemas/construction-opportunity.schemas.js";
 
 export interface ConstructionOpportunitiesControllerService {
@@ -18,6 +19,7 @@ export interface ConstructionOpportunitiesControllerService {
   setPrimaryPhoto(id: string, photoId: string): Promise<void>;
   history(id: string): Promise<unknown>;
   updateStatus(id: string, status: string, reason?: string): Promise<void>;
+  setVisited?(id: string, visited: boolean, userId?: string): Promise<unknown>;
   dashboard(includeTests?: boolean): Promise<unknown>;
   getLocations?(): Promise<unknown>;
   sendToCrm(id: string): Promise<unknown>;
@@ -107,6 +109,17 @@ export class ConstructionOpportunitiesController {
     const payload = statusUpdateSchema.parse(req.body);
     await this.service.updateStatus(asParam(req.params.id), payload.status, payload.reason);
     res.status(204).send();
+  };
+
+  setVisited = async (req: Request, res: Response) => {
+    const payload = visitUpdateSchema.parse(req.body);
+    const authenticatedUser = String(res.locals.authenticatedUser ?? "").trim() || undefined;
+    if (!this.service.setVisited) {
+      res.status(501).json({ message: "Operação não suportada." });
+      return;
+    }
+    const result = await this.service.setVisited(asParam(req.params.id), payload.visited, authenticatedUser);
+    res.json(result);
   };
 
   dashboard = async (req: Request, res: Response) => {

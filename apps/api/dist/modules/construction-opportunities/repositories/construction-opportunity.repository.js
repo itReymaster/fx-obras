@@ -38,11 +38,14 @@ function mapPrismaToModel(prismaRecord) {
         createdByUserId: prismaRecord.createdByUserId,
         updatedByUserId: prismaRecord.updatedByUserId,
         crmIntegrationStatus: prismaRecord.crmIntegrationStatus,
-        crmIntegrationError: prismaRecord.crmIntegrationError,
-        crmIntegrationTimestamp: prismaRecord.crmIntegrationTimestamp,
+        crmIntegrationError: prismaRecord.crmIntegrationMessage ?? prismaRecord.crmIntegrationError,
+        crmIntegrationTimestamp: prismaRecord.crmLastAttemptAt ?? prismaRecord.crmIntegrationTimestamp,
         isDeleted: prismaRecord.isDeleted,
         deletedAt: prismaRecord.deletedAt,
         isTest: prismaRecord.isTest,
+        visited: prismaRecord.visited ?? false,
+        visitedAt: prismaRecord.visitedAt ?? undefined,
+        visitedByUserId: prismaRecord.visitedByUserId ?? undefined,
         photos: (prismaRecord.photos || []).map((p) => ({
             id: p.id,
             originalName: p.originalName,
@@ -151,6 +154,9 @@ export class ConstructionOpportunityRepository {
                 updatedByUserId: input.updatedByUserId,
                 crmIntegrationStatus: "NOT_SENT",
                 isTest: input.isTest || false,
+                visited: input.visited || false,
+                visitedAt: input.visitedAt,
+                visitedByUserId: input.visitedByUserId,
             },
             include: { photos: true, history: true },
         });
@@ -192,6 +198,9 @@ export class ConstructionOpportunityRepository {
                 tags: input.tags !== undefined ? JSON.stringify(input.tags) : undefined,
                 capturedAt: input.capturedAt,
                 isTest: input.isTest,
+                visited: input.visited,
+                visitedAt: input.visitedAt,
+                visitedByUserId: input.visitedByUserId,
                 updatedByUserId: input.updatedByUserId,
             },
             include: { photos: true, history: true },
@@ -281,6 +290,9 @@ export class ConstructionOpportunityRepository {
         }
         if (query.isTest !== undefined) {
             andFilters.push({ isTest: query.isTest });
+        }
+        if (query.visited !== undefined) {
+            andFilters.push({ visited: query.visited });
         }
         if (query.createdByUserId) {
             const aliases = resolveUserAliases(query.createdByUserId);

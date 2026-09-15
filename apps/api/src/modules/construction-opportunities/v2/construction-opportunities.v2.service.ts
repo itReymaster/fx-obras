@@ -177,6 +177,23 @@ export class ConstructionOpportunitiesV2Service {
     });
   }
 
+  async setVisited(id: string, visited: boolean, userId?: string) {
+    const current = await this.getById(id);
+    const visitedAt = visited ? new Date() : null;
+    await this.repository.update(id, {
+      visited,
+      visitedAt,
+      visitedByUserId: visited ? (userId ?? null) : null,
+    } as any);
+    await this.repository.createHistory(id, {
+      action: visited ? "VISIT_MARKED" : "VISIT_UNMARKED",
+      previousValue: String(current.visited ?? false),
+      newValue: String(visited),
+      description: visited ? "Obra marcada como visitada" : "Obra marcada como não visitada",
+    });
+    return { ...current, visited, visitedAt: visitedAt ?? undefined, visitedByUserId: visited ? userId : undefined };
+  }
+
   async history(id: string) {
     await this.getById(id);
     return this.repository.findHistoryByOpportunityId(id);

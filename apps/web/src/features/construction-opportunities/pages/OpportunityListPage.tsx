@@ -21,6 +21,7 @@ type LocationTuple = {
 
 export function OpportunityListPage() {
   type TestFilterMode = "real_only" | "test_only" | "all";
+  type VisitFilterMode = "all" | "visited" | "not_visited";
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [locations, setLocations] = useState<LocationTuple[]>([]);
@@ -35,6 +36,7 @@ export function OpportunityListPage() {
   const [sortBy, setSortBy] = useState("most_recent");
   const [view, setView] = useState<"cards" | "table">("cards");
   const [testFilterMode, setTestFilterMode] = useState<TestFilterMode>("real_only");
+  const [visitFilterMode, setVisitFilterMode] = useState<VisitFilterMode>("all");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [desktopFiltersOpen, setDesktopFiltersOpen] = useState(true);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 900);
@@ -101,6 +103,7 @@ export function OpportunityListPage() {
     createdByUserId?: string;
     sortBy?: string;
     testFilterMode?: TestFilterMode;
+    visitFilterMode?: VisitFilterMode;
     page?: number;
     pageSize?: number;
   }) => {
@@ -115,6 +118,7 @@ export function OpportunityListPage() {
       createdByUserId,
       sortBy,
       testFilterMode,
+      visitFilterMode,
       page,
       pageSize,
       ...overrides,
@@ -124,6 +128,11 @@ export function OpportunityListPage() {
       applied.testFilterMode === "all"
         ? undefined
         : applied.testFilterMode === "test_only";
+
+    const visitedParam =
+      applied.visitFilterMode === "all"
+        ? undefined
+        : applied.visitFilterMode === "visited";
 
     setIsLoading(true);
 
@@ -141,6 +150,7 @@ export function OpportunityListPage() {
         createdByUserId: applied.createdByUserId,
         sortBy: applied.sortBy,
         isTest: isTestParam,
+        visited: visitedParam,
       })
       .then((response) => {
         setItems(response.data);
@@ -258,7 +268,7 @@ export function OpportunityListPage() {
   };
 
   const hasActiveFilters = Boolean(
-    search || state || city || district || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only",
+    search || state || city || district || status || constructionStage || commercialPotential || createdByUserId || testFilterMode !== "real_only" || visitFilterMode !== "all",
   );
 
   const activeFiltersCount = [
@@ -271,6 +281,7 @@ export function OpportunityListPage() {
     commercialPotential,
     createdByUserId,
     testFilterMode !== "real_only" ? "testMode" : "",
+    visitFilterMode !== "all" ? "visitMode" : "",
   ].filter(Boolean).length;
 
   const paginationSummary = pagination
@@ -300,6 +311,7 @@ export function OpportunityListPage() {
       createdByUserId: "",
       sortBy: "most_recent",
       testFilterMode: "real_only" as TestFilterMode,
+      visitFilterMode: "all" as VisitFilterMode,
     };
 
     setSearch(defaults.search);
@@ -312,6 +324,7 @@ export function OpportunityListPage() {
     setCreatedByUserId(defaults.createdByUserId);
     setSortBy(defaults.sortBy);
     setTestFilterMode(defaults.testFilterMode);
+    setVisitFilterMode(defaults.visitFilterMode);
 
     load(defaults);
   };
@@ -495,6 +508,18 @@ export function OpportunityListPage() {
               </select>
             </label>
             <label className="filter-field">
+              Visita
+              <select
+                className="select"
+                value={visitFilterMode}
+                onChange={(event) => setVisitFilterMode(event.target.value as VisitFilterMode)}
+              >
+                <option value="all">Todas</option>
+                <option value="visited">Visitadas</option>
+                <option value="not_visited">Não visitadas</option>
+              </select>
+            </label>
+            <label className="filter-field">
               Ordenação
               <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
                 <option value="most_recent">Mais recentes</option>
@@ -587,6 +612,7 @@ export function OpportunityListPage() {
                 <th>Bairro</th>
                 <th>Cidade</th>
                 <th>Status</th>
+                <th>Visita</th>
                 <th>Potencial</th>
                 <th>Próxima ação</th>
                 <th>Captura</th>
@@ -602,6 +628,11 @@ export function OpportunityListPage() {
                   <td className="table-cell-district">{item.district ?? "-"}</td>
                   <td className="table-cell-city">{item.city ?? "-"}/{item.state ?? "-"}</td>
                   <td className="table-cell-status"><span className="badge">{labels.status(item.status)}</span></td>
+                  <td className="table-cell-visit">
+                    {item.visited
+                      ? <span className="badge badge-visited">✓ Visitada</span>
+                      : <span className="badge badge-not-visited">Não visitada</span>}
+                  </td>
                   <td className="table-cell-potential"><span className="badge badge-secondary">{labels.commercialPotential(item.commercialPotential)}</span></td>
                   <td className="table-cell-action" title={item.nextAction ?? undefined}>{item.nextAction ? `${item.nextAction.slice(0, 20)}...` : "-"}</td>
                   <td className="table-cell-date">{formatDate(item.capturedAt)}</td>
@@ -652,6 +683,9 @@ export function OpportunityListPage() {
                   <span className="badge">{labels.status(item.status)}</span>
                   <span className="badge">{labels.commercialPotential(item.commercialPotential)}</span>
                   <span className="badge">{labels.addressSource(item.addressSource)}</span>
+                  {item.visited
+                    ? <span className="badge badge-visited">✓ Visitada</span>
+                    : <span className="badge badge-not-visited">Não visitada</span>}
                   {item.isTest && <span className="badge-test">✨ Teste</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>

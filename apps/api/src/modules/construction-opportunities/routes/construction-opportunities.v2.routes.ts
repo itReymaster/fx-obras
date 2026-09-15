@@ -203,4 +203,5 @@ constructionOpportunitiesV2Router.delete("/:id/audios/:audioId", async (req, res
 
 constructionOpportunitiesV2Router.get("/:id/history", controller.history);
 constructionOpportunitiesV2Router.patch("/:id/status", controller.updateStatus);
+constructionOpportunitiesV2Router.patch("/:id/visit", controller.setVisited);
 constructionOpportunitiesV2Router.post("/:id/integrations/crm", controller.integrateCrm);

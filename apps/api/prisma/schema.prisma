@@ -53,6 +53,9 @@ model ConstructionOpportunity {
   deletedAt               DateTime?
   isDeleted               Boolean                @default(false)
   isTest                  Boolean                @default(false)
+  visited                 Boolean                @default(false)
+  visitedAt               DateTime?
+  visitedByUserId         String?
 
   photos                  ConstructionOpportunityPhoto[]
   history                 ConstructionOpportunityHistory[]
@@ -62,6 +65,7 @@ model ConstructionOpportunity {
   @@index([status])
   @@index([constructionType])
   @@index([capturedAt])
+  @@index([visited])
 }
 
 model ServiceProvider {

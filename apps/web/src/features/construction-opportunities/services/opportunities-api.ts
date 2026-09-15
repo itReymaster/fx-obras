@@ -106,4 +106,9 @@ export const opportunitiesApi = {
   async updateStatus(id: string, status: string, reason?: string) {
     await api.patch(`/construction-opportunities/${id}/status`, { status, reason });
   },
+
+  async setVisited(id: string, visited: boolean) {
+    const { data } = await api.patch<Opportunity>(`/construction-opportunities/${id}/visit`, { visited });
+    return data;
+  },
 };
