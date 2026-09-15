@@ -30,6 +30,9 @@ COPY package.json ./
 COPY prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 
+# Regenera o Prisma Client no estágio final para evitar client defasado por cache de camada.
+RUN npx prisma generate
+
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/docs ./src/docs
 
