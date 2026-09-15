@@ -348,11 +348,13 @@ export function OpportunityDetailPage() {
   const handleToggleVisited = async () => {
     if (!item) return;
     setUpdatingVisit(true);
+    setStatusFeedback(null);
     try {
       const updated = await opportunitiesApi.setVisited(item.id, !item.visited);
       setItem({ ...item, visited: updated.visited, visitedAt: updated.visitedAt, visitedByUserId: updated.visitedByUserId });
-    } catch {
-      // mantém estado atual em caso de falha
+      setStatusFeedback(updated.visited ? "Obra marcada como visitada." : "Obra marcada como não visitada.");
+    } catch (error: any) {
+      setStatusFeedback(error?.response?.data?.message ?? "Não foi possível atualizar a visita.");
     } finally {
       setUpdatingVisit(false);
     }

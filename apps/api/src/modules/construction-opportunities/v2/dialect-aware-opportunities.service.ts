@@ -59,6 +59,15 @@ export class DialectAwareOpportunitiesService implements ConstructionOpportuniti
   updateStatus(id: string, status: string, reason?: string) {
     return this.inner.updateStatus(id, status, reason);
   }
+  setVisited(id: string, visited: boolean, userId?: string) {
+    if (!this.inner.setVisited) {
+      throw new Error("setVisited não suportado pelo serviço ativo.");
+    }
+    return this.inner.setVisited(id, visited, userId);
+  }
+  getLocations() {
+    return this.inner.getLocations ? this.inner.getLocations() : Promise.resolve([]);
+  }
   dashboard(includeTests?: boolean) {
     return this.inner.dashboard(includeTests);
   }

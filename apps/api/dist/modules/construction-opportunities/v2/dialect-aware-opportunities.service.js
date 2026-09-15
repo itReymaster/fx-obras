@@ -50,6 +50,15 @@ export class DialectAwareOpportunitiesService {
     updateStatus(id, status, reason) {
         return this.inner.updateStatus(id, status, reason);
     }
+    setVisited(id, visited, userId) {
+        if (!this.inner.setVisited) {
+            throw new Error("setVisited não suportado pelo serviço ativo.");
+        }
+        return this.inner.setVisited(id, visited, userId);
+    }
+    getLocations() {
+        return this.inner.getLocations ? this.inner.getLocations() : Promise.resolve([]);
+    }
     dashboard(includeTests) {
         return this.inner.dashboard(includeTests);
     }
