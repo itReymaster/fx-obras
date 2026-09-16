@@ -23,8 +23,14 @@ export const errorHandler = (
   }
 
   console.error("[api] unhandled error:", error);
+  const anyErr = error as any;
   return res.status(500).json({
     message: "Internal server error",
-    debug: error instanceof Error ? error.message : String(error),
+    debug: {
+      name: anyErr?.name ?? null,
+      message: anyErr?.message ?? null,
+      code: anyErr?.code ?? null,
+      stack: typeof anyErr?.stack === "string" ? anyErr.stack.split("\n").slice(0, 5) : null,
+    },
   });
 };
