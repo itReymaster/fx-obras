@@ -165,7 +165,7 @@ jobs:
 
       - name: Construir imagens
         run: |
-          docker compose build
+          docker compose build --no-cache
 
       - name: Atualizar containers
         run: |
