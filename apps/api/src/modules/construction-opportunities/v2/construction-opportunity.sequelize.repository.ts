@@ -145,6 +145,27 @@ const mapOpportunityRow = (
 export class SequelizeConstructionOpportunityRepository implements IConstructionOpportunityRepository {
   constructor(private readonly sequelize: Sequelize) {}
 
+  /** Garante (idempotente) as colunas de visita na tabela do SQL Server; roda 1x por processo. */
+  private static visitedColumnsEnsured: Promise<void> | null = null;
+  private ensureVisitedColumns(): Promise<void> {
+    if (!SequelizeConstructionOpportunityRepository.visitedColumnsEnsured) {
+      SequelizeConstructionOpportunityRepository.visitedColumnsEnsured = (async () => {
+        const ddl = `
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('${Opp}') AND name = 'visited')
+  ALTER TABLE ${Opp} ADD visited BIT NOT NULL CONSTRAINT DF_ConstructionOpportunity_visited DEFAULT 0;
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('${Opp}') AND name = 'visitedAt')
+  ALTER TABLE ${Opp} ADD visitedAt DATETIME NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('${Opp}') AND name = 'visitedByUserId')
+  ALTER TABLE ${Opp} ADD visitedByUserId NVARCHAR(80) NULL;`;
+        await this.sequelize.query(ddl, { type: QueryTypes.RAW } as any);
+      })().catch((error) => {
+        SequelizeConstructionOpportunityRepository.visitedColumnsEnsured = null;
+        throw error;
+      });
+    }
+    return SequelizeConstructionOpportunityRepository.visitedColumnsEnsured;
+  }
+
   /** Normaliza Date nos replacements (SQL Server 2008 R2 nao aceita offset -03:00). */
   private async query<T extends object = SqlRow>(
     sql: string,
@@ -163,6 +184,7 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
   }
 
   async findById(id: string): Promise<ConstructionOpportunityModel | null> {
+    await this.ensureVisitedColumns();
     const record = await this.query<SqlRow>(
       `SELECT TOP 1 * FROM ${Opp} WHERE id = :id AND isDeleted = 0`,
       { replacements: { id }, type: QueryTypes.SELECT },
@@ -190,6 +212,7 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
   }
 
   async findAll(query: ListQueryInput): Promise<{ data: ConstructionOpportunityModel[]; totalItems: number }> {
+    await this.ensureVisitedColumns();
     const { whereSql, replacements } = this.buildWhereClause(query);
     const orderBySql = this.buildOrderBySql(query.sortBy);
     const startRow = (query.page - 1) * query.pageSize + 1;
@@ -240,6 +263,7 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
   }
 
   async create(input: CreateOpportunityRecord): Promise<ConstructionOpportunityModel> {
+    await this.ensureVisitedColumns();
     const id = randomUUID();
     const createdAt = input.capturedAt ?? new Date();
     const now = new Date();
@@ -325,6 +349,7 @@ export class SequelizeConstructionOpportunityRepository implements IConstruction
   }
 
   async update(id: string, input: UpdateOpportunityInput): Promise<ConstructionOpportunityModel> {
+    await this.ensureVisitedColumns();
     const fields: string[] = [];
     const replacements: Record<string, unknown> = { id, updatedAt: new Date() };
 
